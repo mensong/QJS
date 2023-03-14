@@ -1,0 +1,10 @@
+/Debug
+/Release
+/x64
+/TestQJS/Release
+/TestQJS/Debug
+/TestQJS/x64
+/QJS/x64
+/QJS/Debug
+/QJS/Release
+/.vs
