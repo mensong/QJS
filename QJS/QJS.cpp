@@ -3,6 +3,7 @@
 #include <map>
 #include <vector>
 #include <quickjs.h>
+#include <quickjs-libc.h>
 #include "QJS.h"
 #include "RuntimeManager.h"
 
@@ -25,16 +26,10 @@ void _DisposeContextInner(ContextHandle ctx, bool removeFromMap)
 		return;
 
 #if QJS_AUTO_FREE
-	auto itStr = _runtimeManager->_stringMap.find(ctx);
-	if (itStr != _runtimeManager->_stringMap.end())
-	{
-		for (auto it = itStr->second.begin(); it != itStr->second.end(); ++it)
-		{
-			JS_FreeCString(_FROM_CTX(ctx), *it);
-		}
-		_runtimeManager->_stringMap.erase(itStr);
-	}
+	JSRuntime* rt = JS_GetRuntime(_FROM_CTX(ctx));
+#endif
 
+#if QJS_AUTO_FREE
 	auto itValue = _runtimeManager->_valueMap.find(ctx);
 	if (itValue != _runtimeManager->_valueMap.end())
 	{
@@ -44,10 +39,6 @@ void _DisposeContextInner(ContextHandle ctx, bool removeFromMap)
 		}
 		_runtimeManager->_valueMap.erase(itValue);
 	}
-#endif
-
-#if QJS_AUTO_FREE
-	JSRuntime* rt = JS_GetRuntime(_FROM_CTX(ctx));
 #endif
 
 	JS_FreeContext(_FROM_CTX(ctx));
@@ -91,7 +82,7 @@ void _DisposeRuntimeInner(RuntimeHandle runtime, bool removeFromMap)
 #endif
 }
 
-RuntimeHandle CreateRuntime()
+RuntimeHandle NewRuntime()
 {
 	// Create a runtime. 
 	JSRuntime* runtime = NULL;
@@ -112,7 +103,7 @@ void FreeRuntime(RuntimeHandle runtime)
 	_DisposeRuntimeInner(runtime, true);
 }
 
-ContextHandle CreateContext(RuntimeHandle runtime)
+ContextHandle NewContext(RuntimeHandle runtime)
 {
 	if (runtime == NULL)
 		return NULL;
@@ -120,6 +111,9 @@ ContextHandle CreateContext(RuntimeHandle runtime)
 	// Create an execution context. 
 	JSContext* context = NULL;
 	context = JS_NewContext(_FROM_RT(runtime));
+
+	//js_init_module_std(context, "std");
+	//js_init_module_os(context, "os");
 
 #if QJS_AUTO_FREE
 	if (context)
@@ -158,14 +152,40 @@ ValueHandle GetGlobalObject(ContextHandle ctx)
 	return val;
 }
 
-ValueHandle CreateFunction(ContextHandle ctx, FN_JsFunctionCallback cb, int argc)
+static int __magicIdx = 0;
+static std::map<int, FN_JsFunctionCallback> __NewFunctionFunctions;
+static std::vector<void*> __NewFunctionUserDatas;
+static ValueHandle __GlobalMagicFunction(ContextHandle ctx, ValueHandle this_val, int argc, ValueHandle* argv, int magic)
 {
-	if (!ctx) return NULL;
-	JSValue fv = JS_NewCFunction(_FROM_CTX(ctx), (JSCFunction*)cb, NULL, argc);
+	auto itFinder = __NewFunctionFunctions.find(magic);
+	if (itFinder != __NewFunctionFunctions.end())
+	{
+		ValueHandle ret = itFinder->second(ctx, this_val, argc, argv, __NewFunctionUserDatas[magic]);
 
 #if QJS_AUTO_FREE
-	_runtimeManager->_valueMap[ctx].insert(_TO_VAL(fv));
+		//函数返回值由gc管理
+		_runtimeManager->_valueMap[ctx].erase(_TO_VAL(ret));
 #endif
+		return ret;
+	}
+
+	return JS_UNDEFINED;
+}
+ValueHandle NewFunction(ContextHandle ctx, FN_JsFunctionCallback cb, int argc, void* user_data)
+{
+	if (!ctx) return NULL;
+	JSValue fv = JS_NewCFunctionMagic(_FROM_CTX(ctx), (JSCFunctionMagic*)__GlobalMagicFunction, NULL, argc, JS_CFUNC_generic_magic, __magicIdx);
+
+	if (JS_IsFunction(_FROM_CTX(ctx), fv))
+	{
+#if QJS_AUTO_FREE
+		_runtimeManager->_valueMap[ctx].insert(_TO_VAL(fv));
+#endif
+
+		__NewFunctionFunctions.insert(std::make_pair(__magicIdx, cb));
+		__NewFunctionUserDatas.push_back(user_data);
+		__magicIdx++;
+	}
 
 	return _TO_VAL(fv);
 }
@@ -209,13 +229,7 @@ bool SetNamedJsValue(ContextHandle ctx, const char* varName, ValueHandle varValu
 	if (!parent)
 		_this = JS_GetGlobalObject(_FROM_CTX(ctx));
 
-	bool b = JS_SetPropertyStr(_FROM_CTX(ctx), _this, varName, _FROM_VAL(varValue)) == TRUE;
-
-#if QJS_AUTO_FREE
-	//varValue转交给gc管理
-	if (b)
-		_runtimeManager->_valueMap[ctx].erase(varValue);
-#endif
+	bool b = JS_SetPropertyStr(_FROM_CTX(ctx), _this, varName, JS_DupValue(_FROM_CTX(ctx), _FROM_VAL(varValue))) == TRUE;
 	
 	if (!parent)
 		JS_FreeValue(_FROM_CTX(ctx), _this);
@@ -263,13 +277,7 @@ bool SetIndexedJsValue(ContextHandle ctx, uint32_t idx, ValueHandle varValue, Va
 	if (!_this)
 		_this = JS_GetGlobalObject(_FROM_CTX(ctx));
 
-	bool b = JS_SetPropertyUint32(_FROM_CTX(ctx), _this, idx, _FROM_VAL(varValue)) == TRUE;
-
-#if QJS_AUTO_FREE
-	//varValue转交给gc管理
-	if (b)
-		_runtimeManager->_valueMap[ctx].erase(varValue);
-#endif
+	bool b = JS_SetPropertyUint32(_FROM_CTX(ctx), _this, idx, JS_DupValue(_FROM_CTX(ctx), _FROM_VAL(varValue))) == TRUE;
 
 	if (!parent)
 		JS_FreeValue(_FROM_CTX(ctx), _this);
@@ -277,7 +285,7 @@ bool SetIndexedJsValue(ContextHandle ctx, uint32_t idx, ValueHandle varValue, Va
 	return b;
 }
 
-bool DeleteIndexedJsValue(ContextHandle ctx, uint32_t idx, ValueHandle varValue, ValueHandle parent)
+bool DeleteIndexedJsValue(ContextHandle ctx, uint32_t idx, ValueHandle parent)
 {
 	JSValue _this = _FROM_VAL(parent);
 	if (!_this)
@@ -351,7 +359,18 @@ ValueHandle CallJsFunction(ContextHandle ctx, ValueHandle jsFunction, ValueHandl
 	return _TO_VAL(res);
 }
 
-ValueHandle CreateIntJsValue(ContextHandle ctx, int intValue)
+ValueHandle NewIntJsValue(ContextHandle ctx, int intValue)
+{
+	JSValue res = JS_NewInt32(_FROM_CTX(ctx), intValue);
+
+#if QJS_AUTO_FREE
+	_runtimeManager->_valueMap[ctx].insert(_TO_VAL(res));
+#endif
+
+	return _TO_VAL(res);
+}
+
+ValueHandle NewInt64JsValue(ContextHandle ctx, int64_t intValue)
 {
 	JSValue res = JS_NewInt64(_FROM_CTX(ctx), intValue);
 
@@ -362,7 +381,7 @@ ValueHandle CreateIntJsValue(ContextHandle ctx, int intValue)
 	return _TO_VAL(res);
 }
 
-ValueHandle CreateDoubleJsValue(ContextHandle ctx, double doubleValue)
+ValueHandle NewDoubleJsValue(ContextHandle ctx, double doubleValue)
 {
 	JSValue res = JS_NewFloat64(_FROM_CTX(ctx), doubleValue);
 
@@ -373,7 +392,7 @@ ValueHandle CreateDoubleJsValue(ContextHandle ctx, double doubleValue)
 	return _TO_VAL(res);
 }
 
-ValueHandle CreateStringJsValue(ContextHandle ctx, const char* stringValue)
+ValueHandle NewStringJsValue(ContextHandle ctx, const char* stringValue)
 {
 	JSValue res = JS_NewString(_FROM_CTX(ctx), stringValue);
 
@@ -384,7 +403,7 @@ ValueHandle CreateStringJsValue(ContextHandle ctx, const char* stringValue)
 	return _TO_VAL(res);
 }
 
-QJS_API ValueHandle CreateBoolJsValue(ContextHandle ctx, bool boolValue)
+QJS_API ValueHandle NewBoolJsValue(ContextHandle ctx, bool boolValue)
 {
 	JSValue res = JS_NewBool(_FROM_CTX(ctx), (int)boolValue);
 
@@ -395,7 +414,7 @@ QJS_API ValueHandle CreateBoolJsValue(ContextHandle ctx, bool boolValue)
 	return _TO_VAL(res);
 }
 
-ValueHandle CreateObjectJsValue(ContextHandle ctx)
+ValueHandle NewObjectJsValue(ContextHandle ctx)
 {
 	JSValue res = JS_NewObject(_FROM_CTX(ctx));
 
@@ -406,7 +425,7 @@ ValueHandle CreateObjectJsValue(ContextHandle ctx)
 	return _TO_VAL(res);
 }
 
-ValueHandle CreateArrayJsValue(ContextHandle ctx)
+ValueHandle NewArrayJsValue(ContextHandle ctx)
 {
 	JSValue res = JS_NewArray(_FROM_CTX(ctx));
 
@@ -417,7 +436,7 @@ ValueHandle CreateArrayJsValue(ContextHandle ctx)
 	return _TO_VAL(res);
 }
 
-ValueHandle CreateThrowJsValue(ContextHandle ctx, ValueHandle throwWhat)
+ValueHandle NewThrowJsValue(ContextHandle ctx, ValueHandle throwWhat)
 {
 	JSValue res = JS_Throw(_FROM_CTX(ctx), _FROM_VAL(throwWhat));
 
@@ -426,6 +445,25 @@ ValueHandle CreateThrowJsValue(ContextHandle ctx, ValueHandle throwWhat)
 #endif
 
 	return _TO_VAL(res);
+}
+
+ValueHandle CopyJsValue(ContextHandle ctx, ValueHandle val)
+{
+	JSValue newValue = JS_DupValue(_FROM_CTX(ctx), _FROM_VAL(val));
+
+#if QJS_AUTO_FREE
+	_runtimeManager->_valueMap[ctx].insert(_TO_VAL(newValue));
+#endif
+
+	return _TO_VAL(newValue);
+}
+
+QJS_API int64_t GetLength(ContextHandle ctx, ValueHandle obj)
+{
+	int64_t len = -1;
+	if (JS_GetPropertyLength(_FROM_CTX(ctx), &len, obj) == TRUE)
+		return len;
+	return -1;
 }
 
 void FreeValueHandle(ContextHandle ctx, ValueHandle v)
@@ -444,11 +482,12 @@ const char* JsValueToString(ContextHandle ctx, ValueHandle value, const char* de
 
 	const char* buf = JS_ToCString(_FROM_CTX(ctx), _FROM_VAL(value));
 
-#if QJS_AUTO_FREE
-	_runtimeManager->_stringMap[ctx].insert(buf);
-#endif
-
 	return buf;
+}
+
+void FreeJsValueToStringBuffer(ContextHandle ctx, const char* buff)
+{
+	JS_FreeCString(_FROM_CTX(ctx), buff);
 }
 
 int JsValueToInt(ContextHandle ctx, ValueHandle value, int defVal = 0)
@@ -458,7 +497,7 @@ int JsValueToInt(ContextHandle ctx, ValueHandle value, int defVal = 0)
 
 	int e = defVal;
 	int res = JS_ToInt32(_FROM_CTX(ctx), &e, _FROM_VAL(value));
-	if (res == TRUE)
+	if (res >= 0)
 		return e;
 	return defVal;
 }
@@ -470,7 +509,7 @@ int64_t JsValueToInt64(ContextHandle ctx, ValueHandle value, int64_t defVal = 0)
 
 	int64_t e = defVal;
 	int res = JS_ToInt64Ext(_FROM_CTX(ctx), &e, _FROM_VAL(value));
-	if (res == TRUE)
+	if (res >= 0)
 		return e;
 	return defVal;
 }
@@ -482,7 +521,7 @@ double JsValueToDouble(ContextHandle ctx, ValueHandle value, double defVal = 0.0
 
 	double e = defVal;
 	int res = JS_ToFloat64(_FROM_CTX(ctx), &e, _FROM_VAL(value));
-	if (res == TRUE)
+	if (res >= 0)
 		return e;
 	return defVal;
 }
@@ -496,7 +535,7 @@ bool JsValueToBool(ContextHandle ctx, ValueHandle value, bool defVal = false)
 	if (res == -1)
 		return defVal;
 
-	return (res == TRUE);
+	return (res > 0);
 }
 
 ValueType GetValueType(ValueHandle value)

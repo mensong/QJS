@@ -20,10 +20,6 @@ typedef void* RuntimeHandle;
 typedef void* ContextHandle;
 typedef uint64_t ValueHandle;
 
-//自定义js函数原型
-// 注意：实际参数是从1开始
-typedef ValueHandle (*FN_JsFunctionCallback)(ContextHandle ctx, ValueHandle this_val, int argc, ValueHandle* argv);
-
 //Js value类型
 enum ValueType
 {
@@ -47,13 +43,12 @@ enum ValueType
 	JS_TYPE_BIG_DECIMAL = 15,
 };
 
-
 //创建js运行时
-QJS_API RuntimeHandle CreateRuntime();
+QJS_API RuntimeHandle NewRuntime();
 //销毁js运行时
 QJS_API void FreeRuntime(RuntimeHandle runtime);
 //创建js上下文
-QJS_API ContextHandle CreateContext(RuntimeHandle runtime);
+QJS_API ContextHandle NewContext(RuntimeHandle runtime);
 //销毁js上下文
 QJS_API void FreeContext(ContextHandle ctx);
 
@@ -76,7 +71,7 @@ QJS_API ValueHandle GetIndexedJsValue(ContextHandle ctx, uint32_t idx, ValueHand
 //根据序号设置一个js变量值
 QJS_API bool SetIndexedJsValue(ContextHandle ctx, uint32_t idx, ValueHandle varValue, ValueHandle parent);
 //根据序号删除一个js变量值
-QJS_API bool DeleteIndexedJsValue(ContextHandle ctx, uint32_t idx, ValueHandle varValue, ValueHandle parent);
+QJS_API bool DeleteIndexedJsValue(ContextHandle ctx, uint32_t idx, ValueHandle parent);
 
 //JS的undefined值
 QJS_API ValueHandle TheJsUndefined();
@@ -88,30 +83,42 @@ QJS_API ValueHandle TheJsTrue();
 QJS_API ValueHandle TheJsFalse();
 //JS的exception值
 QJS_API ValueHandle TheJsException();
-//创建一个JS函数
-QJS_API ValueHandle CreateFunction(ContextHandle ctx, FN_JsFunctionCallback cb, int argc);
 //设置geter seter
 QJS_API bool DefineGetterSetter(ContextHandle ctx, ValueHandle parent, const char* propName, ValueHandle getter, ValueHandle setter);
 //int转ValueHandle
-QJS_API ValueHandle CreateIntJsValue(ContextHandle ctx, int intValue);
+QJS_API ValueHandle NewIntJsValue(ContextHandle ctx, int intValue);
+QJS_API ValueHandle NewInt64JsValue(ContextHandle ctx, int64_t intValue);
 //double转ValueHandle
-QJS_API ValueHandle CreateDoubleJsValue(ContextHandle ctx, double doubleValue);
+QJS_API ValueHandle NewDoubleJsValue(ContextHandle ctx, double doubleValue);
 //string转ValueHandle
-QJS_API ValueHandle CreateStringJsValue(ContextHandle ctx, const char* stringValue);
+QJS_API ValueHandle NewStringJsValue(ContextHandle ctx, const char* stringValue);
 //bool转ValueHandle
-QJS_API ValueHandle CreateBoolJsValue(ContextHandle ctx, bool boolValue);
+QJS_API ValueHandle NewBoolJsValue(ContextHandle ctx, bool boolValue);
 //创建一个JS Object
-QJS_API ValueHandle CreateObjectJsValue(ContextHandle ctx);
+QJS_API ValueHandle NewObjectJsValue(ContextHandle ctx);
 //创建一个JS Array
-QJS_API ValueHandle CreateArrayJsValue(ContextHandle ctx);
+QJS_API ValueHandle NewArrayJsValue(ContextHandle ctx);
 //创建一个抛出异常
-QJS_API ValueHandle CreateThrowJsValue(ContextHandle ctx, ValueHandle throwWhat);
+QJS_API ValueHandle NewThrowJsValue(ContextHandle ctx, ValueHandle throwWhat);
 
-//释放一个Create后的ValueHandle
+//复制一个Value
+QJS_API ValueHandle CopyJsValue(ContextHandle ctx, ValueHandle val);
+
+//自定义js函数原型
+typedef ValueHandle(*FN_JsFunctionCallback)(ContextHandle ctx, ValueHandle this_val, int argc, ValueHandle* argv, void* user_data);
+//创建一个JS函数
+QJS_API ValueHandle NewFunction(ContextHandle ctx, FN_JsFunctionCallback cb, int argc, void* user_data);
+
+//获得.length属性 失败返回-1
+QJS_API int64_t GetLength(ContextHandle ctx, ValueHandle obj);
+
+//手动释放一个New后的ValueHandle
 QJS_API void FreeValueHandle(ContextHandle ctx, ValueHandle v);
 
 //ValueHandle转string
 QJS_API const char* JsValueToString(ContextHandle ctx, ValueHandle value, const char* defVal/* = ""*/);
+//手动释放JsValueToString出来的字符串
+QJS_API void FreeJsValueToStringBuffer(ContextHandle ctx, const char* buff);
 //ValueHandle转int
 QJS_API int JsValueToInt(ContextHandle ctx, ValueHandle value, int defVal/* = 0*/);
 //ValueHandle转int64
@@ -160,9 +167,7 @@ private:
 public:
 	static QJS& Ins()
 	{
-		if (!s_ins)
-			s_ins = new QJS;
-		return *s_ins;
+		if (!s_ins) s_ins = new QJS; return *s_ins;
 	}
 
 	static void Rel()
@@ -206,12 +211,12 @@ public:
 		if (!hDll)
 			return;
 
-		SET_PROC(hDll, CreateRuntime);
+		SET_PROC(hDll, NewRuntime);
 		SET_PROC(hDll, FreeRuntime);
-		SET_PROC(hDll, CreateContext); 
-		SET_PROC(hDll, FreeContext); 
+		SET_PROC(hDll, NewContext);
+		SET_PROC(hDll, FreeContext);
 		SET_PROC(hDll, GetGlobalObject);
-		SET_PROC(hDll, CreateFunction); 
+		SET_PROC(hDll, NewFunction);
 		SET_PROC(hDll, DefineGetterSetter);
 		SET_PROC(hDll, GetNamedJsValue);
 		SET_PROC(hDll, SetNamedJsValue);
@@ -224,17 +229,20 @@ public:
 		SET_PROC(hDll, TheJsUndefined);
 		SET_PROC(hDll, TheJsNull);
 		SET_PROC(hDll, TheJsTrue);
-		SET_PROC(hDll, TheJsFalse); 
+		SET_PROC(hDll, TheJsFalse);
 		SET_PROC(hDll, TheJsException);
-		SET_PROC(hDll, CreateIntJsValue);
-		SET_PROC(hDll, CreateDoubleJsValue);
-		SET_PROC(hDll, CreateStringJsValue);
-		SET_PROC(hDll, CreateBoolJsValue);
-		SET_PROC(hDll, CreateObjectJsValue);
-		SET_PROC(hDll, CreateArrayJsValue); 
-		SET_PROC(hDll, CreateThrowJsValue); 
-		SET_PROC(hDll, FreeValueHandle);
+		SET_PROC(hDll, NewIntJsValue);
+		SET_PROC(hDll, NewInt64JsValue);
+		SET_PROC(hDll, NewDoubleJsValue);
+		SET_PROC(hDll, NewStringJsValue);
+		SET_PROC(hDll, NewBoolJsValue);
+		SET_PROC(hDll, NewObjectJsValue);
+		SET_PROC(hDll, NewArrayJsValue);
+		SET_PROC(hDll, NewThrowJsValue);
+		SET_PROC(hDll, FreeValueHandle); 
+		SET_PROC(hDll, CopyJsValue);
 		SET_PROC(hDll, JsValueToString);
+		SET_PROC(hDll, FreeJsValueToStringBuffer);
 		SET_PROC(hDll, JsValueToInt);
 		SET_PROC(hDll, JsValueToDouble);
 		SET_PROC(hDll, JsValueToBool);
@@ -250,20 +258,20 @@ public:
 		SET_PROC(hDll, JsValueIsBool);
 		SET_PROC(hDll, JsValueIsObject);
 		SET_PROC(hDll, JsValueIsArray);
-		SET_PROC(hDll, JsValueIsException); 
+		SET_PROC(hDll, JsValueIsException);
 		SET_PROC(hDll, JsValueIsFunction);
-		SET_PROC(hDll, GetJsLastException); 
-		SET_PROC(hDll, JsValueIsUndefined); 
+		SET_PROC(hDll, GetJsLastException);
+		SET_PROC(hDll, JsValueIsUndefined);
 		SET_PROC(hDll, JsValueIsNull);
 	}
 
 
-	DEF_PROC(CreateRuntime);
+	DEF_PROC(NewRuntime);
 	DEF_PROC(FreeRuntime);
-	DEF_PROC(CreateContext); 
-	DEF_PROC(FreeContext); 
+	DEF_PROC(NewContext);
+	DEF_PROC(FreeContext);
 	DEF_PROC(GetGlobalObject);
-	DEF_PROC(CreateFunction); 
+	DEF_PROC(NewFunction);
 	DEF_PROC(DefineGetterSetter);
 	DEF_PROC(GetNamedJsValue);
 	DEF_PROC(SetNamedJsValue);
@@ -274,19 +282,22 @@ public:
 	DEF_PROC(RunScript);
 	DEF_PROC(CallJsFunction);
 	DEF_PROC(TheJsUndefined);
-	DEF_PROC(TheJsNull); 
-	DEF_PROC(TheJsTrue); 
-	DEF_PROC(TheJsFalse); 
+	DEF_PROC(TheJsNull);
+	DEF_PROC(TheJsTrue);
+	DEF_PROC(TheJsFalse);
 	DEF_PROC(TheJsException);
-	DEF_PROC(CreateIntJsValue);
-	DEF_PROC(CreateDoubleJsValue);
-	DEF_PROC(CreateStringJsValue);
-	DEF_PROC(CreateBoolJsValue);
-	DEF_PROC(CreateObjectJsValue);
-	DEF_PROC(CreateArrayJsValue); 
-	DEF_PROC(CreateThrowJsValue);
+	DEF_PROC(NewIntJsValue);
+	DEF_PROC(NewInt64JsValue);
+	DEF_PROC(NewDoubleJsValue);
+	DEF_PROC(NewStringJsValue);
+	DEF_PROC(NewBoolJsValue);
+	DEF_PROC(NewObjectJsValue);
+	DEF_PROC(NewArrayJsValue);
+	DEF_PROC(NewThrowJsValue);
 	DEF_PROC(FreeValueHandle);
+	DEF_PROC(CopyJsValue);
 	DEF_PROC(JsValueToString);
+	DEF_PROC(FreeJsValueToStringBuffer);
 	DEF_PROC(JsValueToInt);
 	DEF_PROC(JsValueToDouble);
 	DEF_PROC(JsValueToBool);
@@ -302,10 +313,10 @@ public:
 	DEF_PROC(JsValueIsBool);
 	DEF_PROC(JsValueIsObject);
 	DEF_PROC(JsValueIsArray);
-	DEF_PROC(JsValueIsException); 
+	DEF_PROC(JsValueIsException);
 	DEF_PROC(JsValueIsFunction);
-	DEF_PROC(GetJsLastException); 
-	DEF_PROC(JsValueIsUndefined); 
+	DEF_PROC(GetJsLastException);
+	DEF_PROC(JsValueIsUndefined);
 	DEF_PROC(JsValueIsNull);
 
 	~QJS()

@@ -12,6 +12,8 @@ class CTestQJSDlg : public CDialogEx
 public:
 	CTestQJSDlg(CWnd* pParent = nullptr);	// 标准构造函数
 
+	void AppendResultText(const CString& msg, bool endl = true);
+
 // 对话框数据
 #ifdef AFX_DESIGN_TIME
 	enum { IDD = IDD_TESTQJS_DIALOG };
@@ -19,9 +21,7 @@ public:
 
 	protected:
 	virtual void DoDataExchange(CDataExchange* pDX);	// DDX/DDV 支持
-
-	void AppendResultText(const CString& msg, bool endl = true);
-
+		
 // 实现
 protected:
 	HICON m_hIcon;
