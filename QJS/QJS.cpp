@@ -161,7 +161,6 @@ static JSValue __GlobalMagicFunction(JSContext* ctx, JSValue this_val, int argc,
 	if (itFinder != __NewFunctionFunctions.end())
 	{
 		ValueHandle ret = itFinder->second(_TO_CTX(ctx), _TO_VAL(this_val), argc, (ValueHandle*)argv, __NewFunctionUserDatas[magic]);
-
 		return JS_DupValue(ctx,  _FROM_VAL(ret));
 	}
 
@@ -224,9 +223,15 @@ bool SetNamedJsValue(ContextHandle ctx, const char* varName, ValueHandle varValu
 	JSValue _this = _FROM_VAL(parent);
 	if (!parent)
 		_this = JS_GetGlobalObject(_FROM_CTX(ctx));
+		
+	bool b = JS_SetPropertyStr(_FROM_CTX(ctx), _this, varName, _FROM_VAL(varValue)) == TRUE;
 
-	bool b = JS_SetPropertyStr(_FROM_CTX(ctx), _this, varName, JS_DupValue(_FROM_CTX(ctx), _FROM_VAL(varValue))) == TRUE;
-	
+#if QJS_AUTO_FREE
+	//varValue转交给gc管理
+	if (b)
+		_runtimeManager->_valueMap[ctx].erase(varValue);
+#endif
+
 	if (!parent)
 		JS_FreeValue(_FROM_CTX(ctx), _this);
 
@@ -273,7 +278,13 @@ bool SetIndexedJsValue(ContextHandle ctx, uint32_t idx, ValueHandle varValue, Va
 	if (!_this)
 		_this = JS_GetGlobalObject(_FROM_CTX(ctx));
 
-	bool b = JS_SetPropertyUint32(_FROM_CTX(ctx), _this, idx, JS_DupValue(_FROM_CTX(ctx), _FROM_VAL(varValue))) == TRUE;
+	bool b = JS_SetPropertyUint32(_FROM_CTX(ctx), _this, idx, _FROM_VAL(varValue)) == TRUE;
+
+#if QJS_AUTO_FREE
+	//varValue转交给gc管理
+	if (b)
+		_runtimeManager->_valueMap[ctx].erase(varValue);
+#endif
 
 	if (!parent)
 		JS_FreeValue(_FROM_CTX(ctx), _this);
