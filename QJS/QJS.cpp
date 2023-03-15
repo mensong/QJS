@@ -155,18 +155,14 @@ ValueHandle GetGlobalObject(ContextHandle ctx)
 static int __magicIdx = 0;
 static std::map<int, FN_JsFunctionCallback> __NewFunctionFunctions;
 static std::vector<void*> __NewFunctionUserDatas;
-static ValueHandle __GlobalMagicFunction(ContextHandle ctx, ValueHandle this_val, int argc, ValueHandle* argv, int magic)
+static JSValue __GlobalMagicFunction(JSContext* ctx, JSValue this_val, int argc, JSValue* argv, int magic)
 {
 	auto itFinder = __NewFunctionFunctions.find(magic);
 	if (itFinder != __NewFunctionFunctions.end())
 	{
-		ValueHandle ret = itFinder->second(ctx, this_val, argc, argv, __NewFunctionUserDatas[magic]);
+		ValueHandle ret = itFinder->second(_TO_CTX(ctx), _TO_VAL(this_val), argc, (ValueHandle*)argv, __NewFunctionUserDatas[magic]);
 
-#if QJS_AUTO_FREE
-		//函数返回值由gc管理
-		_runtimeManager->_valueMap[ctx].erase(_TO_VAL(ret));
-#endif
-		return ret;
+		return JS_DupValue(ctx,  _FROM_VAL(ret));
 	}
 
 	return JS_UNDEFINED;

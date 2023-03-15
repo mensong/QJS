@@ -120,6 +120,14 @@ ValueHandle JsAlert(ContextHandle ctx, ValueHandle this_val, int argc, ValueHand
 	MessageBoxA(_this->m_hWnd, msg.c_str(), title.c_str(), 0);
 
 	auto item = qjs.NewStringJsValue(ctx, msg.c_str());
+
+	//qjs.SetNamedJsValue(ctx, "item", item, NULL);
+	//qjs.DeleteNamedJsValue(ctx, "item", NULL);
+	//qjs.DeleteNamedJsValue(ctx, "item1", NULL);
+	//auto o = qjs.NewObjectJsValue(ctx);
+	//qjs.SetNamedJsValue(ctx, "itema", item, o);
+	//qjs.DeleteNamedJsValue(ctx, "itema", o);
+
 	return item;
 }
 
@@ -133,19 +141,19 @@ ValueHandle JsPrint(ContextHandle ctx, ValueHandle this_val, int argc, ValueHand
 
 	CTestQJSDlg* _this = (CTestQJSDlg*)user_data;
 	_this->AppendResultText(qjs.Utf8ToUnicode(ss.str().c_str()));
-	return qjs.TheJsUndefined();
+	return qjs.NewStringJsValue(ctx, ss.str().c_str());
 }
 
 std::string s_str;
-ValueHandle JsGetter(ContextHandle ctx, ValueHandle this_val, int argc, ValueHandle* argv)
+ValueHandle JsGetter(ContextHandle ctx, ValueHandle this_val, int argc, ValueHandle* argv, void* user_data)
 {
 	return qjs.NewStringJsValue(ctx, s_str.c_str());
 }
-ValueHandle JsSetter(ContextHandle ctx, ValueHandle this_val, int argc, ValueHandle* argv)
+ValueHandle JsSetter(ContextHandle ctx, ValueHandle this_val, int argc, ValueHandle* argv, void* user_data)
 {
 	if (argc > 0)
 		s_str = qjs.JsValueToString(ctx, argv[0], "");
-	return qjs.CopyJsValue(ctx, this_val);
+	return this_val;
 }
 
 
@@ -170,40 +178,40 @@ void CTestQJSDlg::OnBnClickedButton1()
 	ValueHandle printFunc = qjs.NewFunction(ctx, JsPrint, -1, this);
 	b = qjs.SetNamedJsValue(ctx, "print", printFunc, NULL);
 
-	//ValueHandle bv = qjs.NewBoolJsValue(ctx, true);
-	//qjs.SetNamedJsValue(ctx, "bv", bv, NULL);
-	//
-	//ValueHandle o = qjs.NewObjectJsValue(ctx);
-	//qjs.SetNamedJsValue(ctx, "bv", bv, o);
-	//qjs.SetNamedJsValue(ctx, "o", o, NULL);
-	//	
-	//ValueHandle arr = qjs.NewArrayJsValue(ctx);
-	//ValueHandle str = qjs.NewStringJsValue(ctx, "mensong");
-	//qjs.SetIndexedJsValue(ctx, 10, str, arr);
-	//qjs.SetNamedJsValue(ctx, "arr", arr, NULL);
-	//b = qjs.JsValueIsArray(ctx, arr);
-	//auto jlen = qjs.GetNamedJsValue(ctx, "toString", arr);
-	//b = qjs.JsValueIsFunction(ctx, jlen);
-	//auto jstrToString = qjs.CallJsFunction(ctx, jlen, NULL, 0, arr);
-	//auto strToString = qjs.JsValueToString(ctx, jstrToString, "");
-	//qjs.FreeJsValueToStringBuffer(ctx, strToString);
+	ValueHandle bv = qjs.NewBoolJsValue(ctx, true);
+	qjs.SetNamedJsValue(ctx, "bv", bv, NULL);
+	
+	ValueHandle o = qjs.NewObjectJsValue(ctx);
+	qjs.SetNamedJsValue(ctx, "bv", bv, o);
+	qjs.SetNamedJsValue(ctx, "o", o, NULL);
+		
+	ValueHandle arr = qjs.NewArrayJsValue(ctx);
+	ValueHandle str = qjs.NewStringJsValue(ctx, "mensong");
+	qjs.SetIndexedJsValue(ctx, 10, str, arr);
+	qjs.SetNamedJsValue(ctx, "arr", arr, NULL);
+	b = qjs.JsValueIsArray(ctx, arr);
+	auto jlen = qjs.GetNamedJsValue(ctx, "toString", arr);
+	b = qjs.JsValueIsFunction(ctx, jlen);
+	auto jstrToString = qjs.CallJsFunction(ctx, jlen, NULL, 0, arr);
+	auto strToString = qjs.JsValueToString(ctx, jstrToString, "");
+	qjs.FreeJsValueToStringBuffer(ctx, strToString);
 
-	//auto jint = qjs.NewIntJsValue(ctx, 65536);
-	//auto intstr1 = qjs.JsValueToString(ctx, jint, "mensong");
-	//auto intstr2 = qjs.JsValueToString(ctx, jint, "mensong");
-	//auto intstr3 = qjs.JsValueToString(ctx, jint, "mensong");
-	//auto intstr4 = qjs.JsValueToString(ctx, jint, "mensong");
-	//auto intstr5 = qjs.JsValueToString(ctx, jint, "mensong");
+	auto jint = qjs.NewIntJsValue(ctx, 65536);
+	auto intstr1 = qjs.JsValueToString(ctx, jint, "mensong");
+	auto intstr2 = qjs.JsValueToString(ctx, jint, "mensong");
+	auto intstr3 = qjs.JsValueToString(ctx, jint, "mensong");
+	auto intstr4 = qjs.JsValueToString(ctx, jint, "mensong");
+	auto intstr5 = qjs.JsValueToString(ctx, jint, "mensong");
 
-	//auto getter = qjs.NewFunction(ctx, JsGetter, 0);
-	//auto setter = qjs.NewFunction(ctx, JsSetter, 1);
-	//b = qjs.DefineGetterSetter(ctx, o, "gs", getter, setter);
-	//b = qjs.DefineGetterSetter(ctx, o, "sg", getter, setter);
+	auto getter = qjs.NewFunction(ctx, JsGetter, 0, NULL);
+	auto setter = qjs.NewFunction(ctx, JsSetter, 1, NULL);
+	b = qjs.DefineGetterSetter(ctx, o, "gs", getter, setter);
+	b = qjs.DefineGetterSetter(ctx, o, "sg", getter, setter);
 
-	//auto g1 = qjs.GetGlobalObject(ctx);
-	//auto g2 = qjs.GetGlobalObject(ctx);
-	//auto g3 = qjs.GetGlobalObject(ctx);
-	//auto g4 = qjs.GetGlobalObject(ctx);
+	auto g1 = qjs.GetGlobalObject(ctx);
+	auto g2 = qjs.GetGlobalObject(ctx);
+	auto g3 = qjs.GetGlobalObject(ctx);
+	auto g4 = qjs.GetGlobalObject(ctx);
 
 	CString script;
 	m_editScript.GetWindowText(script);

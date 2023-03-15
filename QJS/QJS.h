@@ -101,9 +101,6 @@ QJS_API ValueHandle NewArrayJsValue(ContextHandle ctx);
 //创建一个抛出异常
 QJS_API ValueHandle NewThrowJsValue(ContextHandle ctx, ValueHandle throwWhat);
 
-//复制一个Value
-QJS_API ValueHandle CopyJsValue(ContextHandle ctx, ValueHandle val);
-
 //自定义js函数原型
 typedef ValueHandle(*FN_JsFunctionCallback)(ContextHandle ctx, ValueHandle this_val, int argc, ValueHandle* argv, void* user_data);
 //创建一个JS函数
@@ -239,8 +236,7 @@ public:
 		SET_PROC(hDll, NewObjectJsValue);
 		SET_PROC(hDll, NewArrayJsValue);
 		SET_PROC(hDll, NewThrowJsValue);
-		SET_PROC(hDll, FreeValueHandle); 
-		SET_PROC(hDll, CopyJsValue);
+		SET_PROC(hDll, FreeValueHandle);
 		SET_PROC(hDll, JsValueToString);
 		SET_PROC(hDll, FreeJsValueToStringBuffer);
 		SET_PROC(hDll, JsValueToInt);
@@ -295,7 +291,6 @@ public:
 	DEF_PROC(NewArrayJsValue);
 	DEF_PROC(NewThrowJsValue);
 	DEF_PROC(FreeValueHandle);
-	DEF_PROC(CopyJsValue);
 	DEF_PROC(JsValueToString);
 	DEF_PROC(FreeJsValueToStringBuffer);
 	DEF_PROC(JsValueToInt);
