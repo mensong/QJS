@@ -7,7 +7,6 @@
 #include "TestQJS.h"
 #include "TestQJSDlg.h"
 #include "afxdialogex.h"
-#include "../QJS/QJS.h"
 #include <sstream>
 
 #ifdef _DEBUG
@@ -30,24 +29,42 @@ void CTestQJSDlg::DoDataExchange(CDataExchange* pDX)
 	CDialogEx::DoDataExchange(pDX);
 	DDX_Control(pDX, IDC_EDIT1, m_editScript);
 	DDX_Control(pDX, IDC_EDIT2, m_editResult);
+	DDX_Control(pDX, IDC_EDIT_BREAKPOITS, m_editBreakpointsList);
+	DDX_Control(pDX, IDC_CHECK1, m_chkIsDebug); 
+	DDX_Control(pDX, IDC_EDIT3, m_editTestScript);
 }
 
-void CTestQJSDlg::AppendResultText(const CString& msg, bool endl)
+void CTestQJSDlg::AppendResultText(const wchar_t* msg, bool newLine)
 {
 	CString txt;
 	m_editResult.GetWindowText(txt);
-	if (endl && !txt.IsEmpty())
-		txt += "\r\n";
+	if (newLine && !txt.IsEmpty())
+		txt += _T("\r\n");
 	txt += msg;
 	m_editResult.SetWindowText(txt);
 
 	m_editResult.LineScroll(m_editResult.GetLineCount());
 }
 
+void CTestQJSDlg::AppendResultText(ContextHandle ctx, const ValueHandle& msg, bool newLine)
+{
+	AppendResultText(qjs.JsValueToString(ctx, msg, ""), newLine);
+}
+
+void CTestQJSDlg::AppendResultText(const char* msg, bool newLine)
+{
+	CString text = qjs.Utf8ToUnicode(msg);
+	AppendResultText(text, newLine);
+}
+
 BEGIN_MESSAGE_MAP(CTestQJSDlg, CDialogEx)
 	ON_WM_PAINT()
 	ON_WM_QUERYDRAGICON()
 	ON_BN_CLICKED(IDC_BUTTON1, &CTestQJSDlg::OnBnClickedButton1)
+	ON_BN_CLICKED(IDC_BUTTON2, &CTestQJSDlg::OnBnClickedButton2)
+	ON_BN_CLICKED(IDC_BUTTON3, &CTestQJSDlg::OnBnClickedButton3)
+	ON_BN_CLICKED(IDC_CHECK1, &CTestQJSDlg::OnBnClickedCheck1)
+	ON_WM_CLOSE()
 END_MESSAGE_MAP()
 
 
@@ -63,6 +80,7 @@ BOOL CTestQJSDlg::OnInitDialog()
 	SetIcon(m_hIcon, FALSE);		// 设置小图标
 
 	// TODO: 在此添加额外的初始化代码
+	m_editScript.SetLimitText(UINT_MAX);
 
 	return TRUE;  // 除非将焦点设置到控件，否则返回 TRUE
 }
@@ -103,6 +121,11 @@ HCURSOR CTestQJSDlg::OnQueryDragIcon()
 	return static_cast<HCURSOR>(m_hIcon);
 }
 
+BOOL CTestQJSDlg::PreTranslateMessage(MSG* pMsg)
+{
+	return __super::PreTranslateMessage(pMsg);
+}
+
 ValueHandle JsAlert(ContextHandle ctx, ValueHandle this_val, int argc, ValueHandle* argv, void* user_data)
 {
 	std::string msg;
@@ -121,14 +144,7 @@ ValueHandle JsAlert(ContextHandle ctx, ValueHandle this_val, int argc, ValueHand
 
 	auto item = qjs.NewStringJsValue(ctx, msg.c_str());
 
-	//qjs.SetNamedJsValue(ctx, "item", item, NULL);
-	//qjs.DeleteNamedJsValue(ctx, "item", NULL);
-	//qjs.DeleteNamedJsValue(ctx, "item1", NULL);
-	//auto o = qjs.NewObjectJsValue(ctx);
-	//qjs.SetNamedJsValue(ctx, "itema", item, o);
-	//qjs.DeleteNamedJsValue(ctx, "itema", o);
-
-	return item;
+	return qjs.NewThrowJsValue(ctx, item);
 }
 
 ValueHandle JsPrint(ContextHandle ctx, ValueHandle this_val, int argc, ValueHandle* argv, void* user_data)
@@ -156,6 +172,113 @@ ValueHandle JsSetter(ContextHandle ctx, ValueHandle this_val, int argc, ValueHan
 	return this_val;
 }
 
+void CTestQJSDlg::DebuggerLineCallback(ContextHandle ctx, uint32_t line_no, const uint8_t* pc, void* user_data)
+{
+	//MSG msg;
+	//::PeekMessage(&msg, NULL, 0, 0, PM_REMOVE);
+	//::DispatchMessage(&msg);
+	//::TranslateMessage(&msg);
+
+
+	CTestQJSDlg* _this = (CTestQJSDlg*)user_data;
+	if (!_this)
+		return;
+
+	if (_this->m_onDebugMode													//是否开启调试
+		&& (
+			_this->m_breakPoints.find(line_no) != _this->m_breakPoints.end()	//断点
+			|| (_this->m_lastBreak && _this->m_singleStepExecution)				//单步
+		)
+	)
+	{
+		CString txt;
+		if (line_no == 0)
+			txt = _T("入口点，已暂停……");
+		else
+			txt.Format(_T("运行到行号(%d)，已暂停……"), line_no);
+		_this->AppendResultText(txt, true);
+
+		_this->m_lastBreak = true;
+		_this->m_singleStepExecution = false;
+		_this->m_debugContinue = false;
+		while (!_this->m_debugContinue)
+		{
+			MSG msg;
+			while (::PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
+			{
+
+
+				//处理临时脚本
+				if (msg.message == WM_KEYDOWN && msg.wParam == VK_RETURN) 
+				{
+					switch (GetFocus()->GetDlgCtrlID())
+					{
+					case IDC_EDIT3:
+						if (ctx)
+						{
+							CString script;
+							_this->m_editTestScript.GetWindowText(script);
+							if (!script.IsEmpty())
+							{
+								ValueHandle res = qjs.GetNamedJsValue(ctx, qjs.UnicodeToUtf8(script.GetString()), qjs.GetDebuggerClosureVariables(ctx, 1));
+								_this->AppendResultText(script + _T(":"), true);
+								_this->AppendResultText(ctx, res, false);
+
+								//ValueHandle res = qjs.RunScript(ctx, qjs.UnicodeToUtf8(script.GetString()));
+								//if (!qjs.JsValueIsException(res))
+								//{
+								//	_this->AppendResultText(script + _T(":"), true);
+								//	_this->AppendResultText(ctx, res, false);
+								//}
+								//else
+								//{
+								//	ValueHandle exception = qjs.GetJsLastException(ctx);
+								//	_this->AppendResultText(script + _T(":"), true);
+								//	_this->AppendResultText(ctx, exception, false);
+								//}
+							}
+							continue;
+						}
+						break;
+					}
+				}
+				//结束处理临时脚本
+
+				::DispatchMessage(&msg);
+				::TranslateMessage(&msg);
+			}
+		}
+	}
+	else
+	{
+		_this->m_lastBreak = false;
+	}
+
+}
+
+void SplitCString(const CString& _cstr, const CString& _flag, CStringArray& _resultArray)
+{
+	CString strSrc(_cstr);
+
+	CStringArray& strResult = _resultArray;
+	CString strLeft = _T("");
+
+	int nPos = strSrc.Find(_flag);
+	while (0 <= nPos)
+	{
+		strLeft = strSrc.Left(nPos);
+		if (!strLeft.IsEmpty())
+		{
+			strResult.Add(strLeft);
+		}
+		strSrc = strSrc.Right(strSrc.GetLength() - nPos - 1);
+		nPos = strSrc.Find(_flag);
+	}
+
+	if (!strSrc.IsEmpty()) {
+		strResult.Add(strSrc);
+	}
+}
 
 void CTestQJSDlg::OnBnClickedButton1()
 {
@@ -172,11 +295,54 @@ void CTestQJSDlg::OnBnClickedButton1()
 		return;
 	}
 
+	m_onDebugMode = m_chkIsDebug.GetCheck() == TRUE;
+	if (m_onDebugMode)
+	{		
+		m_debugContinue = false;
+		m_singleStepExecution = false;
+		m_lastBreak = false;
+		qjs.SetDebuggerMode(ctx, true);
+		qjs.SetDebuggerLineCallback(ctx, DebuggerLineCallback, this);
+		
+		//生成断点
+		m_breakPoints.clear();
+		// 入口点断点
+		m_breakPoints.insert(0);
+		CString strBPList;
+		m_editBreakpointsList.GetWindowText(strBPList);
+		CStringArray arrBPList;
+		SplitCString(strBPList, _T(","), arrBPList);
+		for (size_t i = 0; i < arrBPList.GetSize(); i++)
+		{
+			m_breakPoints.insert(_ttoi(arrBPList.GetAt(i).GetString()));
+		}
+	}
+
 	ValueHandle alertFunc = qjs.NewFunction(ctx, JsAlert, 2, this);
 	bool b = qjs.SetNamedJsValue(ctx, "alert", alertFunc, NULL);
 
 	ValueHandle printFunc = qjs.NewFunction(ctx, JsPrint, -1, this);
 	b = qjs.SetNamedJsValue(ctx, "print", printFunc, NULL);
+
+	auto WScript = qjs.NewObjectJsValue(ctx);
+	qjs.SetNamedJsValue(ctx, "WScript", WScript, NULL);
+	ValueHandle echoFunc = qjs.NewFunction(ctx, JsPrint, -1, this);
+	qjs.SetNamedJsValue(ctx, "Echo", echoFunc, WScript);
+
+	auto console = qjs.NewObjectJsValue(ctx);
+	qjs.SetNamedJsValue(ctx, "console", console, NULL);
+	ValueHandle logFunc = qjs.NewFunction(ctx, JsPrint, -1, this);
+	qjs.SetNamedJsValue(ctx, "log", logFunc, console);
+
+	ValueHandle telemetryLogFunc = qjs.NewFunction(ctx, JsPrint, -1, this);
+	b = qjs.SetNamedJsValue(ctx, "telemetryLog", telemetryLogFunc, NULL);
+	
+
+#if 0
+	auto argv = qjs.NewStringJsValue(ctx, "mensong");
+	ValueHandle argvs[] = { argv, argv, argv };
+	auto ret1 = qjs.CallJsFunction(ctx, printFunc, argvs, 3, NULL);
+	qjs.SetNamedJsValue(ctx, "test_arg_to_prop", argv, NULL);
 
 	ValueHandle bv = qjs.NewBoolJsValue(ctx, true);
 	qjs.SetNamedJsValue(ctx, "bv", bv, NULL);
@@ -213,22 +379,65 @@ void CTestQJSDlg::OnBnClickedButton1()
 	auto g3 = qjs.GetGlobalObject(ctx);
 	auto g4 = qjs.GetGlobalObject(ctx);
 
+	auto date = qjs.NewDateJsValue(ctx, 1679044555000);
+	uint64_t ts = qjs.JsValueToTimestamp(ctx, date);
+#endif
+
+
 	CString script;
 	m_editScript.GetWindowText(script);
 
+	DWORD t1 = ::GetTickCount();
 	auto result = qjs.RunScript(ctx, qjs.UnicodeToUtf8(script));
+	DWORD st = ::GetTickCount() - t1;
+
 	if (!qjs.JsValueIsException(result))
 	{
-		CString text = qjs.Utf8ToUnicode(qjs.JsValueToString(ctx, result, ""));
-		AppendResultText(_T("运行成功：\n") + text);
+		AppendResultText(_T("运行成功："), true);
+		AppendResultText(ctx, result, false);
 	}
 	else
 	{
 		ValueHandle exception = qjs.GetJsLastException(ctx);
-		CString text = qjs.Utf8ToUnicode(qjs.JsValueToString(ctx, exception, ""));
-		AppendResultText(_T("运行错误：\n") + text);
+		AppendResultText(_T("运行错误："), true);
+		AppendResultText(ctx, exception, false);
 	}
+	CString timetext;
+	timetext.Format(_T("耗时:%u毫秒"), st);
+	AppendResultText(timetext, true);
 
 	qjs.FreeContext(ctx);
 	qjs.FreeRuntime(rt);
+
+}
+
+
+void CTestQJSDlg::OnBnClickedButton2()
+{
+	// TODO: 在此添加控件通知处理程序代码
+	m_debugContinue = true;
+	m_singleStepExecution = false;
+}
+
+
+void CTestQJSDlg::OnBnClickedButton3()
+{
+	// TODO: 在此添加控件通知处理程序代码
+	m_debugContinue = true;
+	m_singleStepExecution = true;
+}
+
+
+void CTestQJSDlg::OnBnClickedCheck1()
+{
+	m_onDebugMode = m_chkIsDebug.GetCheck() == TRUE;	
+}
+
+
+void CTestQJSDlg::OnClose()
+{
+	//当前正在调试时关闭窗口，则关闭调试
+	m_debugContinue = true;
+
+	CDialogEx::OnClose();
 }

@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "RuntimeManager.h"
 #include <quickjs.h>
+#include <cassert>
 
 extern void _DisposeRuntimeInner(RuntimeHandle runtime, bool removeFromMap);
 

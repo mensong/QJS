@@ -1,3 +1,18 @@
+/*
+QJS重新封装了quickjs，使得在Windows上使用更方便快捷
+注意：	//C中申请的每一个JS value只能有单一用处
+		//例如申请两个值都为“mensong”的js字符串a和b
+		//下面的写法是非法的：
+		//  ValueHandle jstr = qjs.NewStringJsValue(ctx, "mensong");
+		//  qjs.SetNamedJsValue(ctx, "a", jstr, NULL);//!!用处1
+		//  qjs.SetNamedJsValue(ctx, "b", jstr, NULL);//!!错误：用处2
+		//下面为正确的写法：
+		//  ValueHandle jstr1 = qjs.NewStringJsValue(ctx, "mensong");
+		//  qjs.SetNamedJsValue(ctx, "a", jstr1, NULL);
+		//  ValueHandle jstr2 = qjs.NewStringJsValue(ctx, "mensong");
+		//  qjs.SetNamedJsValue(ctx, "b", jstr2, NULL);
+*/
+
 #pragma once
 #ifndef _AFX
 #include <windows.h>
@@ -9,6 +24,9 @@
 #else
 #define QJS_API extern "C" __declspec(dllimport)
 #endif
+
+//是否自动释放
+#define QJS_AUTO_FREE 1
 
 #define DEF_PROC(name) \
 	decltype(::name)* name
@@ -42,6 +60,17 @@ enum ValueType
 	JS_TYPE_BIG_INT = 14,
 	JS_TYPE_BIG_DECIMAL = 15,
 };
+
+
+//将Ansi字符转换为Unicode字符串
+QJS_API const wchar_t* AnsiToUnicode(const char* multiByteStr);
+//将Unicode字符转换为Ansi字符串
+QJS_API const char* UnicodeToAnsi(const wchar_t* wideByteRet);
+//将Unicode字符转换为UTF8字符串
+QJS_API const char* UnicodeToUtf8(const wchar_t* wideByteRet);
+//将UTF8字符转换为Unicode字符串
+QJS_API const wchar_t* Utf8ToUnicode(const char* utf8ByteStr);
+
 
 //创建js运行时
 QJS_API RuntimeHandle NewRuntime();
@@ -100,6 +129,8 @@ QJS_API ValueHandle NewObjectJsValue(ContextHandle ctx);
 QJS_API ValueHandle NewArrayJsValue(ContextHandle ctx);
 //创建一个抛出异常
 QJS_API ValueHandle NewThrowJsValue(ContextHandle ctx, ValueHandle throwWhat);
+//日期转ValueHandle
+QJS_API ValueHandle NewDateJsValue(ContextHandle ctx, uint64_t ms_since_1970);
 
 //自定义js函数原型
 typedef ValueHandle(*FN_JsFunctionCallback)(ContextHandle ctx, ValueHandle this_val, int argc, ValueHandle* argv, void* user_data);
@@ -124,6 +155,9 @@ QJS_API int64_t JsValueToInt64(ContextHandle ctx, ValueHandle value, int64_t def
 QJS_API double JsValueToDouble(ContextHandle ctx, ValueHandle value, double defVal/* = 0.0*/);
 //ValueHandle转bool
 QJS_API bool JsValueToBool(ContextHandle ctx, ValueHandle value, bool defVal/* = false*/);
+//ValueHandle转timestamp
+QJS_API uint64_t JsValueToTimestamp(ContextHandle ctx, ValueHandle value);
+
 
 //获得ValueHandle的类型
 QJS_API ValueType GetValueType(ValueHandle value);
@@ -138,6 +172,7 @@ QJS_API bool JsValueIsFunction(ContextHandle ctx, ValueHandle value);
 QJS_API bool JsValueIsException(ValueHandle value);
 QJS_API bool JsValueIsUndefined(ValueHandle value);
 QJS_API bool JsValueIsNull(ValueHandle value);
+QJS_API bool JsValueIsDate(ContextHandle ctx, ValueHandle value);
 
 //获得异常
 //Most C functions can return a Javascript exception.c
@@ -146,20 +181,154 @@ QJS_API bool JsValueIsNull(ValueHandle value);
 //The actual exception object is stored in the JSContext and can be retrieved with GetException()
 QJS_API ValueHandle GetJsLastException(ContextHandle ctx);
 
-//将Ansi字符转换为Unicode字符串
-QJS_API const wchar_t* AnsiToUnicode(const char* multiByteStr);
-//将Unicode字符转换为Ansi字符串
-QJS_API const char* UnicodeToAnsi(const wchar_t* wideByteRet);
-//将Unicode字符转换为UTF8字符串
-QJS_API const char* UnicodeToUtf8(const wchar_t* wideByteRet);
-//将UTF8字符转换为Unicode字符串
-QJS_API const wchar_t* Utf8ToUnicode(const char* utf8ByteStr);
+//处理事件
+// return < 0 if exception, 
+// return 0 if no job pending, 
+// return 1 if a job was executed successfully, the context of the job is stored in 'outCurCtx'
+QJS_API int ExecutePendingJob(RuntimeHandle runtime, ContextHandle* outCurCtx);
+
+
+//开启调试模式
+QJS_API void SetDebuggerMode(ContextHandle ctx, bool onoff);
+//调试行回调
+typedef void (*FN_DebuggerLineCallback)(ContextHandle ctx, uint32_t line_no, const uint8_t* pc, void* user_data);
+//设置调试行回调
+QJS_API void SetDebuggerLineCallback(ContextHandle ctx, FN_DebuggerLineCallback cb, void* user_data);
+//获得调试时的堆栈深度
+QJS_API uint32_t GetDebuggerStackDepth(ContextHandle ctx);
+//
+QJS_API ValueHandle GetDebuggerClosureVariables(ContextHandle ctx, int stack_idx);
+
+
 
 class QJS
 {
 public:
-private:
-	static QJS* s_ins;
+	QJS()
+	{
+		hDll = LoadLibraryFromCurrentDir("QJS.dll");
+		if (!hDll)
+			return;
+
+		SET_PROC(hDll, NewRuntime);
+		SET_PROC(hDll, FreeRuntime);
+		SET_PROC(hDll, NewContext);
+		SET_PROC(hDll, FreeContext);
+		SET_PROC(hDll, GetGlobalObject);
+		SET_PROC(hDll, NewFunction);
+		SET_PROC(hDll, DefineGetterSetter);
+		SET_PROC(hDll, GetNamedJsValue);
+		SET_PROC(hDll, SetNamedJsValue);
+		SET_PROC(hDll, DeleteNamedJsValue);
+		SET_PROC(hDll, GetIndexedJsValue);
+		SET_PROC(hDll, SetIndexedJsValue);
+		SET_PROC(hDll, DeleteIndexedJsValue);
+		SET_PROC(hDll, RunScript);
+		SET_PROC(hDll, CallJsFunction);
+		SET_PROC(hDll, TheJsUndefined);
+		SET_PROC(hDll, TheJsNull);
+		SET_PROC(hDll, TheJsTrue);
+		SET_PROC(hDll, TheJsFalse);
+		SET_PROC(hDll, TheJsException);
+		SET_PROC(hDll, NewIntJsValue);
+		SET_PROC(hDll, NewInt64JsValue);
+		SET_PROC(hDll, NewDoubleJsValue);
+		SET_PROC(hDll, NewStringJsValue);
+		SET_PROC(hDll, NewBoolJsValue);
+		SET_PROC(hDll, NewObjectJsValue);
+		SET_PROC(hDll, NewArrayJsValue);
+		SET_PROC(hDll, NewThrowJsValue); 
+		SET_PROC(hDll, NewDateJsValue);
+		SET_PROC(hDll, FreeValueHandle);
+		SET_PROC(hDll, JsValueToString);
+		SET_PROC(hDll, FreeJsValueToStringBuffer);
+		SET_PROC(hDll, JsValueToInt);
+		SET_PROC(hDll, JsValueToDouble);
+		SET_PROC(hDll, JsValueToBool);
+		SET_PROC(hDll, GetValueType);
+		SET_PROC(hDll, AnsiToUnicode);
+		SET_PROC(hDll, UnicodeToAnsi);
+		SET_PROC(hDll, UnicodeToUtf8);
+		SET_PROC(hDll, Utf8ToUnicode);
+		SET_PROC(hDll, JsValueIsString);
+		SET_PROC(hDll, JsValueIsInt);
+		SET_PROC(hDll, JsValueIsNumber);
+		SET_PROC(hDll, JsValueIsDouble);
+		SET_PROC(hDll, JsValueIsBool);
+		SET_PROC(hDll, JsValueIsObject);
+		SET_PROC(hDll, JsValueIsArray);
+		SET_PROC(hDll, JsValueIsException);
+		SET_PROC(hDll, JsValueIsFunction); 
+		SET_PROC(hDll, JsValueToTimestamp);
+		SET_PROC(hDll, GetJsLastException);
+		SET_PROC(hDll, JsValueIsUndefined);
+		SET_PROC(hDll, JsValueIsNull); 
+		SET_PROC(hDll, JsValueIsDate);
+		SET_PROC(hDll, SetDebuggerMode); 
+		SET_PROC(hDll, SetDebuggerLineCallback); 
+		SET_PROC(hDll, GetDebuggerStackDepth); 
+		SET_PROC(hDll, GetDebuggerClosureVariables);
+	}
+
+
+	DEF_PROC(NewRuntime);
+	DEF_PROC(FreeRuntime);
+	DEF_PROC(NewContext);
+	DEF_PROC(FreeContext);
+	DEF_PROC(GetGlobalObject);
+	DEF_PROC(NewFunction);
+	DEF_PROC(DefineGetterSetter);
+	DEF_PROC(GetNamedJsValue);
+	DEF_PROC(SetNamedJsValue);
+	DEF_PROC(DeleteNamedJsValue);
+	DEF_PROC(GetIndexedJsValue);
+	DEF_PROC(SetIndexedJsValue);
+	DEF_PROC(DeleteIndexedJsValue);
+	DEF_PROC(RunScript);
+	DEF_PROC(CallJsFunction);
+	DEF_PROC(TheJsUndefined);
+	DEF_PROC(TheJsNull);
+	DEF_PROC(TheJsTrue);
+	DEF_PROC(TheJsFalse);
+	DEF_PROC(TheJsException);
+	DEF_PROC(NewIntJsValue);
+	DEF_PROC(NewInt64JsValue);
+	DEF_PROC(NewDoubleJsValue);
+	DEF_PROC(NewStringJsValue);
+	DEF_PROC(NewBoolJsValue);
+	DEF_PROC(NewObjectJsValue);
+	DEF_PROC(NewArrayJsValue);
+	DEF_PROC(NewThrowJsValue); 
+	DEF_PROC(NewDateJsValue);
+	DEF_PROC(FreeValueHandle);
+	DEF_PROC(JsValueToString);
+	DEF_PROC(FreeJsValueToStringBuffer);
+	DEF_PROC(JsValueToInt);
+	DEF_PROC(JsValueToDouble);
+	DEF_PROC(JsValueToBool);
+	DEF_PROC(GetValueType);
+	DEF_PROC(AnsiToUnicode);
+	DEF_PROC(UnicodeToAnsi);
+	DEF_PROC(UnicodeToUtf8);
+	DEF_PROC(Utf8ToUnicode);
+	DEF_PROC(JsValueIsString);
+	DEF_PROC(JsValueIsInt);
+	DEF_PROC(JsValueIsNumber);
+	DEF_PROC(JsValueIsDouble);
+	DEF_PROC(JsValueIsBool);
+	DEF_PROC(JsValueIsObject);
+	DEF_PROC(JsValueIsArray);
+	DEF_PROC(JsValueIsException);
+	DEF_PROC(JsValueIsFunction); 
+	DEF_PROC(JsValueToTimestamp);
+	DEF_PROC(GetJsLastException);
+	DEF_PROC(JsValueIsUndefined);
+	DEF_PROC(JsValueIsNull); 
+	DEF_PROC(JsValueIsDate);
+	DEF_PROC(SetDebuggerMode);
+	DEF_PROC(SetDebuggerLineCallback); 
+	DEF_PROC(GetDebuggerStackDepth); 
+	DEF_PROC(GetDebuggerClosureVariables);
 
 public:
 	static QJS& Ins()
@@ -200,120 +369,6 @@ public:
 		}
 		return hDll;
 	}
-
-
-	QJS()
-	{
-		hDll = LoadLibraryFromCurrentDir("QJS.dll");
-		if (!hDll)
-			return;
-
-		SET_PROC(hDll, NewRuntime);
-		SET_PROC(hDll, FreeRuntime);
-		SET_PROC(hDll, NewContext);
-		SET_PROC(hDll, FreeContext);
-		SET_PROC(hDll, GetGlobalObject);
-		SET_PROC(hDll, NewFunction);
-		SET_PROC(hDll, DefineGetterSetter);
-		SET_PROC(hDll, GetNamedJsValue);
-		SET_PROC(hDll, SetNamedJsValue);
-		SET_PROC(hDll, DeleteNamedJsValue);
-		SET_PROC(hDll, GetIndexedJsValue);
-		SET_PROC(hDll, SetIndexedJsValue);
-		SET_PROC(hDll, DeleteIndexedJsValue);
-		SET_PROC(hDll, RunScript);
-		SET_PROC(hDll, CallJsFunction);
-		SET_PROC(hDll, TheJsUndefined);
-		SET_PROC(hDll, TheJsNull);
-		SET_PROC(hDll, TheJsTrue);
-		SET_PROC(hDll, TheJsFalse);
-		SET_PROC(hDll, TheJsException);
-		SET_PROC(hDll, NewIntJsValue);
-		SET_PROC(hDll, NewInt64JsValue);
-		SET_PROC(hDll, NewDoubleJsValue);
-		SET_PROC(hDll, NewStringJsValue);
-		SET_PROC(hDll, NewBoolJsValue);
-		SET_PROC(hDll, NewObjectJsValue);
-		SET_PROC(hDll, NewArrayJsValue);
-		SET_PROC(hDll, NewThrowJsValue);
-		SET_PROC(hDll, FreeValueHandle);
-		SET_PROC(hDll, JsValueToString);
-		SET_PROC(hDll, FreeJsValueToStringBuffer);
-		SET_PROC(hDll, JsValueToInt);
-		SET_PROC(hDll, JsValueToDouble);
-		SET_PROC(hDll, JsValueToBool);
-		SET_PROC(hDll, GetValueType);
-		SET_PROC(hDll, AnsiToUnicode);
-		SET_PROC(hDll, UnicodeToAnsi);
-		SET_PROC(hDll, UnicodeToUtf8);
-		SET_PROC(hDll, Utf8ToUnicode);
-		SET_PROC(hDll, JsValueIsString);
-		SET_PROC(hDll, JsValueIsInt);
-		SET_PROC(hDll, JsValueIsNumber);
-		SET_PROC(hDll, JsValueIsDouble);
-		SET_PROC(hDll, JsValueIsBool);
-		SET_PROC(hDll, JsValueIsObject);
-		SET_PROC(hDll, JsValueIsArray);
-		SET_PROC(hDll, JsValueIsException);
-		SET_PROC(hDll, JsValueIsFunction);
-		SET_PROC(hDll, GetJsLastException);
-		SET_PROC(hDll, JsValueIsUndefined);
-		SET_PROC(hDll, JsValueIsNull);
-	}
-
-
-	DEF_PROC(NewRuntime);
-	DEF_PROC(FreeRuntime);
-	DEF_PROC(NewContext);
-	DEF_PROC(FreeContext);
-	DEF_PROC(GetGlobalObject);
-	DEF_PROC(NewFunction);
-	DEF_PROC(DefineGetterSetter);
-	DEF_PROC(GetNamedJsValue);
-	DEF_PROC(SetNamedJsValue);
-	DEF_PROC(DeleteNamedJsValue);
-	DEF_PROC(GetIndexedJsValue);
-	DEF_PROC(SetIndexedJsValue);
-	DEF_PROC(DeleteIndexedJsValue);
-	DEF_PROC(RunScript);
-	DEF_PROC(CallJsFunction);
-	DEF_PROC(TheJsUndefined);
-	DEF_PROC(TheJsNull);
-	DEF_PROC(TheJsTrue);
-	DEF_PROC(TheJsFalse);
-	DEF_PROC(TheJsException);
-	DEF_PROC(NewIntJsValue);
-	DEF_PROC(NewInt64JsValue);
-	DEF_PROC(NewDoubleJsValue);
-	DEF_PROC(NewStringJsValue);
-	DEF_PROC(NewBoolJsValue);
-	DEF_PROC(NewObjectJsValue);
-	DEF_PROC(NewArrayJsValue);
-	DEF_PROC(NewThrowJsValue);
-	DEF_PROC(FreeValueHandle);
-	DEF_PROC(JsValueToString);
-	DEF_PROC(FreeJsValueToStringBuffer);
-	DEF_PROC(JsValueToInt);
-	DEF_PROC(JsValueToDouble);
-	DEF_PROC(JsValueToBool);
-	DEF_PROC(GetValueType);
-	DEF_PROC(AnsiToUnicode);
-	DEF_PROC(UnicodeToAnsi);
-	DEF_PROC(UnicodeToUtf8);
-	DEF_PROC(Utf8ToUnicode);
-	DEF_PROC(JsValueIsString);
-	DEF_PROC(JsValueIsInt);
-	DEF_PROC(JsValueIsNumber);
-	DEF_PROC(JsValueIsDouble);
-	DEF_PROC(JsValueIsBool);
-	DEF_PROC(JsValueIsObject);
-	DEF_PROC(JsValueIsArray);
-	DEF_PROC(JsValueIsException);
-	DEF_PROC(JsValueIsFunction);
-	DEF_PROC(GetJsLastException);
-	DEF_PROC(JsValueIsUndefined);
-	DEF_PROC(JsValueIsNull);
-
 	~QJS()
 	{
 		if (hDll)
@@ -323,6 +378,8 @@ public:
 		}
 	}
 
+private:
+	static QJS* s_ins;
 	HMODULE hDll;
 };
 __declspec(selectany) QJS* QJS::s_ins = NULL;
