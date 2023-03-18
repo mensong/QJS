@@ -28,12 +28,6 @@ QJS重新封装了quickjs，使得在Windows上使用更方便快捷
 //是否自动释放
 #define QJS_AUTO_FREE 1
 
-#define DEF_PROC(name) \
-	decltype(::name)* name
-
-#define SET_PROC(hDll, name) \
-	this->name = (decltype(::name)*)::GetProcAddress(hDll, #name)
-
 typedef void* RuntimeHandle;
 typedef void* ContextHandle;
 typedef uint64_t ValueHandle;
@@ -76,10 +70,17 @@ QJS_API const wchar_t* Utf8ToUnicode(const char* utf8ByteStr);
 QJS_API RuntimeHandle NewRuntime();
 //销毁js运行时
 QJS_API void FreeRuntime(RuntimeHandle runtime);
+//get set runtime userdata
+QJS_API void SetRuntimeUserData(RuntimeHandle runtime, void* user_data);
+QJS_API void* GetRuntimeUserData(RuntimeHandle runtime);
+
 //创建js上下文
 QJS_API ContextHandle NewContext(RuntimeHandle runtime);
 //销毁js上下文
 QJS_API void FreeContext(ContextHandle ctx);
+//get set context userdata
+QJS_API void SetContextUserData(ContextHandle ctx, void* user_data);
+QJS_API void* GetContextUserData(ContextHandle ctx);
 
 //获得顶层对象
 QJS_API ValueHandle GetGlobalObject(ContextHandle ctx);
@@ -95,6 +96,8 @@ QJS_API ValueHandle GetNamedJsValue(ContextHandle ctx, const char* varName, Valu
 QJS_API bool SetNamedJsValue(ContextHandle ctx, const char* varName, ValueHandle varValue, ValueHandle parent);
 //根据名称删除一个js变量值
 QJS_API bool DeleteNamedJsValue(ContextHandle ctx, const char* varName, ValueHandle parent);
+//是否有一个名称的js变量值
+QJS_API bool HasNamedJsValue(ContextHandle ctx, const char* varName, ValueHandle parent);
 //根据序号获得一个js变量值
 QJS_API ValueHandle GetIndexedJsValue(ContextHandle ctx, uint32_t idx, ValueHandle parent);
 //根据序号设置一个js变量值
@@ -125,6 +128,9 @@ QJS_API ValueHandle NewStringJsValue(ContextHandle ctx, const char* stringValue)
 QJS_API ValueHandle NewBoolJsValue(ContextHandle ctx, bool boolValue);
 //创建一个JS Object
 QJS_API ValueHandle NewObjectJsValue(ContextHandle ctx);
+//get set object userdata
+QJS_API void SetObjectUserData(ValueHandle value, void* user_data);
+QJS_API void* GetObjectUserData(ValueHandle value);
 //创建一个JS Array
 QJS_API ValueHandle NewArrayJsValue(ContextHandle ctx);
 //创建一个抛出异常
@@ -174,6 +180,12 @@ QJS_API bool JsValueIsUndefined(ValueHandle value);
 QJS_API bool JsValueIsNull(ValueHandle value);
 QJS_API bool JsValueIsDate(ContextHandle ctx, ValueHandle value);
 
+//js value to string
+QJS_API ValueHandle JsonStringify(ContextHandle ctx, ValueHandle value);
+//json string to js value
+QJS_API ValueHandle JsonParse(ContextHandle ctx, const char* json);
+
+
 //获得异常
 //Most C functions can return a Javascript exception.c
 //It must be explicitly tested and handled by the C code.
@@ -198,11 +210,18 @@ QJS_API void SetDebuggerLineCallback(ContextHandle ctx, FN_DebuggerLineCallback 
 QJS_API uint32_t GetDebuggerStackDepth(ContextHandle ctx);
 //
 QJS_API ValueHandle GetDebuggerClosureVariables(ContextHandle ctx, int stack_idx);
+QJS_API ValueHandle GetDebuggerLocalVariables(ContextHandle ctx, int stack_idx);
 
 
 
 class QJS
 {
+#define DEF_PROC(name) \
+	decltype(::name)* name
+
+#define SET_PROC(hDll, name) \
+	this->name = (decltype(::name)*)::GetProcAddress(hDll, #name)
+
 public:
 	QJS()
 	{
@@ -211,15 +230,20 @@ public:
 			return;
 
 		SET_PROC(hDll, NewRuntime);
-		SET_PROC(hDll, FreeRuntime);
+		SET_PROC(hDll, FreeRuntime); 
+		SET_PROC(hDll, SetRuntimeUserData); 
+		SET_PROC(hDll, GetRuntimeUserData);
 		SET_PROC(hDll, NewContext);
-		SET_PROC(hDll, FreeContext);
+		SET_PROC(hDll, FreeContext); 
+		SET_PROC(hDll, SetContextUserData); 
+		SET_PROC(hDll, GetContextUserData);
 		SET_PROC(hDll, GetGlobalObject);
 		SET_PROC(hDll, NewFunction);
 		SET_PROC(hDll, DefineGetterSetter);
 		SET_PROC(hDll, GetNamedJsValue);
 		SET_PROC(hDll, SetNamedJsValue);
-		SET_PROC(hDll, DeleteNamedJsValue);
+		SET_PROC(hDll, DeleteNamedJsValue); 
+		SET_PROC(hDll, HasNamedJsValue);
 		SET_PROC(hDll, GetIndexedJsValue);
 		SET_PROC(hDll, SetIndexedJsValue);
 		SET_PROC(hDll, DeleteIndexedJsValue);
@@ -236,10 +260,12 @@ public:
 		SET_PROC(hDll, NewStringJsValue);
 		SET_PROC(hDll, NewBoolJsValue);
 		SET_PROC(hDll, NewObjectJsValue);
+		SET_PROC(hDll, SetObjectUserData);
+		SET_PROC(hDll, GetObjectUserData);
 		SET_PROC(hDll, NewArrayJsValue);
 		SET_PROC(hDll, NewThrowJsValue); 
 		SET_PROC(hDll, NewDateJsValue);
-		SET_PROC(hDll, FreeValueHandle);
+		SET_PROC(hDll, FreeValueHandle); 
 		SET_PROC(hDll, JsValueToString);
 		SET_PROC(hDll, FreeJsValueToStringBuffer);
 		SET_PROC(hDll, JsValueToInt);
@@ -263,7 +289,9 @@ public:
 		SET_PROC(hDll, GetJsLastException);
 		SET_PROC(hDll, JsValueIsUndefined);
 		SET_PROC(hDll, JsValueIsNull); 
-		SET_PROC(hDll, JsValueIsDate);
+		SET_PROC(hDll, JsValueIsDate); 
+		SET_PROC(hDll, JsonStringify); 
+		SET_PROC(hDll, JsonParse);
 		SET_PROC(hDll, SetDebuggerMode); 
 		SET_PROC(hDll, SetDebuggerLineCallback); 
 		SET_PROC(hDll, GetDebuggerStackDepth); 
@@ -272,15 +300,20 @@ public:
 
 
 	DEF_PROC(NewRuntime);
-	DEF_PROC(FreeRuntime);
+	DEF_PROC(FreeRuntime); 
+	DEF_PROC(SetRuntimeUserData); 
+	DEF_PROC(GetRuntimeUserData);
 	DEF_PROC(NewContext);
-	DEF_PROC(FreeContext);
+	DEF_PROC(FreeContext); 
+	DEF_PROC(SetContextUserData); 
+	DEF_PROC(GetContextUserData);
 	DEF_PROC(GetGlobalObject);
 	DEF_PROC(NewFunction);
 	DEF_PROC(DefineGetterSetter);
 	DEF_PROC(GetNamedJsValue);
 	DEF_PROC(SetNamedJsValue);
-	DEF_PROC(DeleteNamedJsValue);
+	DEF_PROC(DeleteNamedJsValue); 
+	DEF_PROC(HasNamedJsValue);
 	DEF_PROC(GetIndexedJsValue);
 	DEF_PROC(SetIndexedJsValue);
 	DEF_PROC(DeleteIndexedJsValue);
@@ -297,10 +330,12 @@ public:
 	DEF_PROC(NewStringJsValue);
 	DEF_PROC(NewBoolJsValue);
 	DEF_PROC(NewObjectJsValue);
+	DEF_PROC(SetObjectUserData);
+	DEF_PROC(GetObjectUserData);
 	DEF_PROC(NewArrayJsValue);
 	DEF_PROC(NewThrowJsValue); 
 	DEF_PROC(NewDateJsValue);
-	DEF_PROC(FreeValueHandle);
+	DEF_PROC(FreeValueHandle); 
 	DEF_PROC(JsValueToString);
 	DEF_PROC(FreeJsValueToStringBuffer);
 	DEF_PROC(JsValueToInt);
@@ -324,7 +359,9 @@ public:
 	DEF_PROC(GetJsLastException);
 	DEF_PROC(JsValueIsUndefined);
 	DEF_PROC(JsValueIsNull); 
-	DEF_PROC(JsValueIsDate);
+	DEF_PROC(JsValueIsDate); 
+	DEF_PROC(JsonStringify); 
+	DEF_PROC(JsonParse);
 	DEF_PROC(SetDebuggerMode);
 	DEF_PROC(SetDebuggerLineCallback); 
 	DEF_PROC(GetDebuggerStackDepth); 

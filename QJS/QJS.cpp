@@ -213,6 +213,16 @@ void FreeRuntime(RuntimeHandle runtime)
 	_DisposeRuntimeInner(runtime, true);
 }
 
+void SetRuntimeUserData(RuntimeHandle runtime, void* user_data)
+{
+	JS_SetRuntimeOpaque(_INNER_RT(runtime), user_data);
+}
+
+void* GetRuntimeUserData(RuntimeHandle runtime)
+{
+	return JS_GetRuntimeOpaque(_INNER_RT(runtime));
+}
+
 ContextHandle NewContext(RuntimeHandle runtime)
 {
 	if (runtime == NULL)
@@ -236,6 +246,16 @@ ContextHandle NewContext(RuntimeHandle runtime)
 void FreeContext(ContextHandle ctx)
 {
 	_DisposeContextInner(ctx, true);
+}
+
+void SetContextUserData(ContextHandle ctx, void* user_data)
+{
+	JS_SetContextOpaque(_INNER_CTX(ctx), user_data);
+}
+
+void* GetContextUserData(ContextHandle ctx)
+{
+	return JS_GetContextOpaque(_INNER_CTX(ctx));
 }
 
 ValueHandle GetGlobalObject(ContextHandle ctx)
@@ -370,6 +390,24 @@ bool DeleteNamedJsValue(ContextHandle ctx, const char* varName, ValueHandle pare
 		JS_FreeValue(_INNER_CTX(ctx), _this);
 
 	return res == TRUE;
+}
+
+QJS_API bool HasNamedJsValue(ContextHandle ctx, const char* varName, ValueHandle parent)
+{
+	JSValue _this = _INNER_VAL(parent);
+	if (!_this)
+		_this = JS_GetGlobalObject(_INNER_CTX(ctx));
+
+	JSValue atom = JS_NewAtom(_INNER_CTX(ctx), varName);
+
+	bool b = JS_HasProperty(_INNER_CTX(ctx), _this, atom) == TRUE;
+
+	JS_FreeAtom(_INNER_CTX(ctx), atom);
+
+	if (!parent)
+		JS_FreeValue(_INNER_CTX(ctx), _this);
+
+	return b;
 }
 
 ValueHandle GetIndexedJsValue(ContextHandle ctx, uint32_t idx, ValueHandle parent)
@@ -616,6 +654,18 @@ void FreeValueHandle(ContextHandle ctx, ValueHandle v)
 #endif
 }
 
+void SetObjectUserData(ValueHandle value, void* user_data)
+{
+	JS_SetOpaque(value, user_data);
+}
+
+void* GetObjectUserData(ValueHandle value)
+{
+	void* userdata = NULL;
+	JS_GetClassID(value, &userdata);
+	return userdata;
+}
+
 const char* JsValueToString(ContextHandle ctx, ValueHandle value, const char* defVal = "")
 {
 	if (value == NULL)
@@ -746,6 +796,28 @@ bool JsValueIsDate(ContextHandle ctx, ValueHandle value)
 	return JS_IsDate(_INNER_CTX(ctx), _INNER_VAL(value), NULL) == TRUE;
 }
 
+QJS_API ValueHandle JsonStringify(ContextHandle ctx, ValueHandle value)
+{
+	JSValue jstr = JS_JSONStringify(_INNER_CTX(ctx), value, JS_UNDEFINED, JS_UNDEFINED);
+
+#if QJS_AUTO_FREE
+	_runtimeManager->_valueMap[ctx].insert(_OUTER_VAL(jstr));
+#endif
+
+	return jstr;
+}
+
+QJS_API ValueHandle JsonParse(ContextHandle ctx, const char* json)
+{
+	JSValue obj = JS_ParseJSON2(_INNER_CTX(ctx), json, strlen(json), "<json>", JS_PARSE_JSON_EXT);
+
+#if QJS_AUTO_FREE
+	_runtimeManager->_valueMap[ctx].insert(_OUTER_VAL(obj));
+#endif
+
+	return obj;
+}
+
 bool JsValueIsFunction(ContextHandle ctx, ValueHandle value)
 {
 	return JS_IsFunction(_INNER_CTX(ctx), _INNER_VAL(value)) == TRUE;
@@ -809,6 +881,17 @@ uint32_t GetDebuggerStackDepth(ContextHandle ctx)
 ValueHandle GetDebuggerClosureVariables(ContextHandle ctx, int stack_idx)
 {
 	JSValue res = js_debugger_closure_variables(_INNER_CTX(ctx), stack_idx);
+
+#if QJS_AUTO_FREE
+	_runtimeManager->_valueMap[ctx].insert(_OUTER_VAL(res));
+#endif
+
+	return _OUTER_VAL(res);
+}
+
+ValueHandle GetDebuggerLocalVariables(ContextHandle ctx, int stack_idx)
+{
+	JSValue res = js_debugger_local_variables(_INNER_CTX(ctx), stack_idx);
 
 #if QJS_AUTO_FREE
 	_runtimeManager->_valueMap[ctx].insert(_OUTER_VAL(res));

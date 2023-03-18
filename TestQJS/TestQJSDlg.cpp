@@ -220,7 +220,7 @@ void CTestQJSDlg::DebuggerLineCallback(ContextHandle ctx, uint32_t line_no, cons
 							_this->m_editTestScript.GetWindowText(script);
 							if (!script.IsEmpty())
 							{
-								ValueHandle res = qjs.GetNamedJsValue(ctx, qjs.UnicodeToUtf8(script.GetString()), qjs.GetDebuggerClosureVariables(ctx, 1));
+								ValueHandle res = qjs.GetNamedJsValue(ctx, qjs.UnicodeToUtf8(script.GetString()), qjs.GetNamedJsValue(ctx, "foo", NULL));
 								_this->AppendResultText(script + _T(":"), true);
 								_this->AppendResultText(ctx, res, false);
 
@@ -338,7 +338,7 @@ void CTestQJSDlg::OnBnClickedButton1()
 	b = qjs.SetNamedJsValue(ctx, "telemetryLog", telemetryLogFunc, NULL);
 	
 
-#if 0
+#if 1
 	auto argv = qjs.NewStringJsValue(ctx, "mensong");
 	ValueHandle argvs[] = { argv, argv, argv };
 	auto ret1 = qjs.CallJsFunction(ctx, printFunc, argvs, 3, NULL);
@@ -350,6 +350,9 @@ void CTestQJSDlg::OnBnClickedButton1()
 	ValueHandle o = qjs.NewObjectJsValue(ctx);
 	qjs.SetNamedJsValue(ctx, "bv", bv, o);
 	qjs.SetNamedJsValue(ctx, "o", o, NULL);
+
+	qjs.SetObjectUserData(o, (void*)123);
+	auto pu = qjs.GetObjectUserData(o);
 		
 	ValueHandle arr = qjs.NewArrayJsValue(ctx);
 	ValueHandle str = qjs.NewStringJsValue(ctx, "mensong");
@@ -381,6 +384,12 @@ void CTestQJSDlg::OnBnClickedButton1()
 
 	auto date = qjs.NewDateJsValue(ctx, 1679044555000);
 	uint64_t ts = qjs.JsValueToTimestamp(ctx, date);
+
+	 auto jstr = qjs.JsonStringify(ctx, o);
+	 auto ostr = qjs.JsValueToString(ctx, jstr, "");
+	 o = qjs.JsonParse(ctx, ostr);
+	 jstr = qjs.JsonStringify(ctx, o);
+	 ostr = qjs.JsValueToString(ctx, jstr, "");
 #endif
 
 
