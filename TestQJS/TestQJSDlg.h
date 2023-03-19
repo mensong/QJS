@@ -53,6 +53,9 @@ public:
 	CEdit m_editBreakpointsList;
 	CEdit m_editTestScript;
 	CButton m_chkIsDebug;
+	CButton m_btnRun;
+	CButton m_btnContinue;
+	CButton m_btnSingleStep;
 	afx_msg void OnBnClickedCheck1();
 	afx_msg void OnClose();
 };

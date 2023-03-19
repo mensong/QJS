@@ -31,7 +31,10 @@ void CTestQJSDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_EDIT2, m_editResult);
 	DDX_Control(pDX, IDC_EDIT_BREAKPOITS, m_editBreakpointsList);
 	DDX_Control(pDX, IDC_CHECK1, m_chkIsDebug); 
-	DDX_Control(pDX, IDC_EDIT3, m_editTestScript);
+	DDX_Control(pDX, IDC_EDIT3, m_editTestScript); 
+	DDX_Control(pDX, IDC_BUTTON1, m_btnRun);
+	DDX_Control(pDX, IDC_BUTTON2, m_btnContinue);
+	DDX_Control(pDX, IDC_BUTTON3, m_btnSingleStep);
 }
 
 void CTestQJSDlg::AppendResultText(const wchar_t* msg, bool newLine)
@@ -81,6 +84,9 @@ BOOL CTestQJSDlg::OnInitDialog()
 
 	// TODO: 在此添加额外的初始化代码
 	m_editScript.SetLimitText(UINT_MAX);
+	m_btnRun.EnableWindow(TRUE);
+	m_btnContinue.EnableWindow(FALSE);
+	m_btnSingleStep.EnableWindow(FALSE);
 
 	return TRUE;  // 除非将焦点设置到控件，否则返回 TRUE
 }
@@ -198,6 +204,11 @@ void CTestQJSDlg::DebuggerLineCallback(ContextHandle ctx, uint32_t line_no, cons
 			txt.Format(_T("运行到行号(%d)，已暂停……"), line_no);
 		_this->AppendResultText(txt, true);
 
+		//int stack = qjs.GetDebuggerStackDepth(ctx);
+		 ValueHandle localVars = qjs.GetDebuggerLocalVariables(ctx, 0);
+		 _this->AppendResultText(_T("局部变量:"), true);
+		 _this->AppendResultText(ctx, qjs.JsonStringify(ctx, localVars), false);
+
 		_this->m_lastBreak = true;
 		_this->m_singleStepExecution = false;
 		_this->m_debugContinue = false;
@@ -220,11 +231,11 @@ void CTestQJSDlg::DebuggerLineCallback(ContextHandle ctx, uint32_t line_no, cons
 							_this->m_editTestScript.GetWindowText(script);
 							if (!script.IsEmpty())
 							{
-								ValueHandle res = qjs.GetNamedJsValue(ctx, qjs.UnicodeToUtf8(script.GetString()), qjs.GetNamedJsValue(ctx, "foo", NULL));
+								ValueHandle res = qjs.GetNamedJsValue(ctx, qjs.UnicodeToUtf8(script.GetString()), localVars);
 								_this->AppendResultText(script + _T(":"), true);
 								_this->AppendResultText(ctx, res, false);
 
-								//ValueHandle res = qjs.RunScript(ctx, qjs.UnicodeToUtf8(script.GetString()));
+								//ValueHandle res = qjs.RunScript(ctx, qjs.UnicodeToUtf8(script.GetString()), NULL);
 								//if (!qjs.JsValueIsException(res))
 								//{
 								//	_this->AppendResultText(script + _T(":"), true);
@@ -236,6 +247,8 @@ void CTestQJSDlg::DebuggerLineCallback(ContextHandle ctx, uint32_t line_no, cons
 								//	_this->AppendResultText(script + _T(":"), true);
 								//	_this->AppendResultText(ctx, exception, false);
 								//}
+
+
 							}
 							continue;
 						}
@@ -295,9 +308,11 @@ void CTestQJSDlg::OnBnClickedButton1()
 		return;
 	}
 
+	m_btnRun.EnableWindow(FALSE);
+
 	m_onDebugMode = m_chkIsDebug.GetCheck() == TRUE;
 	if (m_onDebugMode)
-	{		
+	{
 		m_debugContinue = false;
 		m_singleStepExecution = false;
 		m_lastBreak = false;
@@ -316,6 +331,9 @@ void CTestQJSDlg::OnBnClickedButton1()
 		{
 			m_breakPoints.insert(_ttoi(arrBPList.GetAt(i).GetString()));
 		}
+
+		m_btnContinue.EnableWindow(TRUE);
+		m_btnSingleStep.EnableWindow(TRUE);
 	}
 
 	ValueHandle alertFunc = qjs.NewFunction(ctx, JsAlert, 2, this);
@@ -338,7 +356,7 @@ void CTestQJSDlg::OnBnClickedButton1()
 	b = qjs.SetNamedJsValue(ctx, "telemetryLog", telemetryLogFunc, NULL);
 	
 
-#if 1
+#if 0
 	auto argv = qjs.NewStringJsValue(ctx, "mensong");
 	ValueHandle argvs[] = { argv, argv, argv };
 	auto ret1 = qjs.CallJsFunction(ctx, printFunc, argvs, 3, NULL);
@@ -397,7 +415,7 @@ void CTestQJSDlg::OnBnClickedButton1()
 	m_editScript.GetWindowText(script);
 
 	DWORD t1 = ::GetTickCount();
-	auto result = qjs.RunScript(ctx, qjs.UnicodeToUtf8(script));
+	auto result = qjs.RunScript(ctx, qjs.UnicodeToUtf8(script), NULL);
 	DWORD st = ::GetTickCount() - t1;
 
 	if (!qjs.JsValueIsException(result))
@@ -418,6 +436,9 @@ void CTestQJSDlg::OnBnClickedButton1()
 	qjs.FreeContext(ctx);
 	qjs.FreeRuntime(rt);
 
+	m_btnRun.EnableWindow(TRUE);
+	m_btnContinue.EnableWindow(FALSE);
+	m_btnSingleStep.EnableWindow(FALSE);
 }
 
 

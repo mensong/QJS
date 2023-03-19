@@ -489,9 +489,13 @@ ValueHandle TheJsException()
 	return _OUTER_VAL(JS_EXCEPTION);
 }
 
-ValueHandle RunScript(ContextHandle ctx, const char* script)
+ValueHandle RunScript(ContextHandle ctx, const char* script, ValueHandle parent)
 {
-	JSValue jsRes = JS_Eval(_INNER_CTX(ctx), script, strlen(script), "<eval>", 0);
+	JSValue jsRes = JS_UNDEFINED;
+	if (!parent)
+		jsRes = JS_Eval(_INNER_CTX(ctx), script, strlen(script), "<eval>", 0);
+	else
+		jsRes = JS_EvalThis(_INNER_CTX(ctx), _INNER_VAL(parent), script, strlen(script), "<eval>", 0);
 
 #if QJS_AUTO_FREE
 	_runtimeManager->_valueMap[ctx].insert(_OUTER_VAL(jsRes));
