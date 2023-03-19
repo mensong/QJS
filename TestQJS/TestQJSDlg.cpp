@@ -199,14 +199,14 @@ void CTestQJSDlg::DebuggerLineCallback(ContextHandle ctx, uint32_t line_no, cons
 	{
 		CString txt;
 		if (line_no == 0)
-			txt = _T("入口点，已暂停……");
+			txt = _T("(DEBUG)入口点，已暂停……");
 		else
-			txt.Format(_T("运行到行号(%d)，已暂停……"), line_no);
+			txt.Format(_T("(DEBUG)运行到行号(%d)，已暂停……"), line_no);
 		_this->AppendResultText(txt, true);
 
 		//int stack = qjs.GetDebuggerStackDepth(ctx);
 		 ValueHandle localVars = qjs.GetDebuggerLocalVariables(ctx, 0);
-		 _this->AppendResultText(_T("局部变量:"), true);
+		 _this->AppendResultText(_T("(DEBUG)局部变量:"), true);
 		 _this->AppendResultText(ctx, qjs.JsonStringify(ctx, localVars), false);
 
 		_this->m_lastBreak = true;
@@ -229,10 +229,11 @@ void CTestQJSDlg::DebuggerLineCallback(ContextHandle ctx, uint32_t line_no, cons
 						{
 							CString script;
 							_this->m_editTestScript.GetWindowText(script);
+							_this->m_editTestScript.SetSel(0, script.GetLength());
 							if (!script.IsEmpty())
 							{
 								ValueHandle res = qjs.GetNamedJsValue(ctx, qjs.UnicodeToUtf8(script.GetString()), localVars);
-								_this->AppendResultText(script + _T(":"), true);
+								_this->AppendResultText(_T("(DEBUG)") + script + _T(":"), true);
 								_this->AppendResultText(ctx, res, false);
 
 								//ValueHandle res = qjs.RunScript(ctx, qjs.UnicodeToUtf8(script.GetString()), NULL);

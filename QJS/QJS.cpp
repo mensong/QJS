@@ -31,7 +31,7 @@
 #define _INNER_VAL(val) (JSValue)val
 #define _OUTER_VAL(val) (ValueHandle)val
 
-extern RuntimeManager* _runtimeManager;
+RuntimeManager _runtimeManager;
 
 
 
@@ -135,14 +135,14 @@ void _DisposeContextInner(ContextHandle ctx, bool removeFromMap)
 		return;
 
 #if QJS_AUTO_FREE
-	auto itValue = _runtimeManager->_valueMap.find(ctx);
-	if (itValue != _runtimeManager->_valueMap.end())
+	auto itValue = _runtimeManager._valueMap.find(ctx);
+	if (itValue != _runtimeManager._valueMap.end())
 	{
 		for (auto it = itValue->second.begin(); it != itValue->second.end(); ++it)
 		{
 			JS_FreeValue(_INNER_CTX(ctx), _INNER_VAL(*it));
 		}
-		_runtimeManager->_valueMap.erase(itValue);
+		_runtimeManager._valueMap.erase(itValue);
 	}
 #endif
 
@@ -153,9 +153,9 @@ void _DisposeContextInner(ContextHandle ctx, bool removeFromMap)
 	{
 		JSRuntime* rt = JS_GetRuntime(_INNER_CTX(ctx));
 
-		auto itFinder = _runtimeManager->_contextMap.find(_OUTER_RT(rt));
-		if (itFinder != _runtimeManager->_contextMap.end())
-			_runtimeManager->_contextMap.erase(itFinder);
+		auto itFinder = _runtimeManager._contextMap.find(_OUTER_RT(rt));
+		if (itFinder != _runtimeManager._contextMap.end())
+			_runtimeManager._contextMap.erase(itFinder);
 	}
 #endif
 }
@@ -166,14 +166,14 @@ void _DisposeRuntimeInner(RuntimeHandle runtime, bool removeFromMap)
 		return;
 
 #if QJS_AUTO_FREE
-	auto itContext = _runtimeManager->_contextMap.find(runtime);
-	if (itContext != _runtimeManager->_contextMap.end())
+	auto itContext = _runtimeManager._contextMap.find(runtime);
+	if (itContext != _runtimeManager._contextMap.end())
 	{
 		for (auto it = itContext->second.begin(); it != itContext->second.end(); ++it)
 		{
 			_DisposeContextInner(*it, false);
 		}
-		_runtimeManager->_contextMap.erase(itContext);
+		_runtimeManager._contextMap.erase(itContext);
 	}
 #endif
 
@@ -182,9 +182,9 @@ void _DisposeRuntimeInner(RuntimeHandle runtime, bool removeFromMap)
 #if QJS_AUTO_FREE
 	if (removeFromMap)
 	{
-		auto itFinder = _runtimeManager->_runtimeSet.find(runtime);
-		if (itFinder != _runtimeManager->_runtimeSet.end())
-			_runtimeManager->_runtimeSet.erase(itFinder);
+		auto itFinder = _runtimeManager._runtimeSet.find(runtime);
+		if (itFinder != _runtimeManager._runtimeSet.end())
+			_runtimeManager._runtimeSet.erase(itFinder);
 	}
 #endif
 }
@@ -201,7 +201,7 @@ RuntimeHandle NewRuntime()
 #if QJS_AUTO_FREE
 	if (runtime)
 	{
-		_runtimeManager->_runtimeSet.insert(runtime);
+		_runtimeManager._runtimeSet.insert(runtime);
 	}
 #endif
 
@@ -236,7 +236,7 @@ ContextHandle NewContext(RuntimeHandle runtime)
 #if QJS_AUTO_FREE
 	if (context)
 	{
-		_runtimeManager->_contextMap[runtime].insert(_OUTER_CTX(context));
+		_runtimeManager._contextMap[runtime].insert(_OUTER_CTX(context));
 	}
 #endif
 
@@ -264,8 +264,8 @@ ValueHandle GetGlobalObject(ContextHandle ctx)
 
 #if QJS_AUTO_FREE
 	//防止调用多次GetGlobalObject出现的错误
-	auto itFinder = _runtimeManager->_valueMap.find(ctx);
-	if (itFinder != _runtimeManager->_valueMap.end())
+	auto itFinder = _runtimeManager._valueMap.find(ctx);
+	if (itFinder != _runtimeManager._valueMap.end())
 	{
 		auto it = itFinder->second.find(val);
 		if (it != itFinder->second.end())
@@ -274,7 +274,7 @@ ValueHandle GetGlobalObject(ContextHandle ctx)
 		}
 	}
 
-	_runtimeManager->_valueMap[ctx].insert(val);
+	_runtimeManager.AddValue(ctx, _OUTER_VAL(val));
 #endif
 
 	return val;
@@ -294,7 +294,7 @@ static JSValue __NewFunctionHelper(JSContext* ctx, JSValue this_val, int argc, J
 
 #if QJS_AUTO_FREE
 		//varValue转交给gc管理
-			_runtimeManager->_valueMap[ctx].erase(ret);
+			_runtimeManager._valueMap[ctx].erase(ret);
 #endif
 
 			return _INNER_VAL(ret);
@@ -313,7 +313,7 @@ ValueHandle NewFunction(ContextHandle ctx, FN_JsFunctionCallback cb, int argc, v
 	if (JS_IsFunction(_INNER_CTX(ctx), fv))
 	{
 #if QJS_AUTO_FREE
-		_runtimeManager->_valueMap[ctx].insert(_OUTER_VAL(fv));
+		_runtimeManager.AddValue(ctx, _OUTER_VAL(fv));
 #endif
 
 		__NewFunctionFunctions.insert(std::make_pair(__magicIdx, std::make_pair(cb, user_data)));
@@ -347,7 +347,7 @@ ValueHandle GetNamedJsValue(ContextHandle ctx, const char* varName, ValueHandle 
 	JSValue val = JS_GetPropertyStr(_INNER_CTX(ctx), _this, varName);
 
 #if QJS_AUTO_FREE
-	_runtimeManager->_valueMap[ctx].insert(_OUTER_VAL(val));
+	_runtimeManager.AddValue(ctx, _OUTER_VAL(val));
 #endif
 
 	if (!parent)
@@ -367,7 +367,7 @@ bool SetNamedJsValue(ContextHandle ctx, const char* varName, ValueHandle varValu
 #if QJS_AUTO_FREE
 	//varValue转交给gc管理
 	if (b)
-		_runtimeManager->_valueMap[ctx].erase(varValue);
+		_runtimeManager._valueMap[ctx].erase(varValue);
 #endif
 
 	if (!parent)
@@ -398,7 +398,7 @@ QJS_API bool HasNamedJsValue(ContextHandle ctx, const char* varName, ValueHandle
 	if (!_this)
 		_this = JS_GetGlobalObject(_INNER_CTX(ctx));
 
-	JSValue atom = JS_NewAtom(_INNER_CTX(ctx), varName);
+	JSAtom atom = JS_NewAtom(_INNER_CTX(ctx), varName);
 
 	bool b = JS_HasProperty(_INNER_CTX(ctx), _this, atom) == TRUE;
 
@@ -419,7 +419,7 @@ ValueHandle GetIndexedJsValue(ContextHandle ctx, uint32_t idx, ValueHandle paren
 	JSValue val = JS_GetPropertyUint32(_INNER_CTX(ctx), _this, idx);
 
 #if QJS_AUTO_FREE
-	_runtimeManager->_valueMap[ctx].insert(_OUTER_VAL(val));
+	_runtimeManager.AddValue(ctx, _OUTER_VAL(val));
 #endif
 
 	if (!parent)
@@ -439,7 +439,7 @@ bool SetIndexedJsValue(ContextHandle ctx, uint32_t idx, ValueHandle varValue, Va
 #if QJS_AUTO_FREE
 	//varValue转交给gc管理
 	if (b)
-		_runtimeManager->_valueMap[ctx].erase(varValue);
+		_runtimeManager._valueMap[ctx].erase(varValue);
 #endif
 
 	if (!parent)
@@ -491,17 +491,17 @@ ValueHandle TheJsException()
 
 ValueHandle RunScript(ContextHandle ctx, const char* script, ValueHandle parent)
 {
-	JSValue jsRes = JS_UNDEFINED;
+	JSValue res = JS_UNDEFINED;
 	if (!parent)
-		jsRes = JS_Eval(_INNER_CTX(ctx), script, strlen(script), "<eval>", 0);
+		res = JS_Eval(_INNER_CTX(ctx), script, strlen(script), "<eval>", 0);
 	else
-		jsRes = JS_EvalThis(_INNER_CTX(ctx), _INNER_VAL(parent), script, strlen(script), "<eval>", 0);
+		res = JS_EvalThis(_INNER_CTX(ctx), _INNER_VAL(parent), script, strlen(script), "<eval>", 0);
 
 #if QJS_AUTO_FREE
-	_runtimeManager->_valueMap[ctx].insert(_OUTER_VAL(jsRes));
+	_runtimeManager.AddValue(ctx, _OUTER_VAL(res));
 #endif
 
-	return _OUTER_VAL(jsRes);
+	return _OUTER_VAL(res);
 }
 
 ValueHandle CallJsFunction(ContextHandle ctx, ValueHandle jsFunction, ValueHandle args[], int argc, ValueHandle parent)
@@ -517,7 +517,7 @@ ValueHandle CallJsFunction(ContextHandle ctx, ValueHandle jsFunction, ValueHandl
 	JSValue res = JS_Call(_INNER_CTX(ctx), func, _this, argc, (JSValue*)args);
 
 #if QJS_AUTO_FREE
-	_runtimeManager->_valueMap[ctx].insert(_OUTER_VAL(res));
+	_runtimeManager.AddValue(ctx, _OUTER_VAL(res));
 #endif
 
 	if (!parent)
@@ -531,7 +531,7 @@ ValueHandle NewIntJsValue(ContextHandle ctx, int intValue)
 	JSValue res = JS_NewInt32(_INNER_CTX(ctx), intValue);
 
 #if QJS_AUTO_FREE
-	_runtimeManager->_valueMap[ctx].insert(_OUTER_VAL(res));
+	_runtimeManager.AddValue(ctx, _OUTER_VAL(res));
 #endif
 
 	return _OUTER_VAL(res);
@@ -542,7 +542,7 @@ ValueHandle NewInt64JsValue(ContextHandle ctx, int64_t intValue)
 	JSValue res = JS_NewInt64(_INNER_CTX(ctx), intValue);
 
 #if QJS_AUTO_FREE
-	_runtimeManager->_valueMap[ctx].insert(_OUTER_VAL(res));
+	_runtimeManager.AddValue(ctx, _OUTER_VAL(res));
 #endif
 
 	return _OUTER_VAL(res);
@@ -553,7 +553,7 @@ ValueHandle NewDoubleJsValue(ContextHandle ctx, double doubleValue)
 	JSValue res = JS_NewFloat64(_INNER_CTX(ctx), doubleValue);
 
 #if QJS_AUTO_FREE
-	_runtimeManager->_valueMap[ctx].insert(_OUTER_VAL(res));
+	_runtimeManager.AddValue(ctx, _OUTER_VAL(res));
 #endif
 
 	return _OUTER_VAL(res);
@@ -564,18 +564,18 @@ ValueHandle NewStringJsValue(ContextHandle ctx, const char* stringValue)
 	JSValue res = JS_NewString(_INNER_CTX(ctx), stringValue);
 
 #if QJS_AUTO_FREE
-	_runtimeManager->_valueMap[ctx].insert(_OUTER_VAL(res));
+	_runtimeManager.AddValue(ctx, _OUTER_VAL(res));
 #endif
 
 	return _OUTER_VAL(res);
 }
 
-QJS_API ValueHandle NewBoolJsValue(ContextHandle ctx, bool boolValue)
+ValueHandle NewBoolJsValue(ContextHandle ctx, bool boolValue)
 {
 	JSValue res = JS_NewBool(_INNER_CTX(ctx), (int)boolValue);
 
 #if QJS_AUTO_FREE
-	_runtimeManager->_valueMap[ctx].insert(_OUTER_VAL(res));
+	_runtimeManager.AddValue(ctx, _OUTER_VAL(res));
 #endif
 
 	return _OUTER_VAL(res);
@@ -586,7 +586,7 @@ ValueHandle NewObjectJsValue(ContextHandle ctx)
 	JSValue res = JS_NewObject(_INNER_CTX(ctx));
 
 #if QJS_AUTO_FREE
-	_runtimeManager->_valueMap[ctx].insert(_OUTER_VAL(res));
+	_runtimeManager.AddValue(ctx, _OUTER_VAL(res));
 #endif
 
 	return _OUTER_VAL(res);
@@ -597,7 +597,7 @@ ValueHandle NewArrayJsValue(ContextHandle ctx)
 	JSValue res = JS_NewArray(_INNER_CTX(ctx));
 
 #if QJS_AUTO_FREE
-	_runtimeManager->_valueMap[ctx].insert(_OUTER_VAL(res));
+	_runtimeManager.AddValue(ctx, _OUTER_VAL(res));
 #endif
 
 	return _OUTER_VAL(res);
@@ -609,11 +609,11 @@ ValueHandle NewThrowJsValue(ContextHandle ctx, ValueHandle throwWhat)
 
 #if QJS_AUTO_FREE
 	//throwWhat转交给gc管理
-		_runtimeManager->_valueMap[ctx].erase(throwWhat);
+	_runtimeManager._valueMap[ctx].erase(throwWhat);
 #endif
 
 #if QJS_AUTO_FREE
-	_runtimeManager->_valueMap[ctx].insert(_OUTER_VAL(res));
+	_runtimeManager.AddValue(ctx, _OUTER_VAL(res));
 #endif
 
 	return _OUTER_VAL(res);
@@ -624,7 +624,7 @@ ValueHandle NewDateJsValue(ContextHandle ctx, uint64_t ms_since_1970)
 	JSValue res = JS_NewDate(_INNER_CTX(ctx), (double)ms_since_1970);
 
 #if QJS_AUTO_FREE
-	_runtimeManager->_valueMap[ctx].insert(_OUTER_VAL(res));
+	_runtimeManager.AddValue(ctx, _OUTER_VAL(res));
 #endif
 
 	return _OUTER_VAL(res);
@@ -632,13 +632,13 @@ ValueHandle NewDateJsValue(ContextHandle ctx, uint64_t ms_since_1970)
 
 ValueHandle CopyJsValue(ContextHandle ctx, ValueHandle val)
 {
-	JSValue newValue = JS_DupValue(_INNER_CTX(ctx), _INNER_VAL(val));
+	JSValue res = JS_DupValue(_INNER_CTX(ctx), _INNER_VAL(val));
 
 #if QJS_AUTO_FREE
-	_runtimeManager->_valueMap[ctx].insert(_OUTER_VAL(newValue));
+	_runtimeManager.AddValue(ctx, _OUTER_VAL(res));
 #endif
 
-	return _OUTER_VAL(newValue);
+	return _OUTER_VAL(res);
 }
 
 QJS_API int64_t GetLength(ContextHandle ctx, ValueHandle obj)
@@ -654,7 +654,7 @@ void FreeValueHandle(ContextHandle ctx, ValueHandle v)
 	JS_FreeValue(_INNER_CTX(ctx), _INNER_VAL(v));
 
 #if QJS_AUTO_FREE
-	_runtimeManager->_valueMap[ctx].erase(v);
+	_runtimeManager._valueMap[ctx].erase(v);
 #endif
 }
 
@@ -805,7 +805,7 @@ QJS_API ValueHandle JsonStringify(ContextHandle ctx, ValueHandle value)
 	JSValue jstr = JS_JSONStringify(_INNER_CTX(ctx), value, JS_UNDEFINED, JS_UNDEFINED);
 
 #if QJS_AUTO_FREE
-	_runtimeManager->_valueMap[ctx].insert(_OUTER_VAL(jstr));
+	_runtimeManager.AddValue(ctx, _OUTER_VAL(jstr));
 #endif
 
 	return jstr;
@@ -816,7 +816,7 @@ QJS_API ValueHandle JsonParse(ContextHandle ctx, const char* json)
 	JSValue obj = JS_ParseJSON2(_INNER_CTX(ctx), json, strlen(json), "<json>", JS_PARSE_JSON_EXT);
 
 #if QJS_AUTO_FREE
-	_runtimeManager->_valueMap[ctx].insert(_OUTER_VAL(obj));
+	_runtimeManager.AddValue(ctx, _OUTER_VAL(obj));
 #endif
 
 	return obj;
@@ -832,7 +832,7 @@ ValueHandle GetJsLastException(ContextHandle ctx)
 	JSValue res = JS_GetException(_INNER_CTX(ctx));
 
 #if QJS_AUTO_FREE
-	_runtimeManager->_valueMap[ctx].insert(_OUTER_VAL(res));
+	_runtimeManager.AddValue(ctx, _OUTER_VAL(res));
 #endif
 
 	return _OUTER_VAL(res);
@@ -887,7 +887,7 @@ ValueHandle GetDebuggerClosureVariables(ContextHandle ctx, int stack_idx)
 	JSValue res = js_debugger_closure_variables(_INNER_CTX(ctx), stack_idx);
 
 #if QJS_AUTO_FREE
-	_runtimeManager->_valueMap[ctx].insert(_OUTER_VAL(res));
+	_runtimeManager.AddValue(ctx, _OUTER_VAL(res));
 #endif
 
 	return _OUTER_VAL(res);
@@ -898,7 +898,7 @@ ValueHandle GetDebuggerLocalVariables(ContextHandle ctx, int stack_idx)
 	JSValue res = js_debugger_local_variables(_INNER_CTX(ctx), stack_idx);
 
 #if QJS_AUTO_FREE
-	_runtimeManager->_valueMap[ctx].insert(_OUTER_VAL(res));
+	_runtimeManager.AddValue(ctx, _OUTER_VAL(res));
 #endif
 
 	return _OUTER_VAL(res);
