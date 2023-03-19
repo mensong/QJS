@@ -201,7 +201,17 @@ void CTestQJSDlg::DebuggerLineCallback(ContextHandle ctx, uint32_t line_no, cons
 		if (line_no == 0)
 			txt = _T("(DEBUG)入口点，已暂停……");
 		else
+		{
 			txt.Format(_T("(DEBUG)运行到行号(%d)，已暂停……"), line_no);
+			int start = _this->m_editScript.LineIndex(line_no - 1);
+			int end = -1;
+			if (-1 != start)
+			{
+				end = start + _this->m_editScript.LineLength(start);
+				_this->m_editScript.SetFocus();
+				_this->m_editScript.SetSel(start, end);
+			}
+		}
 		_this->AppendResultText(txt, true);
 
 		//int stack = qjs.GetDebuggerStackDepth(ctx);
