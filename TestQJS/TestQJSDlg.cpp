@@ -244,7 +244,7 @@ void CTestQJSDlg::DebuggerLineCallback(ContextHandle ctx, uint32_t line_no, cons
 							{
 								ValueHandle res = qjs.GetNamedJsValue(ctx, qjs.UnicodeToUtf8(script.GetString()), localVars);
 								_this->AppendResultText(_T("(DEBUG)") + script + _T(":"), true);
-								_this->AppendResultText(ctx, res, false);
+								_this->AppendResultText(ctx, qjs.JsonStringify(ctx, res), false);
 
 								//ValueHandle res = qjs.RunScript(ctx, qjs.UnicodeToUtf8(script.GetString()), NULL);
 								//if (!qjs.JsValueIsException(res))
@@ -345,6 +345,7 @@ void CTestQJSDlg::OnBnClickedButton1()
 
 		m_btnContinue.EnableWindow(TRUE);
 		m_btnSingleStep.EnableWindow(TRUE);
+		m_editScript.SetReadOnly(TRUE);
 	}
 
 	ValueHandle alertFunc = qjs.NewFunction(ctx, JsAlert, 2, this);
@@ -450,6 +451,7 @@ void CTestQJSDlg::OnBnClickedButton1()
 	m_btnRun.EnableWindow(TRUE);
 	m_btnContinue.EnableWindow(FALSE);
 	m_btnSingleStep.EnableWindow(FALSE);
+	m_editScript.SetReadOnly(FALSE);
 }
 
 
