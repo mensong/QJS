@@ -18,6 +18,7 @@ QJS重新封装了quickjs，使得在Windows上使用更方便快捷
 #include <windows.h>
 #endif
 #include <string>
+#include <stdint.h>
 
 #ifdef QJS_EXPORTS
 #define QJS_API extern "C" __declspec(dllexport)
