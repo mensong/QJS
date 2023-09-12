@@ -264,8 +264,9 @@ public:
 		SET_PROC(hDll, GetObjectUserData);
 		SET_PROC(hDll, NewArrayJsValue);
 		SET_PROC(hDll, NewThrowJsValue); 
-		SET_PROC(hDll, NewDateJsValue);
-		SET_PROC(hDll, FreeValueHandle); 
+		SET_PROC(hDll, NewDateJsValue);		
+		SET_PROC(hDll, GetLength);
+		SET_PROC(hDll, FreeValueHandle);
 		SET_PROC(hDll, JsValueToString);
 		SET_PROC(hDll, FreeJsValueToStringBuffer);
 		SET_PROC(hDll, JsValueToInt);
@@ -292,6 +293,7 @@ public:
 		SET_PROC(hDll, JsValueIsDate); 
 		SET_PROC(hDll, JsonStringify); 
 		SET_PROC(hDll, JsonParse);
+		SET_PROC(hDll, ExecutePendingJob);
 		SET_PROC(hDll, SetDebuggerMode); 
 		SET_PROC(hDll, SetDebuggerLineCallback); 
 		SET_PROC(hDll, GetDebuggerStackDepth); 
@@ -336,7 +338,8 @@ public:
 	DEF_PROC(NewArrayJsValue);
 	DEF_PROC(NewThrowJsValue); 
 	DEF_PROC(NewDateJsValue);
-	DEF_PROC(FreeValueHandle); 
+	DEF_PROC(GetLength);
+	DEF_PROC(FreeValueHandle);
 	DEF_PROC(JsValueToString);
 	DEF_PROC(FreeJsValueToStringBuffer);
 	DEF_PROC(JsValueToInt);
@@ -363,6 +366,7 @@ public:
 	DEF_PROC(JsValueIsDate); 
 	DEF_PROC(JsonStringify); 
 	DEF_PROC(JsonParse);
+	DEF_PROC(ExecutePendingJob);
 	DEF_PROC(SetDebuggerMode);
 	DEF_PROC(SetDebuggerLineCallback); 
 	DEF_PROC(GetDebuggerStackDepth); 
