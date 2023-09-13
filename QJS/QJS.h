@@ -1,16 +1,5 @@
 /*
 QJS重新封装了quickjs，使得在Windows上使用更方便快捷
-注意：	//C中申请的每一个JS value只能有单一用处
-		//例如申请两个值都为“mensong”的js字符串a和b
-		//下面的写法是非法的：
-		//  ValueHandle jstr = qjs.NewStringJsValue(ctx, "mensong");
-		//  qjs.SetNamedJsValue(ctx, "a", jstr, NULL);//!!用处1
-		//  qjs.SetNamedJsValue(ctx, "b", jstr, NULL);//!!错误：用处2
-		//下面为正确的写法：
-		//  ValueHandle jstr1 = qjs.NewStringJsValue(ctx, "mensong");
-		//  qjs.SetNamedJsValue(ctx, "a", jstr1, NULL);
-		//  ValueHandle jstr2 = qjs.NewStringJsValue(ctx, "mensong");
-		//  qjs.SetNamedJsValue(ctx, "b", jstr2, NULL);
 */
 
 #pragma once
@@ -88,7 +77,7 @@ QJS_API ValueHandle GetGlobalObject(ContextHandle ctx);
 
 //运行脚本
 QJS_API ValueHandle RunScript(ContextHandle ctx, const char* script, ValueHandle parent);
-//执行js中函数
+//执行js中函数，没有参数时args=NULL并且argc=0
 QJS_API ValueHandle CallJsFunction(ContextHandle ctx, ValueHandle jsFunction, ValueHandle args[], int argc, ValueHandle parent);
 
 //根据名称取得一个js变量值
@@ -116,6 +105,20 @@ QJS_API ValueHandle TheJsTrue();
 QJS_API ValueHandle TheJsFalse();
 //JS的exception值
 QJS_API ValueHandle TheJsException();
+
+/*
+注意：	//C中申请的每一个JS value只能有单一用处
+		//例如申请两个值都为“mensong”的js字符串a和b
+		//下面的写法是非法的：
+		//  ValueHandle jstr = qjs.NewStringJsValue(ctx, "mensong");
+		//  qjs.SetNamedJsValue(ctx, "a", jstr, NULL);//!!这里用了一次
+		//  qjs.SetNamedJsValue(ctx, "b", jstr, NULL);//!!错误：这里用了第二次
+		//下面为正确的写法：
+		//  ValueHandle jstr1 = qjs.NewStringJsValue(ctx, "mensong");
+		//  qjs.SetNamedJsValue(ctx, "a", jstr1, NULL);
+		//  ValueHandle jstr2 = qjs.NewStringJsValue(ctx, "mensong");
+		//  qjs.SetNamedJsValue(ctx, "b", jstr2, NULL);
+*/
 //设置geter seter
 QJS_API bool DefineGetterSetter(ContextHandle ctx, ValueHandle parent, const char* propName, ValueHandle getter, ValueHandle setter);
 //int转ValueHandle

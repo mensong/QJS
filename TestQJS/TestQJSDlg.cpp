@@ -30,8 +30,8 @@ void CTestQJSDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_EDIT1, m_editScript);
 	DDX_Control(pDX, IDC_EDIT2, m_editResult);
 	DDX_Control(pDX, IDC_EDIT_BREAKPOITS, m_editBreakpointsList);
-	DDX_Control(pDX, IDC_CHECK1, m_chkIsDebug); 
-	DDX_Control(pDX, IDC_EDIT3, m_editTestScript); 
+	DDX_Control(pDX, IDC_CHECK1, m_chkIsDebug);
+	DDX_Control(pDX, IDC_EDIT3, m_editTestScript);
 	DDX_Control(pDX, IDC_BUTTON1, m_btnRun);
 	DDX_Control(pDX, IDC_BUTTON2, m_btnContinue);
 	DDX_Control(pDX, IDC_BUTTON3, m_btnSingleStep);
@@ -194,8 +194,8 @@ void CTestQJSDlg::DebuggerLineCallback(ContextHandle ctx, uint32_t line_no, cons
 		&& (
 			_this->m_breakPoints.find(line_no) != _this->m_breakPoints.end()	//断点
 			|| (_this->m_lastBreak && _this->m_singleStepExecution)				//单步
+			)
 		)
-	)
 	{
 		CString txt;
 		if (line_no == 0)
@@ -215,9 +215,9 @@ void CTestQJSDlg::DebuggerLineCallback(ContextHandle ctx, uint32_t line_no, cons
 		_this->AppendResultText(txt, true);
 
 		//int stack = qjs.GetDebuggerStackDepth(ctx);
-		 ValueHandle localVars = qjs.GetDebuggerLocalVariables(ctx, 0);
-		 _this->AppendResultText(_T("(DEBUG)局部变量:"), true);
-		 _this->AppendResultText(ctx, qjs.JsonStringify(ctx, localVars), false);
+		ValueHandle localVars = qjs.GetDebuggerLocalVariables(ctx, 0);
+		_this->AppendResultText(_T("(DEBUG)局部变量:"), true);
+		_this->AppendResultText(ctx, qjs.JsonStringify(ctx, localVars), false);
 
 		_this->m_lastBreak = true;
 		_this->m_singleStepExecution = false;
@@ -230,7 +230,7 @@ void CTestQJSDlg::DebuggerLineCallback(ContextHandle ctx, uint32_t line_no, cons
 
 
 				//处理临时脚本
-				if (msg.message == WM_KEYDOWN && msg.wParam == VK_RETURN) 
+				if (msg.message == WM_KEYDOWN && msg.wParam == VK_RETURN)
 				{
 					switch (GetFocus()->GetDlgCtrlID())
 					{
@@ -329,7 +329,7 @@ void CTestQJSDlg::OnBnClickedButton1()
 		m_lastBreak = false;
 		qjs.SetDebuggerMode(ctx, true);
 		qjs.SetDebuggerLineCallback(ctx, DebuggerLineCallback, this);
-		
+
 		//生成断点
 		m_breakPoints.clear();
 		// 入口点断点
@@ -366,7 +366,7 @@ void CTestQJSDlg::OnBnClickedButton1()
 
 	ValueHandle telemetryLogFunc = qjs.NewFunction(ctx, JsPrint, -1, this);
 	b = qjs.SetNamedJsValue(ctx, "telemetryLog", telemetryLogFunc, NULL);
-	
+
 
 #if 0
 	auto argv = qjs.NewStringJsValue(ctx, "mensong");
@@ -376,14 +376,14 @@ void CTestQJSDlg::OnBnClickedButton1()
 
 	ValueHandle bv = qjs.NewBoolJsValue(ctx, true);
 	qjs.SetNamedJsValue(ctx, "bv", bv, NULL);
-	
+
 	ValueHandle o = qjs.NewObjectJsValue(ctx);
 	qjs.SetNamedJsValue(ctx, "bv", bv, o);
 	qjs.SetNamedJsValue(ctx, "o", o, NULL);
 
 	qjs.SetObjectUserData(o, (void*)123);
 	auto pu = qjs.GetObjectUserData(o);
-		
+
 	ValueHandle arr = qjs.NewArrayJsValue(ctx);
 	ValueHandle str = qjs.NewStringJsValue(ctx, "mensong");
 	qjs.SetIndexedJsValue(ctx, 10, str, arr);
@@ -415,14 +415,18 @@ void CTestQJSDlg::OnBnClickedButton1()
 	auto date = qjs.NewDateJsValue(ctx, 1679044555000);
 	uint64_t ts = qjs.JsValueToTimestamp(ctx, date);
 
-	 auto jstr = qjs.JsonStringify(ctx, o);
-	 auto ostr = qjs.JsValueToString(ctx, jstr, "");
-	 o = qjs.JsonParse(ctx, ostr);
-	 jstr = qjs.JsonStringify(ctx, o);
-	 ostr = qjs.JsValueToString(ctx, jstr, "");
+	auto jstr = qjs.JsonStringify(ctx, o);
+	auto ostr = qjs.JsValueToString(ctx, jstr, "");
+	o = qjs.JsonParse(ctx, ostr);
+	jstr = qjs.JsonStringify(ctx, o);
+	ostr = qjs.JsValueToString(ctx, jstr, "");
 
-	 auto arrLenTest = qjs.RunScript(ctx, "[1,2,3,4]", NULL);
-	 auto arrTestLen = qjs.GetLength(ctx, arrLenTest);
+	auto arrLenTest = qjs.RunScript(ctx, "[{\"a\":123}, {\"a\":456}]", NULL);
+	auto arrTestLen = qjs.GetLength(ctx, arrLenTest);
+	auto v0 = qjs.GetIndexedJsValue(ctx, 0, arrLenTest);
+	auto a0 = qjs.GetNamedJsValue(ctx, "a", v0);
+	int ia0 = qjs.JsValueToInt(ctx, a0, 0);//ia0==123
+
 #endif
 
 	CString script;
@@ -475,7 +479,7 @@ void CTestQJSDlg::OnBnClickedButton3()
 
 void CTestQJSDlg::OnBnClickedCheck1()
 {
-	m_onDebugMode = m_chkIsDebug.GetCheck() == TRUE;	
+	m_onDebugMode = m_chkIsDebug.GetCheck() == TRUE;
 }
 
 
