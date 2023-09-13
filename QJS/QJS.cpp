@@ -644,9 +644,8 @@ ValueHandle CopyJsValue(ContextHandle ctx, ValueHandle val)
 QJS_API int64_t GetLength(ContextHandle ctx, ValueHandle obj)
 {
 	int64_t len = -1;
-	if (JS_GetPropertyLength(_INNER_CTX(ctx), &len, obj) == TRUE)
-		return len;
-	return -1;
+	int res = JS_GetPropertyLength(_INNER_CTX(ctx), &len, obj);
+	return len;
 }
 
 void FreeValueHandle(ContextHandle ctx, ValueHandle v)

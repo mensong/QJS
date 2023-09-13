@@ -420,8 +420,10 @@ void CTestQJSDlg::OnBnClickedButton1()
 	 o = qjs.JsonParse(ctx, ostr);
 	 jstr = qjs.JsonStringify(ctx, o);
 	 ostr = qjs.JsValueToString(ctx, jstr, "");
-#endif
 
+	 auto arrLenTest = qjs.RunScript(ctx, "[1,2,3,4]", NULL);
+	 auto arrTestLen = qjs.GetLength(ctx, arrLenTest);
+#endif
 
 	CString script;
 	m_editScript.GetWindowText(script);
