@@ -9,3 +9,6 @@
 /QJS/Release
 /.vs
 /TestQJS/*.aps
+/QJS/Win32
+/TestQJS/Win32
+/Win32
