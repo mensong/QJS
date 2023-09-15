@@ -1,0 +1,1 @@
+"..\QJS\quickjs\lib\Release\x64\qjsc.exe" -c -o qjsc-test.c qjsc-test.js
