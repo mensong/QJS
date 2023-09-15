@@ -79,6 +79,8 @@ QJS_API ValueHandle GetGlobalObject(ContextHandle ctx);
 QJS_API ValueHandle RunScript(ContextHandle ctx, const char* script, ValueHandle parent);
 //执行js中函数，没有参数时args=NULL并且argc=0
 QJS_API ValueHandle CallJsFunction(ContextHandle ctx, ValueHandle jsFunction, ValueHandle args[], int argc, ValueHandle parent);
+//执行bin脚本
+QJS_API ValueHandle RunBinary(ContextHandle ctx, const uint8_t* bin, size_t binLen);
 
 //根据名称取得一个js变量值
 QJS_API ValueHandle GetNamedJsValue(ContextHandle ctx, const char* varName, ValueHandle parent);
@@ -252,6 +254,7 @@ public:
 		SET_PROC(hDll, DeleteIndexedJsValue);
 		SET_PROC(hDll, RunScript);
 		SET_PROC(hDll, CallJsFunction);
+		SET_PROC(hDll, RunBinary);
 		SET_PROC(hDll, TheJsUndefined);
 		SET_PROC(hDll, TheJsNull);
 		SET_PROC(hDll, TheJsTrue);
@@ -325,6 +328,7 @@ public:
 	DEF_PROC(DeleteIndexedJsValue);
 	DEF_PROC(RunScript);
 	DEF_PROC(CallJsFunction);
+	DEF_PROC(RunBinary);
 	DEF_PROC(TheJsUndefined);
 	DEF_PROC(TheJsNull);
 	DEF_PROC(TheJsTrue);

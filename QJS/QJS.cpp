@@ -526,6 +526,17 @@ ValueHandle CallJsFunction(ContextHandle ctx, ValueHandle jsFunction, ValueHandl
 	return _OUTER_VAL(res);
 }
 
+ValueHandle RunBinary(ContextHandle ctx, const uint8_t* bin, size_t binLen)
+{
+	JSValue res = js_std_eval_binary(_INNER_CTX(ctx), bin, binLen, 0);
+
+#if QJS_AUTO_FREE
+	_runtimeManager.AddValue(ctx, _OUTER_VAL(res));
+#endif
+
+	return _OUTER_VAL(res);
+}
+
 ValueHandle NewIntJsValue(ContextHandle ctx, int intValue)
 {
 	JSValue res = JS_NewInt32(_INNER_CTX(ctx), intValue);
@@ -673,6 +684,9 @@ const char* JsValueToString(ContextHandle ctx, ValueHandle value, const char* de
 {
 	if (value == NULL)
 		return defVal;
+
+	if (JsValueIsException(value))
+		value = GetJsLastException(ctx);
 
 	const char* buf = JS_ToCString(_INNER_CTX(ctx), _INNER_VAL(value));
 
