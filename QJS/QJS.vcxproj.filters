@@ -13,6 +13,15 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="quickjs">
+      <UniqueIdentifier>{c47672e0-9a50-4e28-8d3b-366a341fab14}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="quickjs\storage">
+      <UniqueIdentifier>{961e9f4f-1d63-4d01-8cb4-915e8ebc629e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="quickjs\storage\dybase">
+      <UniqueIdentifier>{48ece09f-438b-4eee-b55e-510fe32a86d1}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="framework.h">
@@ -27,6 +36,69 @@
     <ClInclude Include="RuntimeManager.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="quickjs\cutils.h">
+      <Filter>quickjs</Filter>
+    </ClInclude>
+    <ClInclude Include="quickjs\libbf.h">
+      <Filter>quickjs</Filter>
+    </ClInclude>
+    <ClInclude Include="quickjs\libregexp.h">
+      <Filter>quickjs</Filter>
+    </ClInclude>
+    <ClInclude Include="quickjs\libregexp-opcode.h">
+      <Filter>quickjs</Filter>
+    </ClInclude>
+    <ClInclude Include="quickjs\libunicode.h">
+      <Filter>quickjs</Filter>
+    </ClInclude>
+    <ClInclude Include="quickjs\libunicode-table.h">
+      <Filter>quickjs</Filter>
+    </ClInclude>
+    <ClInclude Include="quickjs\list.h">
+      <Filter>quickjs</Filter>
+    </ClInclude>
+    <ClInclude Include="quickjs\quickjs.h">
+      <Filter>quickjs</Filter>
+    </ClInclude>
+    <ClInclude Include="quickjs\quickjs-atom.h">
+      <Filter>quickjs</Filter>
+    </ClInclude>
+    <ClInclude Include="quickjs\quickjs-jsx.h">
+      <Filter>quickjs</Filter>
+    </ClInclude>
+    <ClInclude Include="quickjs\quickjs-libc.h">
+      <Filter>quickjs</Filter>
+    </ClInclude>
+    <ClInclude Include="quickjs\quickjs-opcode.h">
+      <Filter>quickjs</Filter>
+    </ClInclude>
+    <ClInclude Include="quickjs\storage\quickjs-storage.h">
+      <Filter>quickjs\storage</Filter>
+    </ClInclude>
+    <ClInclude Include="quickjs\storage\dybase\src\btree.h">
+      <Filter>quickjs\storage\dybase</Filter>
+    </ClInclude>
+    <ClInclude Include="quickjs\storage\dybase\src\buffer.h">
+      <Filter>quickjs\storage\dybase</Filter>
+    </ClInclude>
+    <ClInclude Include="quickjs\storage\dybase\src\database.h">
+      <Filter>quickjs\storage\dybase</Filter>
+    </ClInclude>
+    <ClInclude Include="quickjs\storage\dybase\src\file.h">
+      <Filter>quickjs\storage\dybase</Filter>
+    </ClInclude>
+    <ClInclude Include="quickjs\storage\dybase\src\hashtab.h">
+      <Filter>quickjs\storage\dybase</Filter>
+    </ClInclude>
+    <ClInclude Include="quickjs\storage\dybase\src\pagepool.h">
+      <Filter>quickjs\storage\dybase</Filter>
+    </ClInclude>
+    <ClInclude Include="quickjs\storage\dybase\src\stdtp.h">
+      <Filter>quickjs\storage\dybase</Filter>
+    </ClInclude>
+    <ClInclude Include="quickjs\storage\dybase\src\sync.h">
+      <Filter>quickjs\storage\dybase</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dllmain.cpp">
@@ -40,6 +112,42 @@
     </ClCompile>
     <ClCompile Include="RuntimeManager.cpp">
       <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="quickjs\cutils.c">
+      <Filter>quickjs</Filter>
+    </ClCompile>
+    <ClCompile Include="quickjs\libbf.c">
+      <Filter>quickjs</Filter>
+    </ClCompile>
+    <ClCompile Include="quickjs\libregexp.c">
+      <Filter>quickjs</Filter>
+    </ClCompile>
+    <ClCompile Include="quickjs\libunicode.c">
+      <Filter>quickjs</Filter>
+    </ClCompile>
+    <ClCompile Include="quickjs\quickjs.c">
+      <Filter>quickjs</Filter>
+    </ClCompile>
+    <ClCompile Include="quickjs\quickjs-libc.c">
+      <Filter>quickjs</Filter>
+    </ClCompile>
+    <ClCompile Include="quickjs\storage\quickjs-storage.c">
+      <Filter>quickjs\storage</Filter>
+    </ClCompile>
+    <ClCompile Include="quickjs\storage\dybase\src\btree.cpp">
+      <Filter>quickjs\storage\dybase</Filter>
+    </ClCompile>
+    <ClCompile Include="quickjs\storage\dybase\src\database.cpp">
+      <Filter>quickjs\storage\dybase</Filter>
+    </ClCompile>
+    <ClCompile Include="quickjs\storage\dybase\src\dybase.cpp">
+      <Filter>quickjs\storage\dybase</Filter>
+    </ClCompile>
+    <ClCompile Include="quickjs\storage\dybase\src\file.cpp">
+      <Filter>quickjs\storage\dybase</Filter>
+    </ClCompile>
+    <ClCompile Include="quickjs\storage\dybase\src\pagepool.cpp">
+      <Filter>quickjs\storage\dybase</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

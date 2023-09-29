@@ -242,22 +242,22 @@ void CTestQJSDlg::DebuggerLineCallback(ContextHandle ctx, uint32_t line_no, cons
 							_this->m_editTestScript.SetSel(0, script.GetLength());
 							if (!script.IsEmpty())
 							{
-								ValueHandle res = qjs.GetNamedJsValue(ctx, qjs.UnicodeToUtf8(script.GetString()), localVars);
-								_this->AppendResultText(_T("(DEBUG)") + script + _T(":"), true);
-								_this->AppendResultText(ctx, qjs.JsonStringify(ctx, res), false);
+								//ValueHandle res = qjs.GetNamedJsValue(ctx, qjs.UnicodeToUtf8(script.GetString()), localVars);
+								//_this->AppendResultText(_T("(DEBUG)") + script + _T(":"), true);
+								//_this->AppendResultText(ctx, qjs.JsonStringify(ctx, res), false);
 
-								//ValueHandle res = qjs.RunScript(ctx, qjs.UnicodeToUtf8(script.GetString()), NULL);
-								//if (!qjs.JsValueIsException(res))
-								//{
-								//	_this->AppendResultText(script + _T(":"), true);
-								//	_this->AppendResultText(ctx, res, false);
-								//}
-								//else
-								//{
-								//	ValueHandle exception = qjs.GetJsLastException(ctx);
-								//	_this->AppendResultText(script + _T(":"), true);
-								//	_this->AppendResultText(ctx, exception, false);
-								//}
+								ValueHandle res = qjs.RunScript(ctx, qjs.UnicodeToUtf8(script.GetString()), NULL);
+								if (!qjs.JsValueIsException(res))
+								{
+									_this->AppendResultText(_T("(DEBUG)") + script + _T(":"), true);
+									_this->AppendResultText(ctx, res, false);
+								}
+								else
+								{
+									ValueHandle exception = qjs.GetJsLastException(ctx);
+									_this->AppendResultText(_T("(DEBUG Exception)") + script + _T(":"), true);
+									_this->AppendResultText(ctx, exception, false);
+								}
 
 
 							}
