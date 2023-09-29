@@ -287,7 +287,7 @@ void SplitCString(const CString& _cstr, const CString& _flag, CStringArray& _res
 	CStringArray& strResult = _resultArray;
 	CString strLeft = _T("");
 
-	int nPos = strSrc.Find(_flag);
+	int nPos = strSrc.FindOneOf(_flag);
 	while (0 <= nPos)
 	{
 		strLeft = strSrc.Left(nPos);
@@ -296,7 +296,7 @@ void SplitCString(const CString& _cstr, const CString& _flag, CStringArray& _res
 			strResult.Add(strLeft);
 		}
 		strSrc = strSrc.Right(strSrc.GetLength() - nPos - 1);
-		nPos = strSrc.Find(_flag);
+		nPos = strSrc.FindOneOf(_flag);
 	}
 
 	if (!strSrc.IsEmpty()) {
@@ -337,10 +337,12 @@ void CTestQJSDlg::OnBnClickedButton1()
 		CString strBPList;
 		m_editBreakpointsList.GetWindowText(strBPList);
 		CStringArray arrBPList;
-		SplitCString(strBPList, _T(","), arrBPList);
+		SplitCString(strBPList, _T(",; /.*&`~@#$%^()-=_+[]\\{}|'\"<>?"), arrBPList);
 		for (size_t i = 0; i < arrBPList.GetSize(); i++)
 		{
-			m_breakPoints.insert(_ttoi(arrBPList.GetAt(i).GetString()));
+			CString text = arrBPList.GetAt(i);
+			if (!text.IsEmpty())
+				m_breakPoints.insert(_ttoi(text.GetString()));
 		}
 
 		m_btnContinue.EnableWindow(TRUE);
