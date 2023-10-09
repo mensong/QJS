@@ -51,7 +51,9 @@ void CTestQJSDlg::AppendResultText(const wchar_t* msg, bool newLine)
 
 void CTestQJSDlg::AppendResultText(ContextHandle ctx, const ValueHandle& msg, bool newLine)
 {
-	AppendResultText(qjs.JsValueToString(ctx, msg, ""), newLine);
+	const char* sz = qjs.JsValueToString(ctx, msg);
+	AppendResultText(sz, newLine);
+	qjs.FreeJsValueToStringBuffer(ctx, sz);
 }
 
 void CTestQJSDlg::AppendResultText(const char* msg, bool newLine)
@@ -136,13 +138,23 @@ ValueHandle JsAlert(ContextHandle ctx, ValueHandle this_val, int argc, ValueHand
 {
 	std::string msg;
 	if (argc > 0)
-		msg = qjs.JsValueToString(ctx, argv[0], "");
+	{
+		const char* sz = qjs.JsValueToString(ctx, argv[0]);
+		if (sz)
+			msg = sz;
+		qjs.FreeJsValueToStringBuffer(ctx, sz);
+	}
 
 	std::string title;
 	if (argc < 2 || qjs.JsValueIsUndefined(argv[1]))
 		title = "QJS";
 	else
-		title = qjs.JsValueToString(ctx, argv[1], "QJS");
+	{
+		const char* sz = qjs.JsValueToString(ctx, argv[1]);
+		if (sz)
+			title = sz;
+		qjs.FreeJsValueToStringBuffer(ctx, sz);
+	}
 
 	CTestQJSDlg* _this = (CTestQJSDlg*)user_data;
 
@@ -158,7 +170,10 @@ ValueHandle JsPrint(ContextHandle ctx, ValueHandle this_val, int argc, ValueHand
 	std::stringstream ss;
 	for (int i = 0; i < argc; i++)
 	{
-		ss << qjs.JsValueToString(ctx, argv[i], "");
+		const char* sz = qjs.JsValueToString(ctx, argv[i]);
+		if (sz)
+			ss << sz;
+		qjs.FreeJsValueToStringBuffer(ctx, sz);
 	}
 
 	CTestQJSDlg* _this = (CTestQJSDlg*)user_data;
@@ -166,7 +181,7 @@ ValueHandle JsPrint(ContextHandle ctx, ValueHandle this_val, int argc, ValueHand
 	return qjs.NewStringJsValue(ctx, ss.str().c_str());
 }
 
-std::string s_str;
+std::string s_str = "test_getter_setter_value";
 ValueHandle JsGetter(ContextHandle ctx, ValueHandle this_val, int argc, ValueHandle* argv, void* user_data)
 {
 	return qjs.NewStringJsValue(ctx, s_str.c_str());
@@ -174,7 +189,12 @@ ValueHandle JsGetter(ContextHandle ctx, ValueHandle this_val, int argc, ValueHan
 ValueHandle JsSetter(ContextHandle ctx, ValueHandle this_val, int argc, ValueHandle* argv, void* user_data)
 {
 	if (argc > 0)
-		s_str = qjs.JsValueToString(ctx, argv[0], "");
+	{
+		const char* sz = qjs.JsValueToString(ctx, argv[0]);
+		if (sz)
+			s_str = std::string("test_getter_setter_value:") + sz;
+		qjs.FreeJsValueToStringBuffer(ctx, sz);
+	}
 	return this_val;
 }
 
@@ -350,112 +370,210 @@ void CTestQJSDlg::OnBnClickedButton1()
 		m_editScript.SetReadOnly(TRUE);
 	}
 
+
 	ValueHandle alertFunc = qjs.NewFunction(ctx, JsAlert, 2, this);
 	bool b = qjs.SetNamedJsValue(ctx, "alert", alertFunc, NULL);
+	qjs.FreeValueHandle(ctx, alertFunc);
 
 	ValueHandle printFunc = qjs.NewFunction(ctx, JsPrint, -1, this);
-	b = qjs.SetNamedJsValue(ctx, "print", printFunc, NULL);
+	b = qjs.SetNamedJsValue(ctx, "print", printFunc, NULL);	
 
 	auto WScript = qjs.NewObjectJsValue(ctx);
 	qjs.SetNamedJsValue(ctx, "WScript", WScript, NULL);
-	ValueHandle echoFunc = qjs.NewFunction(ctx, JsPrint, -1, this);
-	qjs.SetNamedJsValue(ctx, "Echo", echoFunc, WScript);
+	qjs.SetNamedJsValue(ctx, "Echo", printFunc, WScript);
+	qjs.FreeValueHandle(ctx, WScript);
 
 	auto console = qjs.NewObjectJsValue(ctx);
 	qjs.SetNamedJsValue(ctx, "console", console, NULL);
-	ValueHandle logFunc = qjs.NewFunction(ctx, JsPrint, -1, this);
-	qjs.SetNamedJsValue(ctx, "log", logFunc, console);
+	qjs.SetNamedJsValue(ctx, "log", printFunc, console);
+	qjs.FreeValueHandle(ctx, console);
 
-	ValueHandle telemetryLogFunc = qjs.NewFunction(ctx, JsPrint, -1, this);
-	b = qjs.SetNamedJsValue(ctx, "telemetryLog", telemetryLogFunc, NULL);
-
+	b = qjs.SetNamedJsValue(ctx, "telemetryLog", printFunc, NULL);
+	qjs.FreeValueHandle(ctx, printFunc);
 
 #if 0
-	auto argv = qjs.NewStringJsValue(ctx, "mensong");
-	ValueHandle argvs[] = { argv, argv, argv };
-	auto ret1 = qjs.CallJsFunction(ctx, printFunc, argvs, 3, NULL);
-	qjs.SetNamedJsValue(ctx, "test_arg_to_prop", argv, NULL);
 
-	ValueHandle bv = qjs.NewBoolJsValue(ctx, true);
-	qjs.SetNamedJsValue(ctx, "bv", bv, NULL);
-
-	ValueHandle o = qjs.NewObjectJsValue(ctx);
-	qjs.SetNamedJsValue(ctx, "bv", bv, o);
-	qjs.SetNamedJsValue(ctx, "o", o, NULL);
-
-	qjs.SetObjectUserData(o, (void*)123);
-	auto pu = qjs.GetObjectUserData(o);
-
-	ValueHandle arr = qjs.NewArrayJsValue(ctx);
-	ValueHandle str = qjs.NewStringJsValue(ctx, "mensong");
-	qjs.SetIndexedJsValue(ctx, 10, str, arr);
-	qjs.SetNamedJsValue(ctx, "arr", arr, NULL);
-	b = qjs.JsValueIsArray(ctx, arr);
-	auto jlen = qjs.GetNamedJsValue(ctx, "toString", arr);
-	b = qjs.JsValueIsFunction(ctx, jlen);
-	auto jstrToString = qjs.CallJsFunction(ctx, jlen, NULL, 0, arr);
-	auto strToString = qjs.JsValueToString(ctx, jstrToString, "");
-	qjs.FreeJsValueToStringBuffer(ctx, strToString);
-
-	auto jint = qjs.NewIntJsValue(ctx, 65536);
-	auto intstr1 = qjs.JsValueToString(ctx, jint, "mensong");
-	auto intstr2 = qjs.JsValueToString(ctx, jint, "mensong");
-	auto intstr3 = qjs.JsValueToString(ctx, jint, "mensong");
-	auto intstr4 = qjs.JsValueToString(ctx, jint, "mensong");
-	auto intstr5 = qjs.JsValueToString(ctx, jint, "mensong");
-
-	auto getter = qjs.NewFunction(ctx, JsGetter, 0, NULL);
-	auto setter = qjs.NewFunction(ctx, JsSetter, 1, NULL);
-	b = qjs.DefineGetterSetter(ctx, o, "gs", getter, setter);
-	b = qjs.DefineGetterSetter(ctx, o, "sg", getter, setter);
-
-	auto g1 = qjs.GetGlobalObject(ctx);
-	auto g2 = qjs.GetGlobalObject(ctx);
-	auto g3 = qjs.GetGlobalObject(ctx);
-	auto g4 = qjs.GetGlobalObject(ctx);
-
-	auto date = qjs.NewDateJsValue(ctx, 1679044555000);
-	uint64_t ts = qjs.JsValueToTimestamp(ctx, date);
-
-	auto jstr = qjs.JsonStringify(ctx, o);
-	auto ostr = qjs.JsValueToString(ctx, jstr, "");
-	o = qjs.JsonParse(ctx, ostr);
-	jstr = qjs.JsonStringify(ctx, o);
-	ostr = qjs.JsValueToString(ctx, jstr, "");
-
-	auto arrLenTest = qjs.RunScript(ctx, "[{\"a\":123}, {\"a\":456}]", NULL);
-	auto arrTestLen = qjs.GetLength(ctx, arrLenTest);
-	auto v0 = qjs.GetIndexedJsValue(ctx, 0, arrLenTest);
-	auto a0 = qjs.GetNamedJsValue(ctx, "a", v0);
-	int ia0 = qjs.JsValueToInt(ctx, a0, 0);//ia0==123
-
-	const uint32_t qjsc_qjsc_test_size = 71;
-	const uint8_t qjsc_qjsc_test[71] = {
-	 0x02, 0x02, 0x06, 0x61, 0x61, 0x61, 0x18, 0x71,
-	 0x6a, 0x73, 0x63, 0x2d, 0x74, 0x65, 0x73, 0x74,
-	 0x2e, 0x6a, 0x73, 0x0e, 0x00, 0x06, 0x00, 0xa6,
-	 0x01, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0x1a,
-	 0x01, 0xa8, 0x01, 0x00, 0x00, 0x00, 0x3f, 0xe3,
-	 0x00, 0x00, 0x00, 0x00, 0x3e, 0xe3, 0x00, 0x00,
-	 0x00, 0x00, 0xbe, 0x7b, 0x39, 0xe3, 0x00, 0x00,
-	 0x00, 0x38, 0xe3, 0x00, 0x00, 0x00, 0xce, 0x28,
-	 0xc8, 0x03, 0x01, 0x03, 0x1f, 0x21, 0x26,
-	};
-	ValueHandle binRes = qjs.RunBinary(ctx, qjsc_qjsc_test, qjsc_qjsc_test_size);
-	if (qjs.JsValueIsException(binRes))
 	{
-		ValueHandle exception = qjs.GetJsLastException(ctx);
-		AppendResultText(_T("运行错误："), true);
-		AppendResultText(ctx, exception, false);
+		auto argv = qjs.NewStringJsValue(ctx, "mensong,");
+		ValueHandle argvs[] = { argv, argv, argv };
+		auto ret1 = qjs.CallJsFunction(ctx, printFunc, argvs, 3, NULL);
+		qjs.FreeValueHandle(ctx, ret1);
+		qjs.FreeValueHandle(ctx, argv);
 	}
-	else
+
 	{
-		AppendResultText(ctx, binRes, false);
+		ValueHandle o = qjs.NewIntJsValue(ctx, 123);
+		qjs.SetObjectUserData(o, (void*)123);
+		void* pu = qjs.GetObjectUserData(o);
+		int iu = (int)pu;
+	}
+
+	{
+		ValueHandle bv = qjs.NewBoolJsValue(ctx, true);
+		qjs.SetNamedJsValue(ctx, "bv", bv, NULL);
+
+		ValueHandle o = qjs.NewObjectJsValue(ctx);
+		qjs.SetNamedJsValue(ctx, "bv", bv, o);
+		qjs.SetNamedJsValue(ctx, "o", o, NULL);
+
+		qjs.FreeValueHandle(ctx, bv);
+		qjs.FreeValueHandle(ctx, o);
+	}
+
+	{
+		ValueHandle arr = qjs.NewArrayJsValue(ctx);
+		ValueHandle str = qjs.NewStringJsValue(ctx, "mensong");
+		qjs.SetIndexedJsValue(ctx, 10, str, arr);//设置id 10的元素为字符串mensong
+		qjs.SetNamedJsValue(ctx, "arr", arr, NULL);
+
+		auto item10 = qjs.GetIndexedJsValue(ctx, 10, arr);
+		const char* sz = qjs.JsValueToString(ctx, item10);
+		qjs.FreeValueHandle(ctx, item10);
+		qjs.FreeJsValueToStringBuffer(ctx, sz);
+
+		auto item5 = qjs.GetIndexedJsValue(ctx, 5, arr);
+		const char* sz5 = qjs.JsValueToString(ctx, item5);
+		qjs.FreeValueHandle(ctx, item5);
+		qjs.FreeJsValueToStringBuffer(ctx, sz5);
+
+		auto arrLen = qjs.GetLength(ctx, arr);
+		for (size_t i = 0; i < arrLen; i++)
+		{
+			ValueHandle v = qjs.GetIndexedJsValue(ctx, i, arr);
+			//...
+			qjs.FreeValueHandle(ctx, v);
+		}
+
+		bool b = qjs.JsValueIsArray(ctx, arr);
+		auto jToString = qjs.GetNamedJsValue(ctx, "toString", arr);
+		b = qjs.JsValueIsFunction(ctx, jToString);
+		if (b)
+		{
+			auto jstrToString = qjs.CallJsFunction(ctx, jToString, NULL, 0, arr);
+			auto strToString = qjs.JsValueToString(ctx, jstrToString);
+			qjs.FreeValueHandle(ctx, jstrToString);
+			qjs.FreeJsValueToStringBuffer(ctx, strToString);
+		}
+		qjs.FreeValueHandle(ctx, jToString);
+
+		ValueHandle jlen = qjs.GetNamedJsValue(ctx, "length", arr);
+		arrLen = qjs.JsValueToInt(ctx, jlen, 0);
+		qjs.FreeValueHandle(ctx, jlen);
+
+		qjs.FreeValueHandle(ctx, arr);
+		qjs.FreeValueHandle(ctx, str);
+	}
+
+	{
+		auto jint = qjs.NewIntJsValue(ctx, 65536);
+		auto intstr1 = qjs.JsValueToString(ctx, jint);
+		qjs.FreeValueHandle(ctx, jint);
+		qjs.FreeJsValueToStringBuffer(ctx, intstr1);
+	}
+
+	{
+		//ValueHandle test_getter_setter = qjs.NewObjectJsValue(ctx);
+		//qjs.SetNamedJsValue(ctx, "test_getter_setter", test_getter_setter, NULL);
+		//auto getter = qjs.NewFunction(ctx, JsGetter, 0, NULL);
+		//auto setter = qjs.NewFunction(ctx, JsSetter, 1, NULL);
+		//qjs.DefineGetterSetter(ctx, test_getter_setter, "gs", getter, setter);
+		//qjs.FreeValueHandle(ctx, getter);
+		//qjs.FreeValueHandle(ctx, setter);
+		//qjs.FreeValueHandle(ctx, test_getter_setter);
+
+		//auto getter2 = qjs.NewFunction(ctx, JsGetter, 0, NULL);
+		//auto setter2 = qjs.NewFunction(ctx, JsSetter, 1, NULL);
+		//auto globalObj = qjs.GetGlobalObject(ctx);
+		//bool b = qjs.DefineGetterSetter(ctx, globalObj, "gs2", getter2, setter2);
+		//qjs.FreeValueHandle(ctx, getter2);
+		//qjs.FreeValueHandle(ctx, setter2);
+		//qjs.FreeValueHandle(ctx, globalObj);
+	}
+
+	{
+		auto g1 = qjs.GetGlobalObject(ctx);
+		auto g2 = qjs.GetGlobalObject(ctx);
+		auto g3 = qjs.GetGlobalObject(ctx);
+		auto g4 = qjs.GetGlobalObject(ctx);
+		qjs.FreeValueHandle(ctx, g1);
+		qjs.FreeValueHandle(ctx, g2);
+		qjs.FreeValueHandle(ctx, g3);
+		qjs.FreeValueHandle(ctx, g4);
+	}
+
+	{
+		auto date = qjs.NewDateJsValue(ctx, 1679044555000);
+		uint64_t ts = qjs.JsValueToTimestamp(ctx, date);
+		qjs.SetNamedJsValue(ctx, "mydate", date, NULL);
+		qjs.FreeValueHandle(ctx, date); 
+	}
+
+	{
+		auto o = qjs.NewObjectJsValue(ctx);
+		auto prop = qjs.NewIntJsValue(ctx, 123);
+		qjs.SetNamedJsValue(ctx, "a", prop, o);
+
+		auto jstr1 = qjs.JsonStringify(ctx, o);
+		qjs.FreeValueHandle(ctx, o);
+		auto ostr1 = qjs.JsValueToString(ctx, jstr1);
+		qjs.FreeValueHandle(ctx, jstr1);
+		auto o2 = qjs.JsonParse(ctx, ostr1);
+		qjs.FreeJsValueToStringBuffer(ctx, ostr1);
+		auto jstr2 = qjs.JsonStringify(ctx, o2);
+		auto ostr2 = qjs.JsValueToString(ctx, jstr2);
+		qjs.FreeValueHandle(ctx, jstr2);
+		qjs.FreeValueHandle(ctx, o2);
+		qjs.FreeJsValueToStringBuffer(ctx, ostr2);
+
+		auto jsonobj = qjs.JsonParse(ctx, "[{\"a\":123}, {\"a\":456}]");
+		auto jsonobjstr = qjs.JsonStringify(ctx, jsonobj);
+		const char* str = qjs.JsValueToString(ctx, jsonobjstr);
+		qjs.FreeJsValueToStringBuffer(ctx, str);
+		qjs.FreeValueHandle(ctx, jsonobj);
+		qjs.FreeValueHandle(ctx, jsonobjstr);
+	}
+
+	{
+		auto arrLenTest = qjs.RunScript(ctx, "[{\"a\":123}, {\"a\":456}]", NULL);
+		auto arrTestLen = qjs.GetLength(ctx, arrLenTest);
+		auto v0 = qjs.GetIndexedJsValue(ctx, 0, arrLenTest);
+		auto a0 = qjs.GetNamedJsValue(ctx, "a", v0);
+		int ia0 = qjs.JsValueToInt(ctx, a0, 0);//ia0==123
+		qjs.FreeValueHandle(ctx, arrLenTest);
+		qjs.FreeValueHandle(ctx, v0);
+		qjs.FreeValueHandle(ctx, a0);
+	}
+	
+	{
+		const uint32_t qjsc_qjsc_test_size = 71;
+		const uint8_t qjsc_qjsc_test[71] = {
+		 0x02, 0x02, 0x06, 0x61, 0x61, 0x61, 0x18, 0x71,
+		 0x6a, 0x73, 0x63, 0x2d, 0x74, 0x65, 0x73, 0x74,
+		 0x2e, 0x6a, 0x73, 0x0e, 0x00, 0x06, 0x00, 0xa6,
+		 0x01, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0x1a,
+		 0x01, 0xa8, 0x01, 0x00, 0x00, 0x00, 0x3f, 0xe3,
+		 0x00, 0x00, 0x00, 0x00, 0x3e, 0xe3, 0x00, 0x00,
+		 0x00, 0x00, 0xbe, 0x7b, 0x39, 0xe3, 0x00, 0x00,
+		 0x00, 0x38, 0xe3, 0x00, 0x00, 0x00, 0xce, 0x28,
+		 0xc8, 0x03, 0x01, 0x03, 0x1f, 0x21, 0x26,
+		};
+		ValueHandle binRes = qjs.RunBinary(ctx, qjsc_qjsc_test, qjsc_qjsc_test_size);
+		if (qjs.JsValueIsException(binRes))
+		{
+			ValueHandle exception = qjs.GetJsLastException(ctx);
+			AppendResultText(_T("运行错误："), true);
+			AppendResultText(ctx, exception, false);
+			qjs.FreeValueHandle(ctx, exception);
+		}
+		else
+		{
+			AppendResultText(ctx, binRes, false);
+		}
+		qjs.FreeValueHandle(ctx, binRes);
 	}
 
 #endif
 
-	
 
 	CString script;
 	m_editScript.GetWindowText(script);
@@ -474,10 +592,13 @@ void CTestQJSDlg::OnBnClickedButton1()
 		ValueHandle exception = qjs.GetJsLastException(ctx);
 		AppendResultText(_T("运行错误："), true);
 		AppendResultText(ctx, exception, false);
+		qjs.FreeValueHandle(ctx, exception);
 	}
 	CString timetext;
 	timetext.Format(_T("耗时:%u毫秒"), st);
 	AppendResultText(timetext, true);
+
+	qjs.FreeValueHandle(ctx, result);
 
 	qjs.FreeContext(ctx);
 	qjs.FreeRuntime(rt);

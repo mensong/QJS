@@ -1024,11 +1024,16 @@ typedef char *JSModuleNormalizeFunc(JSContext *ctx,
 typedef JSModuleDef *JSModuleLoaderFunc(JSContext *ctx,
                                         const char *module_name, void *opaque);
 
+/* 值被真正删除时的回调 */
+typedef void JSValuePreDeleted(JSRuntime* rt, JSValue v);
+void JS_SetValuePreDeletedFunc(JSRuntime* rt, JSValuePreDeleted* func);
+
 /* module_normalize = NULL is allowed and invokes the default module
    filename normalizer */
 void JS_SetModuleLoaderFunc(JSRuntime *rt,
                             JSModuleNormalizeFunc *module_normalize,
                             JSModuleLoaderFunc *module_loader, void *opaque);
+
 /* return the import.meta object of a module */
 JSValue JS_GetImportMeta(JSContext *ctx, JSModuleDef *m);
 JSAtom JS_GetModuleName(JSContext *ctx, JSModuleDef *m);

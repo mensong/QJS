@@ -33,9 +33,6 @@
     <ClInclude Include="QJS.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="RuntimeManager.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
     <ClInclude Include="quickjs\cutils.h">
       <Filter>quickjs</Filter>
     </ClInclude>
@@ -108,9 +105,6 @@
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="QJS.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="RuntimeManager.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="quickjs\cutils.c">

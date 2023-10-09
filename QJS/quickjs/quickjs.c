@@ -291,6 +291,8 @@ struct JSRuntime {
     JSModuleLoaderFunc *module_loader_func;
     void *module_loader_opaque;
 
+    JSValuePreDeleted* value_pre_deleted_func;
+
     BOOL can_block : 8; /* TRUE if Atomics.wait can block */
     /* used to allocate, free and clone SharedArrayBuffers */
     JSSharedArrayBufferFunctions sab_funcs;
@@ -2034,7 +2036,7 @@ void JS_FreeRuntime(JSRuntime *rt)
             printf("Secondary object leaks: %d\n", count);
     }
 #endif
-    assert(list_empty(&rt->gc_obj_list));
+    assert(list_empty(&rt->gc_obj_list));//如果有value没有free掉，则会触发这里异常
 
     /* free the classes */
     for(i = 0; i < rt->class_count; i++) {
@@ -5584,6 +5586,9 @@ static void free_zero_refcount(JSRuntime *rt)
 /* called with the ref_count of 'v' reaches zero. */
 void __JS_FreeValueRT(JSRuntime *rt, JSValue v)
 {
+    if (rt->value_pre_deleted_func)
+        rt->value_pre_deleted_func(rt, v);
+
     uint32_t tag = JS_VALUE_GET_TAG(v);
 
 #ifdef DUMP_FREE
@@ -27611,6 +27616,11 @@ int JS_SetModuleExport(JSContext *ctx, JSModuleDef *m, const char *export_name,
  fail:
     JS_FreeValue(ctx, val);
     return -1;
+}
+
+void JS_SetValuePreDeletedFunc(JSRuntime* rt, JSValuePreDeleted* func)
+{
+    rt->value_pre_deleted_func = func;
 }
 
 void JS_SetModuleLoaderFunc(JSRuntime *rt,

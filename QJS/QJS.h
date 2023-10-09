@@ -121,8 +121,9 @@ QJS_API ValueHandle TheJsException();
 		//  ValueHandle jstr2 = qjs.NewStringJsValue(ctx, "mensong");
 		//  qjs.SetNamedJsValue(ctx, "b", jstr2, NULL);
 */
-//设置geter seter
-QJS_API bool DefineGetterSetter(ContextHandle ctx, ValueHandle parent, const char* propName, ValueHandle getter, ValueHandle setter);
+////设置geter seter
+//QJS_API bool DefineGetterSetter(ContextHandle ctx, ValueHandle parent, 
+//	const char* propName, ValueHandle getter, ValueHandle setter);
 //int转ValueHandle
 QJS_API ValueHandle NewIntJsValue(ContextHandle ctx, int intValue);
 QJS_API ValueHandle NewInt64JsValue(ContextHandle ctx, int64_t intValue);
@@ -135,7 +136,7 @@ QJS_API ValueHandle NewBoolJsValue(ContextHandle ctx, bool boolValue);
 //创建一个JS Object
 QJS_API ValueHandle NewObjectJsValue(ContextHandle ctx);
 //get set object userdata
-QJS_API void SetObjectUserData(ValueHandle value, void* user_data);
+QJS_API bool SetObjectUserData(ValueHandle value, void* user_data);
 QJS_API void* GetObjectUserData(ValueHandle value);
 //创建一个JS Array
 QJS_API ValueHandle NewArrayJsValue(ContextHandle ctx);
@@ -155,8 +156,11 @@ QJS_API int64_t GetLength(ContextHandle ctx, ValueHandle obj);
 //手动释放一个New后的ValueHandle
 QJS_API void FreeValueHandle(ContextHandle ctx, ValueHandle v);
 
+//增加一个引用计数
+QJS_API void AddValueHandleRefCount(ContextHandle ctx, ValueHandle v);
+
 //ValueHandle转string
-QJS_API const char* JsValueToString(ContextHandle ctx, ValueHandle value, const char* defVal/* = ""*/);
+QJS_API const char* JsValueToString(ContextHandle ctx, ValueHandle value);
 //手动释放JsValueToString出来的字符串
 QJS_API void FreeJsValueToStringBuffer(ContextHandle ctx, const char* buff);
 //ValueHandle转int
@@ -219,6 +223,53 @@ QJS_API ValueHandle GetDebuggerClosureVariables(ContextHandle ctx, int stack_idx
 QJS_API ValueHandle GetDebuggerLocalVariables(ContextHandle ctx, int stack_idx);
 
 
+class JSValueRef
+{
+public:
+	JSValueRef(ContextHandle ctx = NULL, ValueHandle v = NULL)
+	{
+		context = ctx;
+		value = v;
+
+		if (v)
+			ref_count = new int(1);
+		else
+			ref_count = NULL;
+	}
+	JSValueRef(const JSValueRef& o)
+	{
+		value = o.value;
+		ref_count = o.ref_count;
+		if (value && ref_count)
+		{
+			++(*ref_count);
+		}
+	}
+
+	~JSValueRef()
+	{
+		if (ref_count)
+		{
+			if (*ref_count == 1)
+			{
+				*ref_count = 0;
+				FreeValueHandle(context, value);
+				delete ref_count;
+				ref_count = NULL;
+			}
+			else if (*ref_count > 1)
+			{
+				--(*ref_count);
+			}
+		}
+	}
+
+private:
+	ContextHandle context;
+	ValueHandle value;
+	int* ref_count;
+};
+
 class QJS
 {
 #define DEF_PROC(name) \
@@ -244,7 +295,7 @@ public:
 		SET_PROC(hDll, GetContextUserData);
 		SET_PROC(hDll, GetGlobalObject);
 		SET_PROC(hDll, NewFunction);
-		SET_PROC(hDll, DefineGetterSetter);
+		//SET_PROC(hDll, DefineGetterSetter);
 		SET_PROC(hDll, GetNamedJsValue);
 		SET_PROC(hDll, SetNamedJsValue);
 		SET_PROC(hDll, DeleteNamedJsValue); 
@@ -272,7 +323,8 @@ public:
 		SET_PROC(hDll, NewThrowJsValue); 
 		SET_PROC(hDll, NewDateJsValue);		
 		SET_PROC(hDll, GetLength);
-		SET_PROC(hDll, FreeValueHandle);
+		SET_PROC(hDll, FreeValueHandle); 
+		SET_PROC(hDll, AddValueHandleRefCount);
 		SET_PROC(hDll, JsValueToString);
 		SET_PROC(hDll, FreeJsValueToStringBuffer);
 		SET_PROC(hDll, JsValueToInt);
@@ -318,7 +370,7 @@ public:
 	DEF_PROC(GetContextUserData);
 	DEF_PROC(GetGlobalObject);
 	DEF_PROC(NewFunction);
-	DEF_PROC(DefineGetterSetter);
+	//DEF_PROC(DefineGetterSetter);
 	DEF_PROC(GetNamedJsValue);
 	DEF_PROC(SetNamedJsValue);
 	DEF_PROC(DeleteNamedJsValue); 
@@ -346,7 +398,8 @@ public:
 	DEF_PROC(NewThrowJsValue); 
 	DEF_PROC(NewDateJsValue);
 	DEF_PROC(GetLength);
-	DEF_PROC(FreeValueHandle);
+	DEF_PROC(FreeValueHandle); 
+	DEF_PROC(AddValueHandleRefCount);
 	DEF_PROC(JsValueToString);
 	DEF_PROC(FreeJsValueToStringBuffer);
 	DEF_PROC(JsValueToInt);
