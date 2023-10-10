@@ -498,6 +498,7 @@ ValueHandle NewArrayJsValue(ContextHandle ctx)
 
 ValueHandle NewThrowJsValue(ContextHandle ctx, ValueHandle throwWhat)
 {
+	AddValueHandleRefCount(ctx, throwWhat);
 	JSValue res = JS_Throw(_INNER_CTX(ctx), _INNER_VAL(throwWhat));
 	return _OUTER_VAL(res);
 }

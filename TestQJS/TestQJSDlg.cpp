@@ -161,8 +161,7 @@ ValueHandle JsAlert(ContextHandle ctx, ValueHandle this_val, int argc, ValueHand
 	MessageBoxA(_this->m_hWnd, msg.c_str(), title.c_str(), 0);
 
 	auto item = qjs.NewStringJsValue(ctx, msg.c_str());
-
-	return qjs.NewThrowJsValue(ctx, item);
+	return item;
 }
 
 ValueHandle JsPrint(ContextHandle ctx, ValueHandle this_val, int argc, ValueHandle* argv, void* user_data)
@@ -196,6 +195,14 @@ ValueHandle JsSetter(ContextHandle ctx, ValueHandle this_val, int argc, ValueHan
 		qjs.FreeJsValueToStringBuffer(ctx, sz);
 	}
 	return this_val;
+}
+
+ValueHandle JsTestThrow(ContextHandle ctx, ValueHandle this_val, int argc, ValueHandle* argv, void* user_data)
+{
+	auto throwWhat = qjs.NewStringJsValue(ctx, "throw test");
+	auto ex = qjs.NewThrowJsValue(ctx, throwWhat);
+	qjs.FreeValueHandle(ctx, throwWhat);
+	return ex;
 }
 
 void CTestQJSDlg::DebuggerLineCallback(ContextHandle ctx, uint32_t line_no, const uint8_t* pc, void* user_data)
@@ -238,6 +245,7 @@ void CTestQJSDlg::DebuggerLineCallback(ContextHandle ctx, uint32_t line_no, cons
 		ValueHandle localVars = qjs.GetDebuggerLocalVariables(ctx, 0);
 		_this->AppendResultText(_T("(DEBUG)局部变量:"), true);
 		_this->AppendResultText(ctx, qjs.JsonStringify(ctx, localVars), false);
+		qjs.FreeValueHandle(ctx, localVars);
 
 		_this->m_lastBreak = true;
 		_this->m_singleStepExecution = false;
@@ -262,10 +270,6 @@ void CTestQJSDlg::DebuggerLineCallback(ContextHandle ctx, uint32_t line_no, cons
 							_this->m_editTestScript.SetSel(0, script.GetLength());
 							if (!script.IsEmpty())
 							{
-								//ValueHandle res = qjs.GetNamedJsValue(ctx, qjs.UnicodeToUtf8(script.GetString()), localVars);
-								//_this->AppendResultText(_T("(DEBUG)") + script + _T(":"), true);
-								//_this->AppendResultText(ctx, qjs.JsonStringify(ctx, res), false);
-
 								ValueHandle res = qjs.RunScript(ctx, qjs.UnicodeToUtf8(script.GetString()), NULL);
 								if (!qjs.JsValueIsException(res))
 								{
@@ -277,8 +281,9 @@ void CTestQJSDlg::DebuggerLineCallback(ContextHandle ctx, uint32_t line_no, cons
 									ValueHandle exception = qjs.GetJsLastException(ctx);
 									_this->AppendResultText(_T("(DEBUG Exception)") + script + _T(":"), true);
 									_this->AppendResultText(ctx, exception, false);
+									qjs.FreeValueHandle(ctx, exception);
 								}
-
+								qjs.FreeValueHandle(ctx, res);
 
 							}
 							continue;
@@ -424,6 +429,8 @@ void CTestQJSDlg::OnBnClickedButton1()
 		ValueHandle arr = qjs.NewArrayJsValue(ctx);
 		ValueHandle str = qjs.NewStringJsValue(ctx, "mensong");
 		qjs.SetIndexedJsValue(ctx, 10, str, arr);//设置id 10的元素为字符串mensong
+		qjs.SetIndexedJsValue(ctx, 2, str, arr);
+		qjs.DeleteIndexedJsValue(ctx, 2, arr);
 		qjs.SetNamedJsValue(ctx, "arr", arr, NULL);
 
 		auto item10 = qjs.GetIndexedJsValue(ctx, 10, arr);
@@ -545,18 +552,20 @@ void CTestQJSDlg::OnBnClickedButton1()
 	}
 	
 	{
-		const uint32_t qjsc_qjsc_test_size = 71;
-		const uint8_t qjsc_qjsc_test[71] = {
-		 0x02, 0x02, 0x06, 0x61, 0x61, 0x61, 0x18, 0x71,
+		const uint32_t qjsc_qjsc_test_size = 79;
+		const uint8_t qjsc_qjsc_test[79] = {
+		 0x02, 0x03, 0x0a, 0x61, 0x6c, 0x65, 0x72, 0x74,
+		 0x2a, 0x49, 0x20, 0x61, 0x6d, 0x20, 0x63, 0x6f,
+		 0x6d, 0x69, 0x6e, 0x67, 0x20, 0x66, 0x72, 0x6f,
+		 0x6d, 0x20, 0x62, 0x69, 0x6e, 0x2e, 0x18, 0x71,
 		 0x6a, 0x73, 0x63, 0x2d, 0x74, 0x65, 0x73, 0x74,
 		 0x2e, 0x6a, 0x73, 0x0e, 0x00, 0x06, 0x00, 0xa6,
-		 0x01, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0x1a,
-		 0x01, 0xa8, 0x01, 0x00, 0x00, 0x00, 0x3f, 0xe3,
-		 0x00, 0x00, 0x00, 0x00, 0x3e, 0xe3, 0x00, 0x00,
-		 0x00, 0x00, 0xbe, 0x7b, 0x39, 0xe3, 0x00, 0x00,
-		 0x00, 0x38, 0xe3, 0x00, 0x00, 0x00, 0xce, 0x28,
-		 0xc8, 0x03, 0x01, 0x03, 0x1f, 0x21, 0x26,
+		 0x01, 0x00, 0x01, 0x00, 0x02, 0x00, 0x00, 0x0d,
+		 0x01, 0xa8, 0x01, 0x00, 0x00, 0x00, 0x38, 0xe3,
+		 0x00, 0x00, 0x00, 0x04, 0xe4, 0x00, 0x00, 0x00,
+		 0xf0, 0xce, 0x28, 0xca, 0x03, 0x01, 0x00,
 		};
+
 		ValueHandle binRes = qjs.RunBinary(ctx, qjsc_qjsc_test, qjsc_qjsc_test_size);
 		if (qjs.JsValueIsException(binRes))
 		{
@@ -570,6 +579,26 @@ void CTestQJSDlg::OnBnClickedButton1()
 			AppendResultText(ctx, binRes, false);
 		}
 		qjs.FreeValueHandle(ctx, binRes);
+	}
+
+	{
+		auto testThrowFunc = qjs.NewFunction(ctx, JsTestThrow, 0, NULL);
+		qjs.SetNamedJsValue(ctx, "TestThrow", testThrowFunc, NULL);
+		qjs.FreeValueHandle(ctx, testThrowFunc);
+		qjs.RunScript(ctx, "try{ TestThrow(); } catch (e){ print(e) }", NULL);
+	}
+
+	{
+		auto jNull = qjs.TheJsNull();
+		qjs.FreeValueHandle(ctx, jNull);
+		auto jException = qjs.TheJsException();
+		qjs.FreeValueHandle(ctx, jException);
+		auto jFalse = qjs.TheJsFalse();
+		qjs.FreeValueHandle(ctx, jFalse);
+		auto jTrue = qjs.TheJsTrue();
+		qjs.FreeValueHandle(ctx, jTrue);
+		auto jUndefined = qjs.TheJsUndefined();
+		qjs.FreeValueHandle(ctx, jUndefined);
 	}
 
 #endif

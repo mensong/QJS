@@ -1,2 +1,1 @@
-var aaa = 123;
-aaa
+alert("I am coming from bin.");

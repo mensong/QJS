@@ -108,19 +108,6 @@ QJS_API ValueHandle TheJsFalse();
 //JS的exception值
 QJS_API ValueHandle TheJsException();
 
-/*
-注意：	//C中申请的每一个JS value只能有单一用处
-		//例如申请两个值都为“mensong”的js字符串a和b
-		//下面的写法是非法的：
-		//  ValueHandle jstr = qjs.NewStringJsValue(ctx, "mensong");
-		//  qjs.SetNamedJsValue(ctx, "a", jstr, NULL);//!!这里用了一次
-		//  qjs.SetNamedJsValue(ctx, "b", jstr, NULL);//!!错误：这里用了第二次
-		//下面为正确的写法：
-		//  ValueHandle jstr1 = qjs.NewStringJsValue(ctx, "mensong");
-		//  qjs.SetNamedJsValue(ctx, "a", jstr1, NULL);
-		//  ValueHandle jstr2 = qjs.NewStringJsValue(ctx, "mensong");
-		//  qjs.SetNamedJsValue(ctx, "b", jstr2, NULL);
-*/
 ////设置geter seter
 //QJS_API bool DefineGetterSetter(ContextHandle ctx, ValueHandle parent, 
 //	const char* propName, ValueHandle getter, ValueHandle setter);
@@ -146,13 +133,15 @@ QJS_API ValueHandle NewThrowJsValue(ContextHandle ctx, ValueHandle throwWhat);
 QJS_API ValueHandle NewDateJsValue(ContextHandle ctx, uint64_t ms_since_1970);
 
 //自定义js函数原型
-typedef ValueHandle(*FN_JsFunctionCallback)(ContextHandle ctx, ValueHandle this_val, int argc, ValueHandle* argv, void* user_data);
+typedef ValueHandle(*FN_JsFunctionCallback)(
+	ContextHandle ctx, ValueHandle this_val, int argc, ValueHandle* argv, void* user_data);
 //创建一个JS函数
 QJS_API ValueHandle NewFunction(ContextHandle ctx, FN_JsFunctionCallback cb, int argc, void* user_data);
 
 //获得.length属性 失败返回-1
 QJS_API int64_t GetLength(ContextHandle ctx, ValueHandle obj);
 
+/* 注意：所有经过API返回的ValueHandle都需要FreeValueHandle释放掉 */
 //手动释放一个New后的ValueHandle
 QJS_API void FreeValueHandle(ContextHandle ctx, ValueHandle v);
 
@@ -222,53 +211,6 @@ QJS_API uint32_t GetDebuggerStackDepth(ContextHandle ctx);
 QJS_API ValueHandle GetDebuggerClosureVariables(ContextHandle ctx, int stack_idx);
 QJS_API ValueHandle GetDebuggerLocalVariables(ContextHandle ctx, int stack_idx);
 
-
-class JSValueRef
-{
-public:
-	JSValueRef(ContextHandle ctx = NULL, ValueHandle v = NULL)
-	{
-		context = ctx;
-		value = v;
-
-		if (v)
-			ref_count = new int(1);
-		else
-			ref_count = NULL;
-	}
-	JSValueRef(const JSValueRef& o)
-	{
-		value = o.value;
-		ref_count = o.ref_count;
-		if (value && ref_count)
-		{
-			++(*ref_count);
-		}
-	}
-
-	~JSValueRef()
-	{
-		if (ref_count)
-		{
-			if (*ref_count == 1)
-			{
-				*ref_count = 0;
-				FreeValueHandle(context, value);
-				delete ref_count;
-				ref_count = NULL;
-			}
-			else if (*ref_count > 1)
-			{
-				--(*ref_count);
-			}
-		}
-	}
-
-private:
-	ContextHandle context;
-	ValueHandle value;
-	int* ref_count;
-};
 
 class QJS
 {

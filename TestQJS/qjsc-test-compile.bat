@@ -1,1 +1,3 @@
-"..\QJS\quickjs\lib\Release\x64\qjsc.exe" -c -o qjsc-test.c qjsc-test.js
+"..\QJS\quickjs\bin\qjsc.exe" -c -o qjsc-test.c qjsc-test.js
+
+pause
