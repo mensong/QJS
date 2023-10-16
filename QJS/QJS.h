@@ -388,6 +388,17 @@ public:
 	DEF_PROC(GetDebuggerClosureVariables); 
 	DEF_PROC(GetDebuggerLocalVariables);
 
+	//ValueHandleתstd::string
+	std::string JsValueToStdString(ContextHandle ctx, ValueHandle value, const std::string& defVal = "")
+	{
+		const char* sz = this->JsValueToString(ctx, value);
+		if (!sz)
+			return defVal;
+		std::string ret = sz;
+		this->FreeJsValueToStringBuffer(ctx, sz);
+		return ret;
+	}
+
 public:
 	static QJS& Ins() { static QJS s_ins; return s_ins; }
 

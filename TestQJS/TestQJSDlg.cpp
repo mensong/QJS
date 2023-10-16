@@ -558,6 +558,11 @@ void CTestQJSDlg::OnBnClickedButton1()
 		ValueHandle jExcep = qjs.GetAndClearJsLastException(ctx);
 	}
 
+	{
+		ValueHandle testMsg = qjs.NewStringJsValue(ctx, "mensong");
+		std::string s = qjs.JsValueToStdString(ctx, testMsg, "");
+	}
+
 #endif
 
 	CString script;
