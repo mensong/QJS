@@ -394,6 +394,19 @@ bool DeleteIndexedJsValue(ContextHandle ctx, uint32_t idx, ValueHandle parent)
 	return res == TRUE;
 }
 
+ValueHandle GetPrototype(ContextHandle ctx, ValueHandle jObj)
+{
+	if (JsValueIsDate(ctx, jObj))
+		return _OUTER_VAL(JS_GetPrototypeOfDate(_INNER_CTX(ctx)));
+	else
+		return _OUTER_VAL(JS_GetPrototype(_INNER_CTX(ctx), _INNER_VAL(jObj)));
+}
+
+bool SetPrototype(ContextHandle ctx, ValueHandle jObj, ValueHandle protoJVal)
+{
+	return (JS_SetPrototype(_INNER_CTX(ctx), _INNER_VAL(jObj), _INNER_VAL(protoJVal)) == TRUE);
+}
+
 ValueHandle TheJsUndefined()
 {
 	return _OUTER_VAL(JS_UNDEFINED);

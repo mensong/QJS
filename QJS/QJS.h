@@ -72,6 +72,12 @@ QJS_API void FreeContext(ContextHandle ctx);
 QJS_API void SetContextUserData(ContextHandle ctx, void* user_data);
 QJS_API void* GetContextUserData(ContextHandle ctx);
 
+/* !!注意：所有经过API返回的ValueHandle都需要FreeValueHandle释放掉!! */
+//手动释放一个New后的ValueHandle
+QJS_API void FreeValueHandle(ContextHandle ctx, ValueHandle v);
+//增加一个引用计数
+QJS_API void AddValueHandleRefCount(ContextHandle ctx, ValueHandle v);
+
 //获得顶层对象
 QJS_API ValueHandle GetGlobalObject(ContextHandle ctx);
 
@@ -96,6 +102,11 @@ QJS_API ValueHandle GetIndexedJsValue(ContextHandle ctx, uint32_t idx, ValueHand
 QJS_API bool SetIndexedJsValue(ContextHandle ctx, uint32_t idx, ValueHandle varValue, ValueHandle parent);
 //根据序号删除一个js变量值
 QJS_API bool DeleteIndexedJsValue(ContextHandle ctx, uint32_t idx, ValueHandle parent);
+
+///原型
+//获得一个js变量的原型对象
+QJS_API ValueHandle GetPrototype(ContextHandle ctx, ValueHandle jObj);
+QJS_API bool SetPrototype(ContextHandle ctx, ValueHandle jObj, ValueHandle protoJVal);
 
 //JS的undefined值
 QJS_API ValueHandle TheJsUndefined();
@@ -140,13 +151,6 @@ QJS_API ValueHandle NewFunction(ContextHandle ctx, FN_JsFunctionCallback cb, int
 
 //获得.length属性 失败返回-1
 QJS_API int64_t GetLength(ContextHandle ctx, ValueHandle obj);
-
-/* 注意：所有经过API返回的ValueHandle都需要FreeValueHandle释放掉 */
-//手动释放一个New后的ValueHandle
-QJS_API void FreeValueHandle(ContextHandle ctx, ValueHandle v);
-
-//增加一个引用计数
-QJS_API void AddValueHandleRefCount(ContextHandle ctx, ValueHandle v);
 
 //ValueHandle转string
 QJS_API const char* JsValueToString(ContextHandle ctx, ValueHandle value);
@@ -244,7 +248,9 @@ public:
 		SET_PROC(hDll, HasNamedJsValue);
 		SET_PROC(hDll, GetIndexedJsValue);
 		SET_PROC(hDll, SetIndexedJsValue);
-		SET_PROC(hDll, DeleteIndexedJsValue);
+		SET_PROC(hDll, DeleteIndexedJsValue); 
+		SET_PROC(hDll, GetPrototype);
+		SET_PROC(hDll, SetPrototype);
 		SET_PROC(hDll, RunScript);
 		SET_PROC(hDll, CallJsFunction);
 		SET_PROC(hDll, RunBinary);
@@ -319,7 +325,9 @@ public:
 	DEF_PROC(HasNamedJsValue);
 	DEF_PROC(GetIndexedJsValue);
 	DEF_PROC(SetIndexedJsValue);
-	DEF_PROC(DeleteIndexedJsValue);
+	DEF_PROC(DeleteIndexedJsValue); 
+	DEF_PROC(GetPrototype);
+	DEF_PROC(SetPrototype);
 	DEF_PROC(RunScript);
 	DEF_PROC(CallJsFunction);
 	DEF_PROC(RunBinary);
