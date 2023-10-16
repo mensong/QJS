@@ -15,9 +15,6 @@ QJS重新封装了quickjs，使得在Windows上使用更方便快捷
 #define QJS_API extern "C" __declspec(dllimport)
 #endif
 
-//是否自动释放
-#define QJS_AUTO_FREE 1
-
 typedef void* RuntimeHandle;
 typedef void* ContextHandle;
 struct ValueHandle
