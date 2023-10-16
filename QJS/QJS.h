@@ -208,7 +208,7 @@ QJS_API ValueHandle GetAndClearJsLastException(ContextHandle ctx);
 // return < 0 if exception, 
 // return 0 if no job pending, 
 // return 1 if a job was executed successfully, the context of the job is stored in 'outCurCtx'
-QJS_API int ExecutePendingJob(RuntimeHandle runtime, ContextHandle* outCurCtx);
+QJS_API int ExecutePendingJob(RuntimeHandle runtime, void*& outCurCtx);
 
 
 //开启调试模式
@@ -392,16 +392,7 @@ public:
 	DEF_PROC(GetDebuggerLocalVariables);
 
 public:
-	static QJS& Ins() { if (!s_ins) s_ins = new QJS; return *s_ins; }
-
-	static void Rel()
-	{
-		if (s_ins)
-		{
-			delete s_ins;
-			s_ins = NULL;
-		}
-	}
+	static QJS& Ins() { static QJS s_ins; return s_ins; }
 
 	static HMODULE LoadLibraryFromCurrentDir(const char* dllName)
 	{
@@ -440,6 +431,5 @@ private:
 	static QJS* s_ins;
 	HMODULE hDll;
 };
-__declspec(selectany) QJS* QJS::s_ins = NULL;
 
 #define qjs QJS::Ins()
