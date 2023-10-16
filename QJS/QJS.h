@@ -23,8 +23,6 @@ struct ValueHandle
 	uint64_t value;
 };
 
-#define NULL_VAL { NULL, NULL }
-
 //Js value¿‡–Õ
 enum ValueType
 {

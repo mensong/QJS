@@ -269,7 +269,7 @@ void CTestQJSDlg::DebuggerLineCallback(ContextHandle ctx, uint32_t line_no, cons
 							if (!script.IsEmpty())
 							{
 								qjs.GetGlobalObject(ctx);
-								ValueHandle res = qjs.RunScript(ctx, qjs.UnicodeToUtf8(script.GetString()), NULL_VAL);
+								ValueHandle res = qjs.RunScript(ctx, qjs.UnicodeToUtf8(script.GetString()), qjs.TheJsNull());
 								if (!qjs.JsValueIsException(res))
 								{
 									_this->AppendResultText(_T("(DEBUG)") + script + _T(":"), true);
@@ -374,27 +374,27 @@ void CTestQJSDlg::OnBnClickedButton1()
 
 
 	ValueHandle alertFunc = qjs.NewFunction(ctx, JsAlert, 2, this);
-	bool b = qjs.SetNamedJsValue(ctx, "alert", alertFunc, NULL_VAL);
+	bool b = qjs.SetNamedJsValue(ctx, "alert", alertFunc, qjs.TheJsNull());
 
 	ValueHandle printFunc = qjs.NewFunction(ctx, JsPrint, -1, this);
-	b = qjs.SetNamedJsValue(ctx, "print", printFunc, NULL_VAL);
+	b = qjs.SetNamedJsValue(ctx, "print", printFunc, qjs.TheJsNull());
 
 	auto WScript = qjs.NewObjectJsValue(ctx);
-	qjs.SetNamedJsValue(ctx, "WScript", WScript, NULL_VAL);
+	qjs.SetNamedJsValue(ctx, "WScript", WScript, qjs.TheJsNull());
 	qjs.SetNamedJsValue(ctx, "Echo", printFunc, WScript);
 
 	auto console = qjs.NewObjectJsValue(ctx);
-	qjs.SetNamedJsValue(ctx, "console", console, NULL_VAL);
+	qjs.SetNamedJsValue(ctx, "console", console, qjs.TheJsNull());
 	qjs.SetNamedJsValue(ctx, "log", printFunc, console);
 
-	b = qjs.SetNamedJsValue(ctx, "telemetryLog", printFunc, NULL_VAL);
+	b = qjs.SetNamedJsValue(ctx, "telemetryLog", printFunc, qjs.TheJsNull());
 
 #if 1
 
 	{
 		auto argv = qjs.NewStringJsValue(ctx, "mensong,");
 		ValueHandle argvs[] = { argv, argv, argv };
-		auto ret1 = qjs.CallJsFunction(ctx, printFunc, argvs, 3, NULL_VAL);
+		auto ret1 = qjs.CallJsFunction(ctx, printFunc, argvs, 3, qjs.TheJsNull());
 		AppendResultText("", true);
 	}
 
@@ -407,11 +407,11 @@ void CTestQJSDlg::OnBnClickedButton1()
 
 	{
 		ValueHandle bv = qjs.NewBoolJsValue(ctx, true);
-		qjs.SetNamedJsValue(ctx, "bv", bv, NULL_VAL);
+		qjs.SetNamedJsValue(ctx, "bv", bv, qjs.TheJsNull());
 
 		ValueHandle o = qjs.NewObjectJsValue(ctx);
 		qjs.SetNamedJsValue(ctx, "bv", bv, o);
-		qjs.SetNamedJsValue(ctx, "o", o, NULL_VAL);
+		qjs.SetNamedJsValue(ctx, "o", o, qjs.TheJsNull());
 	}
 
 	{
@@ -420,7 +420,7 @@ void CTestQJSDlg::OnBnClickedButton1()
 		qjs.SetIndexedJsValue(ctx, 10, str, arr);//设置id 10的元素为字符串mensong
 		qjs.SetIndexedJsValue(ctx, 2, str, arr);
 		qjs.DeleteIndexedJsValue(ctx, 2, arr);
-		qjs.SetNamedJsValue(ctx, "arr", arr, NULL_VAL);
+		qjs.SetNamedJsValue(ctx, "arr", arr, qjs.TheJsNull());
 
 		auto item10 = qjs.GetIndexedJsValue(ctx, 10, arr);
 		const char* sz = qjs.JsValueToString(ctx, item10);
@@ -480,7 +480,7 @@ void CTestQJSDlg::OnBnClickedButton1()
 	{
 		auto date = qjs.NewDateJsValue(ctx, 1679044555000);
 		uint64_t ts = qjs.JsValueToTimestamp(ctx, date);
-		qjs.SetNamedJsValue(ctx, "mydate", date, NULL_VAL);
+		qjs.SetNamedJsValue(ctx, "mydate", date, qjs.TheJsNull());
 	}
 
 	{
@@ -503,7 +503,7 @@ void CTestQJSDlg::OnBnClickedButton1()
 	}
 
 	{
-		auto arrLenTest = qjs.RunScript(ctx, "[{\"a\":123}, {\"a\":456}]", NULL_VAL);
+		auto arrLenTest = qjs.RunScript(ctx, "[{\"a\":123}, {\"a\":456}]", qjs.TheJsNull());
 		auto arrTestLen = qjs.GetLength(ctx, arrLenTest);
 		auto v0 = qjs.GetIndexedJsValue(ctx, 0, arrLenTest);
 		auto a0 = qjs.GetNamedJsValue(ctx, "a", v0);
@@ -540,8 +540,8 @@ void CTestQJSDlg::OnBnClickedButton1()
 
 	{
 		auto testThrowFunc = qjs.NewFunction(ctx, JsTestThrow, 0, NULL);
-		qjs.SetNamedJsValue(ctx, "TestThrow", testThrowFunc, NULL_VAL);
-		qjs.RunScript(ctx, "try{ TestThrow(); } catch (e){ print(e) }", NULL_VAL);
+		qjs.SetNamedJsValue(ctx, "TestThrow", testThrowFunc, qjs.TheJsNull());
+		qjs.RunScript(ctx, "try{ TestThrow(); } catch (e){ print(e) }", qjs.TheJsNull());
 	}
 
 	{
@@ -569,7 +569,7 @@ void CTestQJSDlg::OnBnClickedButton1()
 	m_editScript.GetWindowText(script);
 
 	DWORD t1 = ::GetTickCount();
-	auto result = qjs.RunScript(ctx, qjs.UnicodeToUtf8(script), NULL_VAL);
+	auto result = qjs.RunScript(ctx, qjs.UnicodeToUtf8(script), qjs.TheJsNull());
 	DWORD st = ::GetTickCount() - t1;
 
 	if (!qjs.JsValueIsException(result))

@@ -332,12 +332,13 @@ bool DefineGetterSetter(ContextHandle ctx, ValueHandle parent,
 ValueHandle GetNamedJsValue(ContextHandle ctx, const char* varName, ValueHandle parent)
 {
 	JSValue _this = _INNER_VAL(parent);
-	if (!parent.value)
+	bool isUseGlobal = JsValueIsNull(parent) || JsValueIsUndefined(parent);
+	if (isUseGlobal)
 		_this = JS_GetGlobalObject(_INNER_CTX(ctx));
 
 	JSValue val = JS_GetPropertyStr(_INNER_CTX(ctx), _this, varName);
 
-	if (!parent.value)
+	if (isUseGlobal)
 		JS_FreeValue(_INNER_CTX(ctx), _this);
 
 	ValueHandle ret = { ctx, val };
@@ -350,7 +351,8 @@ ValueHandle GetNamedJsValue(ContextHandle ctx, const char* varName, ValueHandle 
 bool SetNamedJsValue(ContextHandle ctx, const char* varName, ValueHandle varValue, ValueHandle parent)
 {
 	JSValue _this = _INNER_VAL(parent);
-	if (!parent.value)
+	bool isUseGlobal = JsValueIsNull(parent) || JsValueIsUndefined(parent);
+	if (isUseGlobal)
 		_this = JS_GetGlobalObject(_INNER_CTX(ctx));
 		
 	bool b = JS_SetPropertyStr(_INNER_CTX(ctx), _this, varName, _INNER_VAL(varValue)) == TRUE;
@@ -358,7 +360,7 @@ bool SetNamedJsValue(ContextHandle ctx, const char* varName, ValueHandle varValu
 	if (b)
 		JS_DupValue(_INNER_CTX(ctx), _INNER_VAL(varValue));
 
-	if (!parent.value)
+	if (isUseGlobal)
 		JS_FreeValue(_INNER_CTX(ctx), _this);
 
 	return b;
@@ -367,14 +369,15 @@ bool SetNamedJsValue(ContextHandle ctx, const char* varName, ValueHandle varValu
 bool DeleteNamedJsValue(ContextHandle ctx, const char* varName, ValueHandle parent)
 {
 	JSValue _this = _INNER_VAL(parent);
-	if (!_this)
+	bool isUseGlobal = JsValueIsNull(parent) || JsValueIsUndefined(parent);
+	if (isUseGlobal)
 		_this = JS_GetGlobalObject(_INNER_CTX(ctx));
 
 	JSAtom atom = JS_NewAtom(_INNER_CTX(ctx), varName);	
 	int res = JS_DeleteProperty(_INNER_CTX(ctx), _this, atom, 0);	
 	JS_FreeAtom(_INNER_CTX(ctx), atom);
 
-	if (!parent.value)
+	if (isUseGlobal)
 		JS_FreeValue(_INNER_CTX(ctx), _this);
 
 	return res == TRUE;
@@ -383,7 +386,8 @@ bool DeleteNamedJsValue(ContextHandle ctx, const char* varName, ValueHandle pare
 bool HasNamedJsValue(ContextHandle ctx, const char* varName, ValueHandle parent)
 {
 	JSValue _this = _INNER_VAL(parent);
-	if (!_this)
+	bool isUseGlobal = JsValueIsNull(parent) || JsValueIsUndefined(parent);
+	if (isUseGlobal)
 		_this = JS_GetGlobalObject(_INNER_CTX(ctx));
 
 	JSAtom atom = JS_NewAtom(_INNER_CTX(ctx), varName);
@@ -392,7 +396,7 @@ bool HasNamedJsValue(ContextHandle ctx, const char* varName, ValueHandle parent)
 
 	JS_FreeAtom(_INNER_CTX(ctx), atom);
 
-	if (!parent.value)
+	if (isUseGlobal)
 		JS_FreeValue(_INNER_CTX(ctx), _this);
 
 	return b;
@@ -401,12 +405,13 @@ bool HasNamedJsValue(ContextHandle ctx, const char* varName, ValueHandle parent)
 ValueHandle GetIndexedJsValue(ContextHandle ctx, uint32_t idx, ValueHandle parent)
 {
 	JSValue _this = _INNER_VAL(parent);
-	if (!_this)
+	bool isUseGlobal = JsValueIsNull(parent) || JsValueIsUndefined(parent);
+	if (isUseGlobal)
 		_this = JS_GetGlobalObject(_INNER_CTX(ctx));
 
 	JSValue val = JS_GetPropertyUint32(_INNER_CTX(ctx), _this, idx);
 
-	if (!parent.value)
+	if (isUseGlobal)
 		JS_FreeValue(_INNER_CTX(ctx), _this);
 
 	ValueHandle ret = _OUTER_VAL(ctx, val);
@@ -417,12 +422,13 @@ ValueHandle GetIndexedJsValue(ContextHandle ctx, uint32_t idx, ValueHandle paren
 bool SetIndexedJsValue(ContextHandle ctx, uint32_t idx, ValueHandle varValue, ValueHandle parent)
 {
 	JSValue _this = _INNER_VAL(parent);
-	if (!_this)
+	bool isUseGlobal = JsValueIsNull(parent) || JsValueIsUndefined(parent);
+	if (isUseGlobal)
 		_this = JS_GetGlobalObject(_INNER_CTX(ctx));
 
 	bool b = JS_SetPropertyUint32(_INNER_CTX(ctx), _this, idx, _INNER_VAL(varValue)) == TRUE;
 
-	if (!parent.value)
+	if (isUseGlobal)
 		JS_FreeValue(_INNER_CTX(ctx), _this);
 
 	if (b)
@@ -434,14 +440,15 @@ bool SetIndexedJsValue(ContextHandle ctx, uint32_t idx, ValueHandle varValue, Va
 bool DeleteIndexedJsValue(ContextHandle ctx, uint32_t idx, ValueHandle parent)
 {
 	JSValue _this = _INNER_VAL(parent);
-	if (!_this)
+	bool isUseGlobal = JsValueIsNull(parent) || JsValueIsUndefined(parent);
+	if (isUseGlobal)
 		_this = JS_GetGlobalObject(_INNER_CTX(ctx));
 
 	JSAtom atom = JS_NewAtomUInt32(_INNER_CTX(ctx), idx);
 	int res = JS_DeleteProperty(_INNER_CTX(ctx), _this, atom, 0);
 	JS_FreeAtom(_INNER_CTX(ctx), atom);
 
-	if (!parent.value)
+	if (isUseGlobal)
 		JS_FreeValue(_INNER_CTX(ctx), _this);
 
 	return res == TRUE;
@@ -493,7 +500,8 @@ ValueHandle TheJsException()
 ValueHandle RunScript(ContextHandle ctx, const char* script, ValueHandle parent)
 {
 	JSValue res = JS_UNDEFINED;
-	if (!parent.value)
+	bool isUseGlobal = JsValueIsNull(parent) || JsValueIsUndefined(parent);
+	if (isUseGlobal)
 		res = JS_Eval(_INNER_CTX(ctx), script, strlen(script), "<eval>", 0);
 	else
 		res = JS_EvalThis(_INNER_CTX(ctx), _INNER_VAL(parent), script, strlen(script), "<eval>", 0);
@@ -510,7 +518,8 @@ ValueHandle CallJsFunction(ContextHandle ctx, ValueHandle jsFunction, ValueHandl
 		return { NULL,NULL };
 
 	JSValue _this = _INNER_VAL(parent);
-	if (!_this)
+	bool isUseGlobal = JsValueIsNull(parent) || JsValueIsUndefined(parent);
+	if (isUseGlobal)
 		_this = JS_GetGlobalObject(_INNER_CTX(ctx));
 
 	JSValue* innerArr = NULL;
@@ -530,7 +539,7 @@ ValueHandle CallJsFunction(ContextHandle ctx, ValueHandle jsFunction, ValueHandl
 		delete[] innerArr;
 	}
 
-	if (!parent.value)
+	if (isUseGlobal)
 		JS_FreeValue(_INNER_CTX(ctx), _this);
 
 	ValueHandle ret = _OUTER_VAL(ctx, res);
