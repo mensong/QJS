@@ -20,7 +20,13 @@ QJS重新封装了quickjs，使得在Windows上使用更方便快捷
 
 typedef void* RuntimeHandle;
 typedef void* ContextHandle;
-typedef uint64_t ValueHandle;
+struct ValueHandle
+{
+	ContextHandle ctx;
+	uint64_t value;
+};
+
+#define NULL_VAL { NULL, NULL }
 
 //Js value类型
 enum ValueType
@@ -72,11 +78,13 @@ QJS_API void FreeContext(ContextHandle ctx);
 QJS_API void SetContextUserData(ContextHandle ctx, void* user_data);
 QJS_API void* GetContextUserData(ContextHandle ctx);
 
-/* !!注意：所有经过API返回的ValueHandle都需要FreeValueHandle释放掉!! */
-//手动释放一个New后的ValueHandle
-QJS_API void FreeValueHandle(ContextHandle ctx, ValueHandle v);
-//增加一个引用计数
-QJS_API void AddValueHandleRefCount(ContextHandle ctx, ValueHandle v);
+///* !!注意：所有经过API返回的ValueHandle都需要FreeValueHandle释放掉!!
+// * !!在navite function里的返回值除外!!
+// */
+////手动释放一个New后的ValueHandle
+//QJS_API void FreeValueHandle(ContextHandle ctx, ValueHandle v);
+////增加一个引用计数
+//QJS_API void AddValueHandleRefCount(ContextHandle ctx, ValueHandle v);
 
 //获得顶层对象
 QJS_API ValueHandle GetGlobalObject(ContextHandle ctx);
@@ -194,7 +202,7 @@ QJS_API ValueHandle JsonParse(ContextHandle ctx, const char* json);
 //It must be explicitly tested and handled by the C code.
 //The specific JSValue JS_EXCEPTION indicates that an exception occurred.
 //The actual exception object is stored in the JSContext and can be retrieved with GetException()
-QJS_API ValueHandle GetJsLastException(ContextHandle ctx);
+QJS_API ValueHandle GetAndClearJsLastException(ContextHandle ctx);
 
 //处理事件
 // return < 0 if exception, 
@@ -271,8 +279,8 @@ public:
 		SET_PROC(hDll, NewThrowJsValue); 
 		SET_PROC(hDll, NewDateJsValue);		
 		SET_PROC(hDll, GetLength);
-		SET_PROC(hDll, FreeValueHandle); 
-		SET_PROC(hDll, AddValueHandleRefCount);
+		//SET_PROC(hDll, FreeValueHandle); 
+		//SET_PROC(hDll, AddValueHandleRefCount);
 		SET_PROC(hDll, JsValueToString);
 		SET_PROC(hDll, FreeJsValueToStringBuffer);
 		SET_PROC(hDll, JsValueToInt);
@@ -293,7 +301,7 @@ public:
 		SET_PROC(hDll, JsValueIsException);
 		SET_PROC(hDll, JsValueIsFunction); 
 		SET_PROC(hDll, JsValueToTimestamp);
-		SET_PROC(hDll, GetJsLastException);
+		SET_PROC(hDll, GetAndClearJsLastException);
 		SET_PROC(hDll, JsValueIsUndefined);
 		SET_PROC(hDll, JsValueIsNull); 
 		SET_PROC(hDll, JsValueIsDate); 
@@ -348,8 +356,8 @@ public:
 	DEF_PROC(NewThrowJsValue); 
 	DEF_PROC(NewDateJsValue);
 	DEF_PROC(GetLength);
-	DEF_PROC(FreeValueHandle); 
-	DEF_PROC(AddValueHandleRefCount);
+	//DEF_PROC(FreeValueHandle); 
+	//DEF_PROC(AddValueHandleRefCount);
 	DEF_PROC(JsValueToString);
 	DEF_PROC(FreeJsValueToStringBuffer);
 	DEF_PROC(JsValueToInt);
@@ -370,7 +378,7 @@ public:
 	DEF_PROC(JsValueIsException);
 	DEF_PROC(JsValueIsFunction); 
 	DEF_PROC(JsValueToTimestamp);
-	DEF_PROC(GetJsLastException);
+	DEF_PROC(GetAndClearJsLastException);
 	DEF_PROC(JsValueIsUndefined);
 	DEF_PROC(JsValueIsNull); 
 	DEF_PROC(JsValueIsDate); 
@@ -384,10 +392,7 @@ public:
 	DEF_PROC(GetDebuggerLocalVariables);
 
 public:
-	static QJS& Ins()
-	{
-		if (!s_ins) s_ins = new QJS; return *s_ins;
-	}
+	static QJS& Ins() { if (!s_ins) s_ins = new QJS; return *s_ins; }
 
 	static void Rel()
 	{

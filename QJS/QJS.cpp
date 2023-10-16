@@ -7,8 +7,6 @@
 #include "QJS.h"
 #include <cassert>
 
-
-
 #undef __has_attribute
 #include <cutils.h>
 
@@ -18,18 +16,26 @@
 #define MALLOC_OVERHEAD  8
 #endif
 
+struct InnerContext
+{
+	JSContext* context;
+	std::vector<uint64_t> values;
 
-
+	void addValue(uint64_t v)
+	{
+		values.push_back(v);
+	}
+};
+#define ADD_AUTO_FREE(v) if (v.ctx && v.value)((InnerContext*)v.ctx)->addValue(v.value)
 
 #define _INNER_RT(rt) (JSRuntime*)rt
 #define _OUTER_RT(rt) (RuntimeHandle)rt
 
-#define _INNER_CTX(ctx) (JSContext*)ctx
+#define _INNER_CTX(ctx) (JSContext*)(((InnerContext*)ctx)->context)
 #define _OUTER_CTX(ctx) (ContextHandle)ctx
 
-#define _INNER_VAL(val) (JSValue)val
-#define _OUTER_VAL(val) (ValueHandle)val
-
+#define _INNER_VAL(val) (JSValue)val.value
+#define _OUTER_VAL(ctx, val) { (ContextHandle)ctx, (uint64_t)val }
 
 /* default memory allocation functions with memory limitation */
 static inline size_t js_qjs_malloc_usable_size(void* ptr)
@@ -177,7 +183,11 @@ ContextHandle NewContext(RuntimeHandle runtime)
 	//js_init_module_std(context, "std");
 	//js_init_module_os(context, "os");
 
-	return _OUTER_CTX(context);
+	InnerContext* _ctx = new InnerContext();
+	_ctx->context = context;
+	_ctx->values.reserve(1024);
+
+	return _OUTER_CTX(_ctx);
 }
 
 void FreeContext(ContextHandle ctx)
@@ -185,7 +195,14 @@ void FreeContext(ContextHandle ctx)
 	if (!ctx)
 		return;
 
+	InnerContext* innerCtx = (InnerContext*)ctx;
+	for (size_t i = 0; i < innerCtx->values.size(); i++)
+	{
+		JS_FreeValue(_INNER_CTX(ctx), (JSValue)innerCtx->values[i]);
+	}
+
 	JS_FreeContext(_INNER_CTX(ctx));
+	delete innerCtx;
 }
 
 void SetContextUserData(ContextHandle ctx, void* user_data)
@@ -200,21 +217,44 @@ void* GetContextUserData(ContextHandle ctx)
 
 ValueHandle GetGlobalObject(ContextHandle ctx)
 {
-	ValueHandle val = _OUTER_VAL(JS_GetGlobalObject(_INNER_CTX(ctx)));
-	return val;
+	ValueHandle ret = _OUTER_VAL(ctx, JS_GetGlobalObject(_INNER_CTX(ctx)));
+	ADD_AUTO_FREE(ret);
+	return ret;
 }
 
 static int __magicIdx = 0;
 static std::map<int, std::pair<FN_JsFunctionCallback, void*> > __NewFunctionFunctions;
-static JSValue __NewFunctionHelper(JSContext* ctx, JSValue this_val, int argc, JSValue* argv, int magic)
+static JSValue __NewFunctionCallHelper(JSContext* rawCtx, JSValue this_val, int argc, JSValue* argv, int magic)
 {
 	auto itFinder = __NewFunctionFunctions.find(magic);
 	if (itFinder != __NewFunctionFunctions.end())
 	{
 		if (itFinder->second.first)
 		{
-			ValueHandle ret = itFinder->second.first(
-				_OUTER_CTX(ctx), _OUTER_VAL(this_val), argc, (ValueHandle*)argv, itFinder->second.second);
+			InnerContext innerCtx;
+			innerCtx.context = rawCtx;
+
+			ValueHandle* _innerArgv = NULL;
+			if (argc > 0)
+				_innerArgv = new ValueHandle[argc];
+			for (size_t i = 0; i < argc; i++)
+			{
+				_innerArgv[i] = _OUTER_VAL(rawCtx, argv[i]);
+			}
+
+			ValueHandle ret = itFinder->second.first( 
+				&innerCtx, { rawCtx, this_val }, argc, (ValueHandle*)_innerArgv, itFinder->second.second);
+
+			if (_innerArgv)
+				delete[] _innerArgv;
+
+			//这里的值是传给内部的，由内部自己释放，防止在下面被释放
+			JS_DupValue(rawCtx, ret.value);
+			//释放函数内部所申请的内存
+			for (size_t i = 0; i < innerCtx.values.size(); i++)
+			{
+				JS_FreeValue(rawCtx, (JSValue)innerCtx.values[i]);
+			}
 
 			return _INNER_VAL(ret);
 		}
@@ -224,13 +264,16 @@ static JSValue __NewFunctionHelper(JSContext* ctx, JSValue this_val, int argc, J
 
 	return JS_UNDEFINED;
 }
+
 ValueHandle NewFunction(ContextHandle ctx, FN_JsFunctionCallback cb, int argc, void* user_data)
 {
 	if (!ctx)
-		return NULL;
+	{
+		return { NULL, NULL };
+	}
 
 	JSValue fv = JS_NewCFunctionMagic(_INNER_CTX(ctx), 
-		(JSCFunctionMagic*)__NewFunctionHelper, NULL, argc, JS_CFUNC_generic_magic, __magicIdx);
+		(JSCFunctionMagic*)__NewFunctionCallHelper, NULL, argc, JS_CFUNC_generic_magic, __magicIdx);
 
 	if (JS_IsFunction(_INNER_CTX(ctx), fv))
 	{
@@ -238,7 +281,11 @@ ValueHandle NewFunction(ContextHandle ctx, FN_JsFunctionCallback cb, int argc, v
 		__magicIdx++;
 	}
 
-	return _OUTER_VAL(fv);
+	ValueHandle ret = { ctx, fv };
+
+	ADD_AUTO_FREE(ret);
+
+	return ret;
 }
 
 #if 0
@@ -285,29 +332,33 @@ bool DefineGetterSetter(ContextHandle ctx, ValueHandle parent,
 ValueHandle GetNamedJsValue(ContextHandle ctx, const char* varName, ValueHandle parent)
 {
 	JSValue _this = _INNER_VAL(parent);
-	if (!parent)
+	if (!parent.value)
 		_this = JS_GetGlobalObject(_INNER_CTX(ctx));
 
 	JSValue val = JS_GetPropertyStr(_INNER_CTX(ctx), _this, varName);
 
-	if (!parent)
+	if (!parent.value)
 		JS_FreeValue(_INNER_CTX(ctx), _this);
 
-	return _OUTER_VAL(val);
+	ValueHandle ret = { ctx, val };
+
+	ADD_AUTO_FREE(ret);
+
+	return ret;
 }
 
 bool SetNamedJsValue(ContextHandle ctx, const char* varName, ValueHandle varValue, ValueHandle parent)
 {
 	JSValue _this = _INNER_VAL(parent);
-	if (!parent)
+	if (!parent.value)
 		_this = JS_GetGlobalObject(_INNER_CTX(ctx));
 		
 	bool b = JS_SetPropertyStr(_INNER_CTX(ctx), _this, varName, _INNER_VAL(varValue)) == TRUE;
 
 	if (b)
-		AddValueHandleRefCount(ctx, varValue);
+		JS_DupValue(_INNER_CTX(ctx), _INNER_VAL(varValue));
 
-	if (!parent)
+	if (!parent.value)
 		JS_FreeValue(_INNER_CTX(ctx), _this);
 
 	return b;
@@ -323,7 +374,7 @@ bool DeleteNamedJsValue(ContextHandle ctx, const char* varName, ValueHandle pare
 	int res = JS_DeleteProperty(_INNER_CTX(ctx), _this, atom, 0);	
 	JS_FreeAtom(_INNER_CTX(ctx), atom);
 
-	if (!parent)
+	if (!parent.value)
 		JS_FreeValue(_INNER_CTX(ctx), _this);
 
 	return res == TRUE;
@@ -341,7 +392,7 @@ bool HasNamedJsValue(ContextHandle ctx, const char* varName, ValueHandle parent)
 
 	JS_FreeAtom(_INNER_CTX(ctx), atom);
 
-	if (!parent)
+	if (!parent.value)
 		JS_FreeValue(_INNER_CTX(ctx), _this);
 
 	return b;
@@ -355,10 +406,12 @@ ValueHandle GetIndexedJsValue(ContextHandle ctx, uint32_t idx, ValueHandle paren
 
 	JSValue val = JS_GetPropertyUint32(_INNER_CTX(ctx), _this, idx);
 
-	if (!parent)
+	if (!parent.value)
 		JS_FreeValue(_INNER_CTX(ctx), _this);
 
-	return _OUTER_VAL(val);
+	ValueHandle ret = _OUTER_VAL(ctx, val);
+	ADD_AUTO_FREE(ret);
+	return ret;
 }
 
 bool SetIndexedJsValue(ContextHandle ctx, uint32_t idx, ValueHandle varValue, ValueHandle parent)
@@ -369,11 +422,11 @@ bool SetIndexedJsValue(ContextHandle ctx, uint32_t idx, ValueHandle varValue, Va
 
 	bool b = JS_SetPropertyUint32(_INNER_CTX(ctx), _this, idx, _INNER_VAL(varValue)) == TRUE;
 
-	if (!parent)
+	if (!parent.value)
 		JS_FreeValue(_INNER_CTX(ctx), _this);
 
 	if (b)
-		AddValueHandleRefCount(ctx, varValue);
+		JS_DupValue(_INNER_CTX(ctx), _INNER_VAL(varValue));
 
 	return b;
 }
@@ -388,7 +441,7 @@ bool DeleteIndexedJsValue(ContextHandle ctx, uint32_t idx, ValueHandle parent)
 	int res = JS_DeleteProperty(_INNER_CTX(ctx), _this, atom, 0);
 	JS_FreeAtom(_INNER_CTX(ctx), atom);
 
-	if (!parent)
+	if (!parent.value)
 		JS_FreeValue(_INNER_CTX(ctx), _this);
 
 	return res == TRUE;
@@ -396,10 +449,15 @@ bool DeleteIndexedJsValue(ContextHandle ctx, uint32_t idx, ValueHandle parent)
 
 ValueHandle GetPrototype(ContextHandle ctx, ValueHandle jObj)
 {
+	ValueHandle ret = { NULL,NULL };
+
 	if (JsValueIsDate(ctx, jObj))
-		return _OUTER_VAL(JS_GetPrototypeOfDate(_INNER_CTX(ctx)));
+		ret = _OUTER_VAL(ctx, JS_GetPrototypeOfDate(_INNER_CTX(ctx)));
 	else
-		return _OUTER_VAL(JS_GetPrototype(_INNER_CTX(ctx), _INNER_VAL(jObj)));
+		ret = _OUTER_VAL(ctx, JS_GetPrototype(_INNER_CTX(ctx), _INNER_VAL(jObj)));
+
+	ADD_AUTO_FREE(ret);
+	return ret;
 }
 
 bool SetPrototype(ContextHandle ctx, ValueHandle jObj, ValueHandle protoJVal)
@@ -409,166 +467,210 @@ bool SetPrototype(ContextHandle ctx, ValueHandle jObj, ValueHandle protoJVal)
 
 ValueHandle TheJsUndefined()
 {
-	return _OUTER_VAL(JS_UNDEFINED);
+	return _OUTER_VAL(NULL, JS_UNDEFINED);
 }
 
 ValueHandle TheJsNull()
 {
-	return _OUTER_VAL(JS_NULL);
+	return _OUTER_VAL(NULL, JS_NULL);
 }
 
 ValueHandle TheJsTrue()
 {
-	return _OUTER_VAL(JS_TRUE);
+	return _OUTER_VAL(NULL, JS_TRUE);
 }
 
 ValueHandle TheJsFalse()
 {
-	return _OUTER_VAL(JS_FALSE);
+	return _OUTER_VAL(NULL, JS_FALSE);
 }
 
 ValueHandle TheJsException()
 {
-	return _OUTER_VAL(JS_EXCEPTION);
+	return _OUTER_VAL(NULL, JS_EXCEPTION);
 }
 
 ValueHandle RunScript(ContextHandle ctx, const char* script, ValueHandle parent)
 {
 	JSValue res = JS_UNDEFINED;
-	if (!parent)
+	if (!parent.value)
 		res = JS_Eval(_INNER_CTX(ctx), script, strlen(script), "<eval>", 0);
 	else
 		res = JS_EvalThis(_INNER_CTX(ctx), _INNER_VAL(parent), script, strlen(script), "<eval>", 0);
 
-	return _OUTER_VAL(res);
+	ValueHandle ret = _OUTER_VAL(ctx, res);
+	ADD_AUTO_FREE(ret);
+	return ret;
 }
 
 ValueHandle CallJsFunction(ContextHandle ctx, ValueHandle jsFunction, ValueHandle args[], int argc, ValueHandle parent)
 {
 	JSValue func = _INNER_VAL(jsFunction);
 	if (JS_IsFunction(_INNER_CTX(ctx), func) != TRUE)
-		return NULL;
+		return { NULL,NULL };
 
 	JSValue _this = _INNER_VAL(parent);
 	if (!_this)
 		_this = JS_GetGlobalObject(_INNER_CTX(ctx));
 
-	JSValue res = JS_Call(_INNER_CTX(ctx), func, _this, argc, (JSValue*)args);
+	JSValue* innerArr = NULL;
+	if (argc > 0)
+	{
+		innerArr = new JSValue[argc];
+		for (size_t i = 0; i < argc; i++)
+		{
+			innerArr[i] = args[i].value;
+		}
+	}
 
-	if (!parent)
+	JSValue res = JS_Call(_INNER_CTX(ctx), func, _this, argc, innerArr);
+
+	if (innerArr)
+	{
+		delete[] innerArr;
+	}
+
+	if (!parent.value)
 		JS_FreeValue(_INNER_CTX(ctx), _this);
 
-	return _OUTER_VAL(res);
+	ValueHandle ret = _OUTER_VAL(ctx, res);
+	ADD_AUTO_FREE(ret);
+	return ret;
 }
 
 ValueHandle RunBinary(ContextHandle ctx, const uint8_t* bin, size_t binLen)
 {
 	JSValue res = js_std_eval_binary(_INNER_CTX(ctx), bin, binLen, 0);
-	return _OUTER_VAL(res);
+	ValueHandle ret = _OUTER_VAL(ctx, res);
+	ADD_AUTO_FREE(ret);
+	return ret;
 }
 
 ValueHandle NewIntJsValue(ContextHandle ctx, int intValue)
 {
 	JSValue res = JS_NewInt32(_INNER_CTX(ctx), intValue);
-	return _OUTER_VAL(res);
+	ValueHandle ret = _OUTER_VAL(ctx, res);
+	ADD_AUTO_FREE(ret);
+	return ret;
 }
 
 ValueHandle NewInt64JsValue(ContextHandle ctx, int64_t intValue)
 {
 	JSValue res = JS_NewInt64(_INNER_CTX(ctx), intValue);
-	return _OUTER_VAL(res);
+	ValueHandle ret = _OUTER_VAL(ctx, res);
+	ADD_AUTO_FREE(ret);
+	return ret;
 }
 
 ValueHandle NewDoubleJsValue(ContextHandle ctx, double doubleValue)
 {
 	JSValue res = JS_NewFloat64(_INNER_CTX(ctx), doubleValue);
-	return _OUTER_VAL(res);
+	ValueHandle ret = _OUTER_VAL(ctx, res);
+	ADD_AUTO_FREE(ret);
+	return ret;
 }
 
 ValueHandle NewStringJsValue(ContextHandle ctx, const char* stringValue)
 {
 	JSValue res = JS_NewString(_INNER_CTX(ctx), stringValue);
-	return _OUTER_VAL(res);
+	ValueHandle ret = _OUTER_VAL(ctx, res);
+	ADD_AUTO_FREE(ret);
+	return ret;
 }
 
 ValueHandle NewBoolJsValue(ContextHandle ctx, bool boolValue)
 {
 	JSValue res = JS_NewBool(_INNER_CTX(ctx), (int)boolValue);
-	return _OUTER_VAL(res);
+	ValueHandle ret = _OUTER_VAL(ctx, res);
+	ADD_AUTO_FREE(ret);
+	return ret;
 }
 
 ValueHandle NewObjectJsValue(ContextHandle ctx)
 {
 	JSValue res = JS_NewObject(_INNER_CTX(ctx));
-	return _OUTER_VAL(res);
+	ValueHandle ret = _OUTER_VAL(ctx, res);
+	ADD_AUTO_FREE(ret);
+	return ret;
 }
 
 ValueHandle NewArrayJsValue(ContextHandle ctx)
 {
 	JSValue res = JS_NewArray(_INNER_CTX(ctx));
-	return _OUTER_VAL(res);
+	ValueHandle ret = _OUTER_VAL(ctx, res);
+	ADD_AUTO_FREE(ret);
+	return ret;
 }
 
 ValueHandle NewThrowJsValue(ContextHandle ctx, ValueHandle throwWhat)
 {
-	AddValueHandleRefCount(ctx, throwWhat);
+	JS_DupValue(_INNER_CTX(ctx), _INNER_VAL(throwWhat));//JS_Throw will free the second param, so do it
 	JSValue res = JS_Throw(_INNER_CTX(ctx), _INNER_VAL(throwWhat));
-	return _OUTER_VAL(res);
+	ValueHandle ret = _OUTER_VAL(ctx, res);
+	ADD_AUTO_FREE(ret);
+	return ret;
 }
 
 ValueHandle NewDateJsValue(ContextHandle ctx, uint64_t ms_since_1970)
 {
 	JSValue res = JS_NewDate(_INNER_CTX(ctx), (double)ms_since_1970);
-	return _OUTER_VAL(res);
+	ValueHandle ret = _OUTER_VAL(ctx, res);
+	ADD_AUTO_FREE(ret);
+	return ret;
 }
 
 ValueHandle CopyJsValue(ContextHandle ctx, ValueHandle val)
 {
 	JSValue res = JS_DupValue(_INNER_CTX(ctx), _INNER_VAL(val));
-	return _OUTER_VAL(res);
+	ValueHandle ret = _OUTER_VAL(ctx, res);
+	ADD_AUTO_FREE(ret);
+	return ret;
 }
 
 int64_t GetLength(ContextHandle ctx, ValueHandle obj)
 {
 	int64_t len = -1;
-	int res = JS_GetPropertyLength(_INNER_CTX(ctx), &len, obj);
+	int res = JS_GetPropertyLength(_INNER_CTX(ctx), &len, _INNER_VAL(obj));
 	return len;
 }
 
-void FreeValueHandle(ContextHandle ctx, ValueHandle v)
-{
-	JS_FreeValue(_INNER_CTX(ctx), _INNER_VAL(v));
-}
-
-void AddValueHandleRefCount(ContextHandle ctx, ValueHandle v)
-{
-	JS_DupValue(_INNER_CTX(ctx), _INNER_VAL(v));
-}
+//void FreeValueHandle(ContextHandle ctx, ValueHandle v)
+//{
+//	JS_FreeValue(_INNER_CTX(ctx), _INNER_VAL(v));
+//}
+//
+//void AddValueHandleRefCount(ContextHandle ctx, ValueHandle v)
+//{
+//	JS_DupValue(_INNER_CTX(ctx), _INNER_VAL(v));
+//}
 
 bool SetObjectUserData(ValueHandle value, void* user_data)
 {
 	if (!JsValueIsObject(value))
 		return false;
-	JS_SetOpaque(value, user_data);
+	JS_SetOpaque(_INNER_VAL(value), user_data);
 	return true;
 }
 
 void* GetObjectUserData(ValueHandle value)
 {
 	void* userdata = NULL;
-	JS_GetClassID(value, &userdata);
+	JS_GetClassID(_INNER_VAL(value), &userdata);
 	return userdata;
 }
 
 const char* JsValueToString(ContextHandle ctx, ValueHandle value)
 {
-	if (value == NULL)
+	if (value.value == NULL)
 		return NULL;
 
 	if (JsValueIsException(value))
-		value = GetJsLastException(ctx);
+	{
+		value = GetAndClearJsLastException(ctx);
+	}
 
 	const char* buf = JS_ToCString(_INNER_CTX(ctx), _INNER_VAL(value));
+
 
 	return buf;
 }
@@ -582,7 +684,7 @@ void FreeJsValueToStringBuffer(ContextHandle ctx, const char* buff)
 
 int JsValueToInt(ContextHandle ctx, ValueHandle value, int defVal = 0)
 {
-	if (value == NULL)
+	if (value.value == NULL)
 		return defVal;
 
 	int e = defVal;
@@ -594,7 +696,7 @@ int JsValueToInt(ContextHandle ctx, ValueHandle value, int defVal = 0)
 
 int64_t JsValueToInt64(ContextHandle ctx, ValueHandle value, int64_t defVal = 0)
 {
-	if (value == NULL)
+	if (value.value == NULL)
 		return defVal;
 
 	int64_t e = defVal;
@@ -606,7 +708,7 @@ int64_t JsValueToInt64(ContextHandle ctx, ValueHandle value, int64_t defVal = 0)
 
 double JsValueToDouble(ContextHandle ctx, ValueHandle value, double defVal = 0.0)
 {
-	if (value == NULL)
+	if (value.value == NULL)
 		return defVal;
 
 	double e = defVal;
@@ -618,7 +720,7 @@ double JsValueToDouble(ContextHandle ctx, ValueHandle value, double defVal = 0.0
 
 bool JsValueToBool(ContextHandle ctx, ValueHandle value, bool defVal = false)
 {
-	if (value == NULL)
+	if (value.value == NULL)
 		return false;
 
 	int res = JS_ToBool(_INNER_CTX(ctx), _INNER_VAL(value));
@@ -631,7 +733,7 @@ bool JsValueToBool(ContextHandle ctx, ValueHandle value, bool defVal = false)
 uint64_t JsValueToTimestamp(ContextHandle ctx, ValueHandle value)
 {
 	double timestamp = 0;
-	JS_IsDate(_INNER_CTX(ctx), _INLINE_VAR(value), &timestamp);
+	JS_IsDate(_INNER_CTX(ctx), _INNER_VAL(value), &timestamp);
 	return (uint64_t)timestamp;
 }
 
@@ -697,14 +799,18 @@ bool JsValueIsDate(ContextHandle ctx, ValueHandle value)
 
 ValueHandle JsonStringify(ContextHandle ctx, ValueHandle value)
 {
-	JSValue jstr = JS_JSONStringify(_INNER_CTX(ctx), value, JS_UNDEFINED, JS_UNDEFINED);
-	return jstr;
+	JSValue jstr = JS_JSONStringify(_INNER_CTX(ctx), _INNER_VAL(value), JS_UNDEFINED, JS_UNDEFINED);
+	ValueHandle ret = _OUTER_VAL(ctx, jstr);
+	ADD_AUTO_FREE(ret);
+	return ret;
 }
 
 ValueHandle JsonParse(ContextHandle ctx, const char* json)
 {
 	JSValue obj = JS_ParseJSON2(_INNER_CTX(ctx), json, strlen(json), "<json>", JS_PARSE_JSON_EXT);
-	return obj;
+	ValueHandle ret = _OUTER_VAL(ctx, obj);
+	ADD_AUTO_FREE(ret);
+	return ret;
 }
 
 bool JsValueIsFunction(ContextHandle ctx, ValueHandle value)
@@ -712,15 +818,20 @@ bool JsValueIsFunction(ContextHandle ctx, ValueHandle value)
 	return JS_IsFunction(_INNER_CTX(ctx), _INNER_VAL(value)) == TRUE;
 }
 
-ValueHandle GetJsLastException(ContextHandle ctx)
+ValueHandle GetAndClearJsLastException(ContextHandle ctx)
 {
 	JSValue res = JS_GetException(_INNER_CTX(ctx));
-	return _OUTER_VAL(res);
+	ValueHandle ret = _OUTER_VAL(ctx, res);
+	ADD_AUTO_FREE(ret);
+	return ret;
 }
 
-int ExecutePendingJob(RuntimeHandle runtime, ContextHandle* outCurCtx)
+int ExecutePendingJob(RuntimeHandle runtime, void*& outCurCtx)
 {
-	return JS_ExecutePendingJob(_INNER_RT(runtime), (JSContext**)outCurCtx);
+	JSContext* curCtx = NULL;
+	int res = JS_ExecutePendingJob(_INNER_RT(runtime), (JSContext**)curCtx);
+	outCurCtx = curCtx;
+	return res;
 }
 
 void SetDebuggerMode(ContextHandle ctx, bool onoff)
@@ -728,32 +839,41 @@ void SetDebuggerMode(ContextHandle ctx, bool onoff)
 	JS_SetDebuggerMode(_INNER_CTX(ctx), (onoff ? 1 : 0));
 }
 
-static std::map<ContextHandle, std::pair<FN_DebuggerLineCallback, void*> > __SetDebuggerCheckLineNoCallbackFunctions;
-JS_BOOL __SetDebuggerCheckLineNoCallbackHelper(JSContext* ctx, JSAtom file_name, uint32_t line_no, const uint8_t* pc)
+static std::map<JSContext*, std::pair<FN_DebuggerLineCallback, void*> > __SetDebuggerCheckLineNoCallbackFunctions;
+JS_BOOL __SetDebuggerCheckLineNoCallbackHelper(JSContext* rawCtx, JSAtom file_name, uint32_t line_no, const uint8_t* pc)
 {
 	//先禁用调试模式，防止在调试函数中执行脚本形成死循环
-	JS_SetDebuggerMode(_INNER_CTX(ctx), 0);
+	JS_SetDebuggerMode(rawCtx, 0);
 
 	do
 	{
-		auto itFinder = __SetDebuggerCheckLineNoCallbackFunctions.find(ctx);
+		auto itFinder = __SetDebuggerCheckLineNoCallbackFunctions.find(rawCtx);
 		if (itFinder != __SetDebuggerCheckLineNoCallbackFunctions.end())
 		{
 			if (itFinder->second.first)
 			{
-				itFinder->second.first(ctx, line_no, pc, itFinder->second.second);
+				InnerContext innerCtx;
+				innerCtx.context = rawCtx;
+
+				itFinder->second.first(&innerCtx, line_no, pc, itFinder->second.second);
+
+				//释放调试内部所申请的内存
+				for (size_t i = 0; i < innerCtx.values.size(); i++)
+				{
+					JS_FreeValue(rawCtx, (JSValue)innerCtx.values[i]);
+				}
 			}
 		}
 	} while (0);
 
 	//恢复调试模式
-	JS_SetDebuggerMode(_INNER_CTX(ctx), 1);
+	JS_SetDebuggerMode(rawCtx, 1);
 
 	return TRUE;
 }
 void SetDebuggerLineCallback(ContextHandle ctx, FN_DebuggerLineCallback cb, void* user_data)
 {
-	__SetDebuggerCheckLineNoCallbackFunctions[ctx] = std::make_pair(cb, user_data);
+	__SetDebuggerCheckLineNoCallbackFunctions[_INNER_CTX(ctx)] = std::make_pair(cb, user_data);
 	JS_SetBreakpointHandler(_INNER_CTX(ctx), __SetDebuggerCheckLineNoCallbackHelper);
 }
 
@@ -765,13 +885,17 @@ uint32_t GetDebuggerStackDepth(ContextHandle ctx)
 ValueHandle GetDebuggerClosureVariables(ContextHandle ctx, int stack_idx)
 {
 	JSValue res = js_debugger_closure_variables(_INNER_CTX(ctx), stack_idx);
-	return _OUTER_VAL(res);
+	ValueHandle ret = _OUTER_VAL(ctx, res);
+	ADD_AUTO_FREE(ret);
+	return ret;
 }
 
 ValueHandle GetDebuggerLocalVariables(ContextHandle ctx, int stack_idx)
 {
 	JSValue res = js_debugger_local_variables(_INNER_CTX(ctx), stack_idx);
-	return _OUTER_VAL(res);
+	ValueHandle ret = _OUTER_VAL(ctx, res);
+	ADD_AUTO_FREE(ret);
+	return ret;
 }
 
 std::wstring Ret_AnsiToUnicode;
