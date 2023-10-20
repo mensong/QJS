@@ -1,8 +1,5 @@
 # QJS
-quickjs在windows上的封装
-
-# 编译
-依赖：https://github.com/mensong/quickjs-win
+quickjs(https://github.com/mensong/quickjs-win)在windows上的封装
 
 # 使用
 1.把QJS.dll放到调用者exe同目录
