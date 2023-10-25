@@ -9,6 +9,12 @@ QJS重新封装了quickjs，使得在Windows上使用更方便快捷
 #include <string>
 #include <stdint.h>
 
+#define MULTI_THREAD
+
+#ifdef MULTI_THREAD
+#include <mutex>
+#endif // MULTI_THREAD
+
 #ifdef QJS_EXPORTS
 #define QJS_API extern "C" __declspec(dllexport)
 #else
@@ -398,7 +404,15 @@ public:
 	}
 
 public:
-	static QJS& Ins() { static QJS s_ins; return s_ins; }
+	static QJS& Ins() 
+	{
+#ifdef MULTI_THREAD
+		std::lock_guard<std::mutex> _locker(s_insMutex);
+#endif // MULTI_THREAD
+		
+		static QJS s_ins;
+		return s_ins; 
+	}
 
 	static HMODULE LoadLibraryFromCurrentDir(const char* dllName)
 	{
@@ -434,8 +448,15 @@ public:
 	}
 
 private:
-	static QJS* s_ins;
+#ifdef MULTI_THREAD
+	static std::mutex s_insMutex;
+#endif // MULTI_THREAD
+	
 	HMODULE hDll;
 };
+
+#ifdef MULTI_THREAD
+__declspec(selectany) std::mutex QJS::s_insMutex;
+#endif // MULTI_THREAD
 
 #define qjs QJS::Ins()
