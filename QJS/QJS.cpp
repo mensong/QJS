@@ -190,7 +190,7 @@ ContextHandle NewContext(RuntimeHandle runtime)
 	return _OUTER_CTX(_ctx);
 }
 
-void FreeContext(ContextHandle ctx)
+QJS_API void ContextGC(ContextHandle ctx)
 {
 	if (!ctx)
 		return;
@@ -200,8 +200,18 @@ void FreeContext(ContextHandle ctx)
 	{
 		JS_FreeValue(_INNER_CTX(ctx), (JSValue)innerCtx->values[i]);
 	}
+}
+
+void FreeContext(ContextHandle ctx)
+{
+	if (!ctx)
+		return;
+
+	ContextGC(ctx);
 
 	JS_FreeContext(_INNER_CTX(ctx));
+
+	InnerContext* innerCtx = (InnerContext*)ctx;
 	delete innerCtx;
 }
 

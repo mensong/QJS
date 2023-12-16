@@ -73,6 +73,8 @@ QJS_API void* GetRuntimeUserData(RuntimeHandle runtime);
 
 //创建js上下文
 QJS_API ContextHandle NewContext(RuntimeHandle runtime);
+//把此前所有申请的C++Value释放
+QJS_API void ContextGC(ContextHandle ctx);
 //销毁js上下文
 QJS_API void FreeContext(ContextHandle ctx);
 //get set context userdata
