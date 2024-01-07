@@ -304,7 +304,6 @@ ValueHandle NewFunction(ContextHandle ctx, FN_JsFunctionCallback cb, int argc, v
 	return ret;
 }
 
-#if 1
 bool DefineGetterSetter(ContextHandle ctx, ValueHandle parent, 
 	const char* propName, ValueHandle getter, ValueHandle setter)
 {
@@ -331,7 +330,6 @@ bool DefineGetterSetter(ContextHandle ctx, ValueHandle parent,
 
 	return ret == TRUE;
 }
-#endif
 
 ValueHandle GetNamedJsValue(ContextHandle ctx, const char* varName, ValueHandle parent)
 {
