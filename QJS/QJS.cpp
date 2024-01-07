@@ -129,9 +129,15 @@ static const JSMallocFunctions qjs_malloc_funcs = {
 #endif
 };
 
+inline JSRefCountHeader* getValuePtr(JSValue value)
+{
+	JSRefCountHeader* p = (JSRefCountHeader*)JS_VALUE_GET_PTR(value);
+	return p;
+}
+
 inline JSRefCountHeader* getValuePtr(ValueHandle value)
 {
-	JSRefCountHeader* p = (JSRefCountHeader*)JS_VALUE_GET_PTR(_INNER_VAL(value));
+	JSRefCountHeader* p = getValuePtr(_INNER_VAL(value));
 	return p;
 }
 
@@ -298,15 +304,10 @@ ValueHandle NewFunction(ContextHandle ctx, FN_JsFunctionCallback cb, int argc, v
 	return ret;
 }
 
-#if 0
+#if 1
 bool DefineGetterSetter(ContextHandle ctx, ValueHandle parent, 
 	const char* propName, ValueHandle getter, ValueHandle setter)
-{	
-	if (!parent)
-	{
-		return false;
-	}
-
+{
 	JSValue globalObj = JS_GetGlobalObject(_INNER_CTX(ctx));
 	bool bIsGlobalObj = getValuePtr(parent) == getValuePtr(globalObj);
 	JS_FreeValue(_INNER_CTX(ctx), globalObj);
@@ -314,26 +315,19 @@ bool DefineGetterSetter(ContextHandle ctx, ValueHandle parent,
 		return false;
 
 	int flags = JS_PROP_HAS_CONFIGURABLE | JS_PROP_HAS_ENUMERABLE;
-	if (getter && JS_IsFunction(_INNER_CTX(ctx), _INNER_VAL(getter)))
+	if (JS_IsFunction(_INNER_CTX(ctx), _INNER_VAL(getter)))
 	{
 		flags |= JS_PROP_HAS_GET;
-		//这里不能加AddValueHandleRefCount
-		//AddValueHandleRefCount(ctx, getter);
 	}
-	if (setter && JS_IsFunction(_INNER_CTX(ctx), _INNER_VAL(setter)))
+	if (JS_IsFunction(_INNER_CTX(ctx), _INNER_VAL(setter)))
 	{
 		flags |= JS_PROP_HAS_SET;
-		//这里不能加AddValueHandleRefCount
-		//AddValueHandleRefCount(ctx, setter);
 	}
 
 	JSAtom atom = JS_NewAtom(_INNER_CTX(ctx), propName);
-	int ret = JS_DefineProperty(_INNER_CTX(ctx), 
-		_INNER_VAL(parent), atom, JS_UNDEFINED, _INNER_VAL(getter), _INNER_VAL(setter), flags);
+	int ret = JS_DefineProperty(_INNER_CTX(ctx), _INNER_VAL(parent), atom, 
+		JS_UNDEFINED, _INNER_VAL(getter), _INNER_VAL(setter), flags);
 	JS_FreeAtom(_INNER_CTX(ctx), atom);
-
-	//fck:非GlobalObject时需要把父对象增加计数
-	AddValueHandleRefCount(ctx, parent);
 
 	return ret == TRUE;
 }

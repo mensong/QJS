@@ -458,16 +458,11 @@ void CTestQJSDlg::OnBnClickedButton1()
 	}
 
 	{
-		//ValueHandle test_getter_setter = qjs.NewObjectJsValue(ctx);
-		//qjs.SetNamedJsValue(ctx, "test_getter_setter", test_getter_setter, NULL);
-		//auto getter = qjs.NewFunction(ctx, JsGetter, 0, NULL);
-		//auto setter = qjs.NewFunction(ctx, JsSetter, 1, NULL);
-		//qjs.DefineGetterSetter(ctx, test_getter_setter, "gs", getter, setter);
-
-		//auto getter2 = qjs.NewFunction(ctx, JsGetter, 0, NULL);
-		//auto setter2 = qjs.NewFunction(ctx, JsSetter, 1, NULL);
-		//auto globalObj = qjs.GetGlobalObject(ctx);
-		//bool b = qjs.DefineGetterSetter(ctx, globalObj, "gs2", getter2, setter2);
+		ValueHandle test_getter_setter = qjs.NewObjectJsValue(ctx);
+		qjs.SetNamedJsValue(ctx, "test_getter_setter", test_getter_setter, qjs.GetGlobalObject(ctx));
+		auto getter = qjs.NewFunction(ctx, JsGetter, 0, NULL);
+		auto setter = qjs.NewFunction(ctx, JsSetter, 1, NULL);
+		qjs.DefineGetterSetter(ctx, test_getter_setter, "gs", getter, setter);
 	}
 
 	{

@@ -81,14 +81,6 @@ QJS_API void FreeContext(ContextHandle ctx);
 QJS_API void SetContextUserData(ContextHandle ctx, void* user_data);
 QJS_API void* GetContextUserData(ContextHandle ctx);
 
-///* !!注意：所有经过API返回的ValueHandle都需要FreeValueHandle释放掉!!
-// * !!在navite function里的返回值除外!!
-// */
-////手动释放一个New后的ValueHandle
-//QJS_API void FreeValueHandle(ContextHandle ctx, ValueHandle v);
-////增加一个引用计数
-//QJS_API void AddValueHandleRefCount(ContextHandle ctx, ValueHandle v);
-
 //获得顶层对象
 QJS_API ValueHandle GetGlobalObject(ContextHandle ctx);
 
@@ -130,9 +122,9 @@ QJS_API ValueHandle TheJsFalse();
 //JS的exception值
 QJS_API ValueHandle TheJsException();
 
-////设置geter seter
-//QJS_API bool DefineGetterSetter(ContextHandle ctx, ValueHandle parent, 
-//	const char* propName, ValueHandle getter, ValueHandle setter);
+//设置geter seter
+QJS_API bool DefineGetterSetter(ContextHandle ctx, ValueHandle parent, 
+	const char* propName, ValueHandle getter, ValueHandle setter);
 //int转ValueHandle
 QJS_API ValueHandle NewIntJsValue(ContextHandle ctx, int intValue);
 QJS_API ValueHandle NewInt64JsValue(ContextHandle ctx, int64_t intValue);
@@ -252,7 +244,7 @@ public:
 		SET_PROC(hDll, GetContextUserData);
 		SET_PROC(hDll, GetGlobalObject);
 		SET_PROC(hDll, NewFunction);
-		//SET_PROC(hDll, DefineGetterSetter);
+		SET_PROC(hDll, DefineGetterSetter);
 		SET_PROC(hDll, GetNamedJsValue);
 		SET_PROC(hDll, SetNamedJsValue);
 		SET_PROC(hDll, DeleteNamedJsValue); 
@@ -329,7 +321,7 @@ public:
 	DEF_PROC(GetContextUserData);
 	DEF_PROC(GetGlobalObject);
 	DEF_PROC(NewFunction);
-	//DEF_PROC(DefineGetterSetter);
+	DEF_PROC(DefineGetterSetter);
 	DEF_PROC(GetNamedJsValue);
 	DEF_PROC(SetNamedJsValue);
 	DEF_PROC(DeleteNamedJsValue); 
