@@ -463,6 +463,7 @@ void CTestQJSDlg::OnBnClickedButton1()
 		auto getter = qjs.NewFunction(ctx, JsGetter, 0, NULL);
 		auto setter = qjs.NewFunction(ctx, JsSetter, 1, NULL);
 		qjs.DefineGetterSetter(ctx, test_getter_setter, "gs", getter, setter);
+		qjs.RunScript(ctx, "test_getter_setter.gs='123';test_getter_setter.gs", qjs.GetGlobalObject(ctx));
 	}
 
 	{
