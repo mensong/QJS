@@ -70,6 +70,7 @@ BEGIN_MESSAGE_MAP(CTestQJSDlg, CDialogEx)
 	ON_BN_CLICKED(IDC_BUTTON3, &CTestQJSDlg::OnBnClickedButton3)
 	ON_BN_CLICKED(IDC_CHECK1, &CTestQJSDlg::OnBnClickedCheck1)
 	ON_WM_CLOSE()
+	ON_WM_SIZE()
 END_MESSAGE_MAP()
 
 
@@ -89,6 +90,8 @@ BOOL CTestQJSDlg::OnInitDialog()
 	m_btnRun.EnableWindow(TRUE);
 	m_btnContinue.EnableWindow(FALSE);
 	m_btnSingleStep.EnableWindow(FALSE);
+
+	m_scale.Init(this);
 
 	return TRUE;  // 除非将焦点设置到控件，否则返回 TRUE
 }
@@ -450,4 +453,12 @@ void CTestQJSDlg::OnClose()
 	m_debugContinue = true;
 
 	CDialogEx::OnClose();
+}
+
+
+void CTestQJSDlg::OnSize(UINT nType, int cx, int cy)
+{
+	CDialogEx::OnSize(nType, cx, cy);
+
+	m_scale.Scale(cx, cy);
 }

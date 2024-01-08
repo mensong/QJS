@@ -5,6 +5,7 @@
 #pragma once
 #include <set>
 #include "../QJS/QJS.h"
+#include "CtrlScale.h"
 
 // CTestQJSDlg 对话框
 class CTestQJSDlg : public CDialogEx
@@ -56,6 +57,9 @@ public:
 	CButton m_btnRun;
 	CButton m_btnContinue;
 	CButton m_btnSingleStep;
+	CCtrlScale m_scale;
+
 	afx_msg void OnBnClickedCheck1();
 	afx_msg void OnClose();
+	afx_msg void OnSize(UINT nType, int cx, int cy);
 };
