@@ -10,7 +10,7 @@ void baseTest()
 	RuntimeHandle rt = qjs.NewRuntime();
 	ContextHandle ctx = qjs.NewContext(rt);
 
-	ValueHandle result = qjs.RunScript(ctx, qjs.UnicodeToUtf8(L"var a=123;a"), qjs.TheJsNull());
+	ValueHandle result = qjs.RunScript(ctx, qjs.UnicodeToUtf8(L"var a=123;a"), qjs.TheJsNull(), "");
 	if (!qjs.JsValueIsException(result))
 	{
 		const char* sz = qjs.JsValueToString(ctx, result);
@@ -180,7 +180,7 @@ void myTest()
 		auto getter = qjs.NewFunction(ctx, JsGetter, 0, NULL);
 		auto setter = qjs.NewFunction(ctx, JsSetter, 1, NULL);
 		qjs.DefineGetterSetter(ctx, test_getter_setter, "gs", getter, setter);
-		qjs.RunScript(ctx, "test_getter_setter.gs='123';test_getter_setter.gs", qjs.GetGlobalObject(ctx));
+		qjs.RunScript(ctx, "test_getter_setter.gs='123';test_getter_setter.gs", qjs.GetGlobalObject(ctx), "");
 	}
 
 	{
@@ -216,7 +216,7 @@ void myTest()
 	}
 
 	{
-		auto arrLenTest = qjs.RunScript(ctx, "[{\"a\":123}, {\"a\":456}]", qjs.TheJsNull());
+		auto arrLenTest = qjs.RunScript(ctx, "[{\"a\":123}, {\"a\":456}]", qjs.TheJsNull(), "");
 		auto arrTestLen = qjs.GetLength(ctx, arrLenTest);
 		auto v0 = qjs.GetIndexedJsValue(ctx, 0, arrLenTest);
 		auto a0 = qjs.GetNamedJsValue(ctx, "a", v0);
@@ -256,7 +256,7 @@ void myTest()
 	{
 		auto testThrowFunc = qjs.NewFunction(ctx, JsTestThrow, 0, NULL);
 		qjs.SetNamedJsValue(ctx, "TestThrow", testThrowFunc, qjs.TheJsNull());
-		qjs.RunScript(ctx, "try{ TestThrow(); } catch (e){ print(e) }", qjs.TheJsNull());
+		qjs.RunScript(ctx, "try{ TestThrow(); } catch (e){ print(e) }", qjs.TheJsNull(), "");
 	}
 
 	{

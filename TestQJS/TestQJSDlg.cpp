@@ -71,6 +71,7 @@ BEGIN_MESSAGE_MAP(CTestQJSDlg, CDialogEx)
 	ON_BN_CLICKED(IDC_CHECK1, &CTestQJSDlg::OnBnClickedCheck1)
 	ON_WM_CLOSE()
 	ON_WM_SIZE()
+	ON_BN_CLICKED(IDC_BTN_LOAD_FROM_FILE, &CTestQJSDlg::OnBnClickedBtnLoadFromFile)
 END_MESSAGE_MAP()
 
 
@@ -243,10 +244,21 @@ void CTestQJSDlg::DebuggerLineCallback(ContextHandle ctx, uint32_t line_no, cons
 		}
 		_this->AppendResultText(txt, true);
 
-		//int stack = qjs.GetDebuggerStackDepth(ctx);
+		int stack = qjs.GetDebuggerStackDepth(ctx);
+		_this->AppendResultText(_T("(DEBUG)StackDepth:"), true);
+		_this->AppendResultText(std::to_wstring(stack).c_str(), false);
+		
 		ValueHandle localVars = qjs.GetDebuggerLocalVariables(ctx, 0);
-		_this->AppendResultText(_T("(DEBUG)局部变量:"), true);
+		_this->AppendResultText(_T("(DEBUG)LocalVariables:"), true);
 		_this->AppendResultText(ctx, qjs.JsonStringify(ctx, localVars), false);
+
+		ValueHandle closureVars = qjs.GetDebuggerClosureVariables(ctx, 0);
+		_this->AppendResultText(_T("(DEBUG)ClosureVariables:"), true);
+		_this->AppendResultText(ctx, qjs.JsonStringify(ctx, closureVars), false);
+
+		ValueHandle backtrace = qjs.GetDebuggerBacktrace(ctx, pc);
+		_this->AppendResultText(_T("(DEBUG)Backtrace:"), true);
+		_this->AppendResultText(ctx, qjs.JsonStringify(ctx, backtrace), false);
 
 		_this->m_lastBreak = true;
 		_this->m_singleStepExecution = false;
@@ -256,9 +268,7 @@ void CTestQJSDlg::DebuggerLineCallback(ContextHandle ctx, uint32_t line_no, cons
 			MSG msg;
 			while (::PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
 			{
-
-
-				//处理临时脚本
+				//执行临时脚本
 				if (msg.message == WM_KEYDOWN && msg.wParam == VK_RETURN)
 				{
 					switch (GetFocus()->GetDlgCtrlID())
@@ -272,7 +282,7 @@ void CTestQJSDlg::DebuggerLineCallback(ContextHandle ctx, uint32_t line_no, cons
 							if (!script.IsEmpty())
 							{
 								qjs.GetGlobalObject(ctx);
-								ValueHandle res = qjs.RunScript(ctx, qjs.UnicodeToUtf8(script.GetString()), qjs.TheJsNull());
+								ValueHandle res = qjs.RunScript(ctx, qjs.UnicodeToUtf8(script.GetString()), qjs.TheJsNull(), "");
 								if (!qjs.JsValueIsException(res))
 								{
 									_this->AppendResultText(_T("(DEBUG)") + script + _T(":"), true);
@@ -291,7 +301,7 @@ void CTestQJSDlg::DebuggerLineCallback(ContextHandle ctx, uint32_t line_no, cons
 						break;
 					}
 				}
-				//结束处理临时脚本
+				//结束执行临时脚本
 
 				::DispatchMessage(&msg);
 				::TranslateMessage(&msg);
@@ -397,7 +407,7 @@ void CTestQJSDlg::OnBnClickedButton1()
 	m_editScript.GetWindowText(script);
 
 	DWORD t1 = ::GetTickCount();
-	auto result = qjs.RunScript(ctx, qjs.UnicodeToUtf8(script), qjs.TheJsNull());
+	auto result = qjs.RunScript(ctx, qjs.UnicodeToUtf8(script), qjs.TheJsNull(), m_curFilename.c_str());
 	DWORD st = ::GetTickCount() - t1;
 
 	if (!qjs.JsValueIsException(result))
@@ -461,4 +471,32 @@ void CTestQJSDlg::OnSize(UINT nType, int cx, int cy)
 	CDialogEx::OnSize(nType, cx, cy);
 
 	m_scale.Scale(cx, cy);
+}
+
+
+void CTestQJSDlg::OnBnClickedBtnLoadFromFile()
+{
+	CFileDialog fdlg(TRUE, NULL, NULL, OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT, 
+		L"*.js|*.js|*.txt|*.txt|All files(*.*)|*.*||");
+	fdlg.m_ofn.lpstrTitle = L"加载JS文件";
+	fdlg.m_ofn.lpstrInitialDir = L".\\";
+	if (fdlg.DoModal() == IDOK)
+	{
+		CString strFileName = fdlg.GetPathName();
+		CStdioFile file;
+		if (file.Open(strFileName, CFile::modeRead)) // 打开文件
+		{
+			CString strContent;
+			CString strTemp;
+			while (file.ReadString(strTemp)) // 逐行读取文件内容
+			{
+				strContent += strTemp + _T("\r\n"); // 拼接文件内容
+			}
+			file.Close(); // 关闭文件
+
+			m_editScript.SetWindowText(strContent); // 将文件内容显示到文本编辑框中
+
+			m_curFilename = qjs.UnicodeToAnsi(strFileName.GetString());
+		}
+	}
 }

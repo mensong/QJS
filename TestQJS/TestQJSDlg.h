@@ -4,6 +4,7 @@
 
 #pragma once
 #include <set>
+#include <string>
 #include "../QJS/QJS.h"
 #include "CtrlScale.h"
 
@@ -24,6 +25,8 @@ public:
 	bool m_singleStepExecution;
 	bool m_lastBreak;
 	static void DebuggerLineCallback(ContextHandle ctx, uint32_t line_no, const uint8_t* pc, void* user_data);
+
+	std::string m_curFilename;
 
 // 对话框数据
 #ifdef AFX_DESIGN_TIME
@@ -62,4 +65,5 @@ public:
 	afx_msg void OnBnClickedCheck1();
 	afx_msg void OnClose();
 	afx_msg void OnSize(UINT nType, int cx, int cy);
+	afx_msg void OnBnClickedBtnLoadFromFile();
 };
