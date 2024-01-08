@@ -383,6 +383,7 @@ void CTestQJSDlg::OnBnClickedButton1()
 		m_btnContinue.EnableWindow(TRUE);
 		m_btnSingleStep.EnableWindow(TRUE);
 		m_editScript.SetReadOnly(TRUE);
+		m_editBreakpointsList.EnableWindow(FALSE);
 	}
 
 
@@ -432,6 +433,7 @@ void CTestQJSDlg::OnBnClickedButton1()
 	m_btnContinue.EnableWindow(FALSE);
 	m_btnSingleStep.EnableWindow(FALSE);
 	m_editScript.SetReadOnly(FALSE);
+	m_editBreakpointsList.EnableWindow(TRUE);
 }
 
 
