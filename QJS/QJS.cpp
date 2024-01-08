@@ -495,14 +495,14 @@ ValueHandle TheJsException()
 	return _OUTER_VAL(NULL, JS_EXCEPTION);
 }
 
-ValueHandle RunScript(ContextHandle ctx, const char* script, ValueHandle parent)
+ValueHandle RunScript(ContextHandle ctx, const char* script, ValueHandle parent, const char* filename/* = ""*/)
 {
 	JSValue res = JS_UNDEFINED;
 	bool isUseGlobal = JsValueIsNull(parent) || JsValueIsUndefined(parent);
 	if (isUseGlobal)
-		res = JS_Eval(_INNER_CTX(ctx), script, strlen(script), "<eval>", 0);
+		res = JS_Eval(_INNER_CTX(ctx), script, strlen(script), filename, 0);
 	else
-		res = JS_EvalThis(_INNER_CTX(ctx), _INNER_VAL(parent), script, strlen(script), "<eval>", 0);
+		res = JS_EvalThis(_INNER_CTX(ctx), _INNER_VAL(parent), script, strlen(script), filename, 0);
 
 	ValueHandle ret = _OUTER_VAL(ctx, res);
 	ADD_AUTO_FREE(ret);
@@ -885,6 +885,14 @@ void SetDebuggerLineCallback(ContextHandle ctx, FN_DebuggerLineCallback cb, void
 uint32_t GetDebuggerStackDepth(ContextHandle ctx)
 {
 	return js_debugger_stack_depth(_INNER_CTX(ctx));
+}
+
+ValueHandle GetDebuggerBacktrace(ContextHandle ctx, const uint8_t* pc)
+{
+	JSValue stack = js_debugger_build_backtrace(_INNER_CTX(ctx), pc);
+	ValueHandle ret = _OUTER_VAL(ctx, stack);
+	ADD_AUTO_FREE(ret);
+	return ret;
 }
 
 ValueHandle GetDebuggerClosureVariables(ContextHandle ctx, int stack_idx)

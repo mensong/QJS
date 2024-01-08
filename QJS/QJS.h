@@ -85,7 +85,7 @@ QJS_API void* GetContextUserData(ContextHandle ctx);
 QJS_API ValueHandle GetGlobalObject(ContextHandle ctx);
 
 //运行脚本
-QJS_API ValueHandle RunScript(ContextHandle ctx, const char* script, ValueHandle parent);
+QJS_API ValueHandle RunScript(ContextHandle ctx, const char* script, ValueHandle parent, const char* filename="");
 //执行js中函数，没有参数时args=NULL并且argc=0
 QJS_API ValueHandle CallJsFunction(ContextHandle ctx, ValueHandle jsFunction, ValueHandle args[], int argc, ValueHandle parent);
 //执行bin脚本
@@ -214,6 +214,8 @@ typedef void (*FN_DebuggerLineCallback)(ContextHandle ctx, uint32_t line_no, con
 QJS_API void SetDebuggerLineCallback(ContextHandle ctx, FN_DebuggerLineCallback cb, void* user_data);
 //获得调试时的堆栈深度
 QJS_API uint32_t GetDebuggerStackDepth(ContextHandle ctx);
+//获得回溯
+QJS_API ValueHandle GetDebuggerBacktrace(ContextHandle ctx, const uint8_t* pc);
 //获得调试变量（只读）
 QJS_API ValueHandle GetDebuggerClosureVariables(ContextHandle ctx, int stack_idx);
 QJS_API ValueHandle GetDebuggerLocalVariables(ContextHandle ctx, int stack_idx);
@@ -306,6 +308,7 @@ public:
 		SET_PROC(hDll, SetDebuggerMode); 
 		SET_PROC(hDll, SetDebuggerLineCallback); 
 		SET_PROC(hDll, GetDebuggerStackDepth); 
+		SET_PROC(hDll, GetDebuggerBacktrace);
 		SET_PROC(hDll, GetDebuggerClosureVariables); 
 		SET_PROC(hDll, GetDebuggerLocalVariables);
 	}
@@ -382,7 +385,8 @@ public:
 	DEF_PROC(ExecutePendingJob);
 	DEF_PROC(SetDebuggerMode);
 	DEF_PROC(SetDebuggerLineCallback); 
-	DEF_PROC(GetDebuggerStackDepth); 
+	DEF_PROC(GetDebuggerStackDepth);
+	DEF_PROC(GetDebuggerBacktrace);
 	DEF_PROC(GetDebuggerClosureVariables); 
 	DEF_PROC(GetDebuggerLocalVariables);
 
