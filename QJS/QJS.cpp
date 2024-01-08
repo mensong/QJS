@@ -1,11 +1,13 @@
 #include "pch.h"
+#include "QJS.h"
 #include <set>
 #include <map>
 #include <vector>
 #include <quickjs.h>
 #include <quickjs-libc.h>
-#include "QJS.h"
 #include <cassert>
+
+/* quickjs参数为JSValue的内部会自动JS_FreeValue；为JSValueConst则不会 */
 
 #undef __has_attribute
 #include <cutils.h>
@@ -265,7 +267,7 @@ static JSValue __NewFunctionCallHelper(JSContext* rawCtx, JSValue this_val, int 
 				delete[] _innerArgv;
 
 			//这里的值是传给内部的，由内部自己释放，防止在下面被释放
-			JS_DupValue(rawCtx, ret.value);
+			JS_DupValue(rawCtx, _INNER_VAL(ret));
 			//释放函数内部所申请的内存
 			for (size_t i = 0; i < innerCtx.values.size(); i++)
 			{
@@ -356,12 +358,10 @@ bool SetNamedJsValue(ContextHandle ctx, const char* varName, ValueHandle varValu
 	bool isUseGlobal = JsValueIsNull(parent) || JsValueIsUndefined(parent);
 	if (isUseGlobal)
 		_this = JS_GetGlobalObject(_INNER_CTX(ctx));
-		
-	bool b = JS_SetPropertyStr(_INNER_CTX(ctx), _this, varName, _INNER_VAL(varValue)) == TRUE;
-
-	if (b)
-		JS_DupValue(_INNER_CTX(ctx), _INNER_VAL(varValue));
-
+	
+	JSValue v = JS_DupValue(_INNER_CTX(ctx), _INNER_VAL(varValue));
+	bool b = JS_SetPropertyStr(_INNER_CTX(ctx), _this, varName, v) == TRUE;
+	
 	if (isUseGlobal)
 		JS_FreeValue(_INNER_CTX(ctx), _this);
 
@@ -393,9 +393,7 @@ bool HasNamedJsValue(ContextHandle ctx, const char* varName, ValueHandle parent)
 		_this = JS_GetGlobalObject(_INNER_CTX(ctx));
 
 	JSAtom atom = JS_NewAtom(_INNER_CTX(ctx), varName);
-
 	bool b = JS_HasProperty(_INNER_CTX(ctx), _this, atom) == TRUE;
-
 	JS_FreeAtom(_INNER_CTX(ctx), atom);
 
 	if (isUseGlobal)
@@ -428,13 +426,11 @@ bool SetIndexedJsValue(ContextHandle ctx, uint32_t idx, ValueHandle varValue, Va
 	if (isUseGlobal)
 		_this = JS_GetGlobalObject(_INNER_CTX(ctx));
 
-	bool b = JS_SetPropertyUint32(_INNER_CTX(ctx), _this, idx, _INNER_VAL(varValue)) == TRUE;
+	JSValue v = JS_DupValue(_INNER_CTX(ctx), _INNER_VAL(varValue));
+	bool b = JS_SetPropertyUint32(_INNER_CTX(ctx), _this, idx, v) == TRUE;
 
 	if (isUseGlobal)
 		JS_FreeValue(_INNER_CTX(ctx), _this);
-
-	if (b)
-		JS_DupValue(_INNER_CTX(ctx), _INNER_VAL(varValue));
 
 	return b;
 }
@@ -615,8 +611,8 @@ ValueHandle NewArrayJsValue(ContextHandle ctx)
 
 ValueHandle NewThrowJsValue(ContextHandle ctx, ValueHandle throwWhat)
 {
-	JS_DupValue(_INNER_CTX(ctx), _INNER_VAL(throwWhat));//JS_Throw will free the second param, so do it
-	JSValue res = JS_Throw(_INNER_CTX(ctx), _INNER_VAL(throwWhat));
+	JSValue v = JS_DupValue(_INNER_CTX(ctx), _INNER_VAL(throwWhat));//JS_Throw will free the second param, so do it
+	JSValue res = JS_Throw(_INNER_CTX(ctx), v);
 	ValueHandle ret = _OUTER_VAL(ctx, res);
 	ADD_AUTO_FREE(ret);
 	return ret;
@@ -681,8 +677,6 @@ const char* JsValueToString(ContextHandle ctx, ValueHandle value)
 	}
 
 	const char* buf = JS_ToCString(_INNER_CTX(ctx), _INNER_VAL(value));
-
-
 	return buf;
 }
 
