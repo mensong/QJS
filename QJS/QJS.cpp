@@ -190,6 +190,12 @@ ContextHandle NewContext(RuntimeHandle runtime)
 
 	//js_init_module_std(context, "std");
 	//js_init_module_os(context, "os");
+#ifdef CONFIG_BIGNUM
+		JS_AddIntrinsicBigFloat(context);
+		JS_AddIntrinsicBigDecimal(context);
+		JS_AddIntrinsicOperators(context);
+		JS_EnableBignumExt(context, TRUE);
+#endif
 
 	InnerContext* _ctx = new InnerContext();
 	_ctx->context = context;
@@ -545,9 +551,9 @@ ValueHandle CallJsFunction(ContextHandle ctx, ValueHandle jsFunction, ValueHandl
 	return ret;
 }
 
-ValueHandle RunBinary(ContextHandle ctx, const uint8_t* bin, size_t binLen)
+ValueHandle RunByteCode(ContextHandle ctx, const uint8_t* byteCode, size_t byteCodeLen)
 {
-	JSValue res = js_std_eval_binary(_INNER_CTX(ctx), bin, binLen, 0);
+	JSValue res = js_std_eval_binary(_INNER_CTX(ctx), byteCode, byteCodeLen, 0);
 	ValueHandle ret = _OUTER_VAL(ctx, res);
 	ADD_AUTO_FREE(ret);
 	return ret;
@@ -740,6 +746,84 @@ uint64_t JsValueToTimestamp(ContextHandle ctx, ValueHandle value)
 	double timestamp = 0;
 	JS_IsDate(_INNER_CTX(ctx), _INNER_VAL(value), &timestamp);
 	return (uint64_t)timestamp;
+}
+
+ValueHandle CompileScript(ContextHandle ctx, const char* script, const char* filename/* = ""*/)
+{
+	int eval_flags;
+	eval_flags = JS_EVAL_FLAG_COMPILE_ONLY | JS_EVAL_TYPE_GLOBAL;
+	JSValue res = JS_Eval(_INNER_CTX(ctx), script, strlen(script), filename, eval_flags);
+	ValueHandle ret = _OUTER_VAL(ctx, res);
+	ADD_AUTO_FREE(ret);
+	return ret;
+}
+
+uint8_t* JsValueToByteCode(ContextHandle ctx, ValueHandle value, size_t* outByteCodeLen, bool byte_swap/* = false*/)
+{
+	uint8_t* out_buf = NULL;
+	int flags;
+	flags = JS_WRITE_OBJ_BYTECODE;
+	if (byte_swap)
+		flags |= JS_WRITE_OBJ_BSWAP;
+	*outByteCodeLen = 0;
+	out_buf = JS_WriteObject(_INNER_CTX(ctx), outByteCodeLen, _INNER_VAL(value), flags);
+	//failed: out_buf = NULL
+	return out_buf;
+}
+
+ValueHandle ByteCodeToJsValue(ContextHandle ctx, const uint8_t* byteCode, size_t byteCodeLen)
+{
+	int flags;
+	flags = JS_READ_OBJ_BYTECODE;
+	JSValue res = JS_ReadObject(_INNER_CTX(ctx), byteCode, byteCodeLen, flags);
+	ValueHandle ret = _OUTER_VAL(ctx, res);
+	ADD_AUTO_FREE(ret);
+	return ret;
+}
+
+void FreeJsPointer(ContextHandle ctx, void* ptr)
+{
+	if (ptr)
+		js_free(_INNER_CTX(ctx), ptr);
+}
+
+QJS_API bool SaveByteCodeToFile(const uint8_t* byteCode, size_t byteCodeLen, const char* filepath)
+{
+	bool res = false;
+	FILE* file = fopen(filepath, "wb"); 
+	if (file)
+	{
+		fwrite(byteCode, sizeof(uint8_t), byteCodeLen, file);
+		res = true;
+		fclose(file);
+	}
+	return res;
+}
+
+QJS_API uint8_t* LoadByteCodeFromFile(const char* filepath, size_t* outByteCodeLen)
+{
+	uint8_t* buf = NULL;
+	FILE* file = fopen(filepath, "rb");
+	if (file) 
+	{
+		fseek(file, 0, SEEK_END);
+		long fileSize = ftell(file);
+		if (fileSize > 0)
+		{
+			fseek(file, 0, SEEK_SET);
+			buf = (uint8_t*)malloc(fileSize);
+			memset(buf, 0, fileSize);
+			if (buf)
+			{
+				fread(buf, 1, fileSize, file);
+			}
+		}
+		*outByteCodeLen = fileSize / sizeof(uint8_t);
+
+		fclose(file);
+	}
+
+	return buf;
 }
 
 ValueType GetValueType(ValueHandle value)

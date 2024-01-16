@@ -224,6 +224,28 @@ void myTest()
 	}
 
 	{
+		ValueHandle res = qjs.CompileScript(ctx, "var a=123;var b=456;alert(a+b)", "");
+		if (qjs.JsValueIsException(res))
+		{
+			ValueHandle exp = qjs.GetAndClearJsLastException(ctx);
+			std::string strExp = qjs.JsValueToStdString(ctx, exp);
+			printf(strExp.c_str());
+		}
+		size_t byteCodeLen = 0;
+		uint8_t* byteCode = qjs.JsValueToByteCode(ctx, res, &byteCodeLen, false);
+		if (byteCode)
+		{
+			qjs.SaveByteCodeToFile(byteCode, byteCodeLen, "1.bin");
+			qjs.FreeJsPointer(ctx, byteCode);
+
+			byteCode = qjs.LoadByteCodeFromFile("1.bin", &byteCodeLen);
+
+			qjs.RunByteCode(ctx, byteCode, byteCodeLen);
+			
+		}
+	}
+
+	{
 		//from qjsc-test.c
 		const uint32_t qjsc_qjsc_test_size = 79;
 		const uint8_t qjsc_qjsc_test[79] = {
@@ -239,7 +261,7 @@ void myTest()
 		 0xf0, 0xce, 0x28, 0xca, 0x03, 0x01, 0x00,
 		};
 
-		ValueHandle binRes = qjs.RunBinary(ctx, qjsc_qjsc_test, qjsc_qjsc_test_size);
+		ValueHandle binRes = qjs.RunByteCode(ctx, qjsc_qjsc_test, qjsc_qjsc_test_size);
 		if (qjs.JsValueIsException(binRes))
 		{
 			ValueHandle exception = qjs.GetAndClearJsLastException(ctx);
@@ -251,6 +273,14 @@ void myTest()
 			std::string s = qjs.JsValueToStdString(ctx, binRes);
 			printf(s.c_str());
 		}
+	}
+
+	{
+		ValueHandle normalJsObj = qjs.RunScript(ctx, "var a=123;a", qjs.GetGlobalObject(ctx), "");
+		size_t bytecodeLen = 0;
+		uint8_t* bytecode = qjs.JsValueToByteCode(ctx, normalJsObj, &bytecodeLen, false);
+
+		qjs.FreeJsPointer(ctx, bytecode);
 	}
 
 	{

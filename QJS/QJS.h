@@ -88,8 +88,6 @@ QJS_API ValueHandle GetGlobalObject(ContextHandle ctx);
 QJS_API ValueHandle RunScript(ContextHandle ctx, const char* script, ValueHandle parent, const char* filename="");
 //执行js中函数，没有参数时args=NULL并且argc=0
 QJS_API ValueHandle CallJsFunction(ContextHandle ctx, ValueHandle jsFunction, ValueHandle args[], int argc, ValueHandle parent);
-//执行bin脚本
-QJS_API ValueHandle RunBinary(ContextHandle ctx, const uint8_t* bin, size_t binLen);
 
 //根据名称取得一个js变量值
 QJS_API ValueHandle GetNamedJsValue(ContextHandle ctx, const char* varName, ValueHandle parent);
@@ -170,6 +168,20 @@ QJS_API bool JsValueToBool(ContextHandle ctx, ValueHandle value, bool defVal/* =
 //ValueHandle转timestamp
 QJS_API uint64_t JsValueToTimestamp(ContextHandle ctx, ValueHandle value);
 
+//编译脚本
+QJS_API ValueHandle CompileScript(ContextHandle ctx, const char* script, const char* filename/* = ""*/);
+//ValueHandle转ByteCode
+QJS_API uint8_t* JsValueToByteCode(ContextHandle ctx, ValueHandle value, size_t* outByteCodeLen, bool byte_swap/* = false*/);
+//ByteCode转ValueHandle
+QJS_API ValueHandle ByteCodeToJsValue(ContextHandle ctx, const uint8_t* byteCode, size_t byteCodeLen);
+//释放js指针
+QJS_API void FreeJsPointer(ContextHandle ctx, void* ptr);
+//保存ByteCode到文件
+QJS_API bool SaveByteCodeToFile(const uint8_t* byteCode, size_t byteCodeLen, const char* filepath);
+//从文件加载ByteCode,返回的需要自行free
+QJS_API uint8_t* LoadByteCodeFromFile(const char* filepath, size_t* outByteCodeLen);
+//执行bytecode脚本
+QJS_API ValueHandle RunByteCode(ContextHandle ctx, const uint8_t* byteCode, size_t byteCodeLen);
 
 //获得ValueHandle的类型
 QJS_API ValueType GetValueType(ValueHandle value);
@@ -204,7 +216,6 @@ QJS_API ValueHandle GetAndClearJsLastException(ContextHandle ctx);
 // return 0 if no job pending, 
 // return 1 if a job was executed successfully, the context of the job is stored in 'outCurCtx'
 QJS_API int ExecutePendingJob(RuntimeHandle runtime, void*& outCurCtx);
-
 
 //开启调试模式
 QJS_API void SetDebuggerMode(ContextHandle ctx, bool onoff);
@@ -258,7 +269,13 @@ public:
 		SET_PROC(hDll, SetPrototype);
 		SET_PROC(hDll, RunScript);
 		SET_PROC(hDll, CallJsFunction);
-		SET_PROC(hDll, RunBinary);
+		SET_PROC(hDll, CompileScript);
+		SET_PROC(hDll, JsValueToByteCode);
+		SET_PROC(hDll, ByteCodeToJsValue);
+		SET_PROC(hDll, FreeJsPointer);
+		SET_PROC(hDll, SaveByteCodeToFile);
+		SET_PROC(hDll, LoadByteCodeFromFile);
+		SET_PROC(hDll, RunByteCode);
 		SET_PROC(hDll, TheJsUndefined);
 		SET_PROC(hDll, TheJsNull);
 		SET_PROC(hDll, TheJsTrue);
@@ -276,8 +293,6 @@ public:
 		SET_PROC(hDll, NewThrowJsValue); 
 		SET_PROC(hDll, NewDateJsValue);		
 		SET_PROC(hDll, GetLength);
-		//SET_PROC(hDll, FreeValueHandle); 
-		//SET_PROC(hDll, AddValueHandleRefCount);
 		SET_PROC(hDll, JsValueToString);
 		SET_PROC(hDll, FreeJsValueToStringBuffer);
 		SET_PROC(hDll, JsValueToInt);
@@ -336,7 +351,13 @@ public:
 	DEF_PROC(SetPrototype);
 	DEF_PROC(RunScript);
 	DEF_PROC(CallJsFunction);
-	DEF_PROC(RunBinary);
+	DEF_PROC(CompileScript);
+	DEF_PROC(JsValueToByteCode);
+	DEF_PROC(ByteCodeToJsValue);
+	DEF_PROC(FreeJsPointer);
+	DEF_PROC(SaveByteCodeToFile);
+	DEF_PROC(LoadByteCodeFromFile);
+	DEF_PROC(RunByteCode);
 	DEF_PROC(TheJsUndefined);
 	DEF_PROC(TheJsNull);
 	DEF_PROC(TheJsTrue);
@@ -354,8 +375,6 @@ public:
 	DEF_PROC(NewThrowJsValue); 
 	DEF_PROC(NewDateJsValue);
 	DEF_PROC(GetLength);
-	//DEF_PROC(FreeValueHandle); 
-	//DEF_PROC(AddValueHandleRefCount);
 	DEF_PROC(JsValueToString);
 	DEF_PROC(FreeJsValueToStringBuffer);
 	DEF_PROC(JsValueToInt);
