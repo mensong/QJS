@@ -21,7 +21,7 @@ public:
 
 	bool m_onDebugMode;
 	std::set<int> m_breakPoints;
-	bool m_debugContinue;
+	bool m_debugNext;
 	bool m_singleStepExecution;
 	bool m_lastBreak;
 	static void DebuggerLineCallback(ContextHandle ctx, uint32_t line_no, const uint8_t* pc, void* user_data);
@@ -66,4 +66,6 @@ public:
 	afx_msg void OnClose();
 	afx_msg void OnSize(UINT nType, int cx, int cy);
 	afx_msg void OnBnClickedBtnLoadFromFile();
+	afx_msg void OnBnClickedButton5();
+	afx_msg void OnBnClickedBtnClearSrc();
 };

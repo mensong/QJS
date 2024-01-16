@@ -72,6 +72,8 @@ BEGIN_MESSAGE_MAP(CTestQJSDlg, CDialogEx)
 	ON_WM_CLOSE()
 	ON_WM_SIZE()
 	ON_BN_CLICKED(IDC_BTN_LOAD_FROM_FILE, &CTestQJSDlg::OnBnClickedBtnLoadFromFile)
+	ON_BN_CLICKED(IDC_BUTTON5, &CTestQJSDlg::OnBnClickedButton5)
+	ON_BN_CLICKED(IDC_BTN_CLEAR_SRC, &CTestQJSDlg::OnBnClickedBtnClearSrc)
 END_MESSAGE_MAP()
 
 
@@ -262,13 +264,13 @@ void CTestQJSDlg::DebuggerLineCallback(ContextHandle ctx, uint32_t line_no, cons
 
 		_this->m_lastBreak = true;
 		_this->m_singleStepExecution = false;
-		_this->m_debugContinue = false;
-		while (!_this->m_debugContinue)
+		_this->m_debugNext = false;
+		while (!_this->m_debugNext)
 		{
 			MSG msg;
 			while (::PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
 			{
-				//执行临时脚本
+#pragma region 执行临时脚本
 				if (msg.message == WM_KEYDOWN && msg.wParam == VK_RETURN)
 				{
 					switch (GetFocus()->GetDlgCtrlID())
@@ -301,7 +303,14 @@ void CTestQJSDlg::DebuggerLineCallback(ContextHandle ctx, uint32_t line_no, cons
 						break;
 					}
 				}
-				//结束执行临时脚本
+#pragma endregion
+
+				if (msg.message == WM_CLOSE)
+				{
+					_this->m_debugNext = true;
+					_this->m_onDebugMode = false;
+					break;
+				}
 
 				::DispatchMessage(&msg);
 				::TranslateMessage(&msg);
@@ -310,6 +319,13 @@ void CTestQJSDlg::DebuggerLineCallback(ContextHandle ctx, uint32_t line_no, cons
 	}
 	else
 	{
+		MSG msg;
+		if (::PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
+		{
+			::DispatchMessage(&msg);
+			::TranslateMessage(&msg);
+		}
+
 		_this->m_lastBreak = false;
 	}
 
@@ -359,7 +375,7 @@ void CTestQJSDlg::OnBnClickedButton1()
 	m_onDebugMode = m_chkIsDebug.GetCheck() == TRUE;
 	if (m_onDebugMode)
 	{
-		m_debugContinue = false;
+		m_debugNext = false;
 		m_singleStepExecution = false;
 		m_lastBreak = false;
 		qjs.SetDebuggerMode(ctx, true);
@@ -440,7 +456,7 @@ void CTestQJSDlg::OnBnClickedButton1()
 void CTestQJSDlg::OnBnClickedButton2()
 {
 	// TODO: 在此添加控件通知处理程序代码
-	m_debugContinue = true;
+	m_debugNext = true;
 	m_singleStepExecution = false;
 }
 
@@ -448,7 +464,7 @@ void CTestQJSDlg::OnBnClickedButton2()
 void CTestQJSDlg::OnBnClickedButton3()
 {
 	// TODO: 在此添加控件通知处理程序代码
-	m_debugContinue = true;
+	m_debugNext = true;
 	m_singleStepExecution = true;
 }
 
@@ -462,7 +478,7 @@ void CTestQJSDlg::OnBnClickedCheck1()
 void CTestQJSDlg::OnClose()
 {
 	//当前正在调试时关闭窗口，则关闭调试
-	m_debugContinue = true;
+	m_debugNext = true;
 
 	CDialogEx::OnClose();
 }
@@ -501,4 +517,16 @@ void CTestQJSDlg::OnBnClickedBtnLoadFromFile()
 			m_curFilename = qjs.UnicodeToAnsi(strFileName.GetString());
 		}
 	}
+}
+
+
+void CTestQJSDlg::OnBnClickedButton5()
+{
+	m_editResult.SetWindowText(_T(""));
+}
+
+
+void CTestQJSDlg::OnBnClickedBtnClearSrc()
+{
+	m_editScript.SetWindowText(_T(""));
 }
