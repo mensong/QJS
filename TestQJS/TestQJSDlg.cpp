@@ -283,7 +283,6 @@ void CTestQJSDlg::DebuggerLineCallback(ContextHandle ctx, uint32_t line_no, cons
 							_this->m_editTestScript.SetSel(0, script.GetLength());
 							if (!script.IsEmpty())
 							{
-								qjs.GetGlobalObject(ctx);
 								ValueHandle res = qjs.RunScript(ctx, qjs.UnicodeToUtf8(script.GetString()), qjs.TheJsNull(), "");
 								if (!qjs.JsValueIsException(res))
 								{
