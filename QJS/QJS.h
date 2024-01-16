@@ -435,7 +435,8 @@ public:
 	{
 		char selfPath[MAX_PATH];
 		MEMORY_BASIC_INFORMATION mbi;
-		HMODULE hModule = ((::VirtualQuery(LoadLibraryFromCurrentDir, &mbi, sizeof(mbi)) != 0) ? (HMODULE)mbi.AllocationBase : NULL);
+		HMODULE hModule = ((::VirtualQuery(
+			LoadLibraryFromCurrentDir, &mbi, sizeof(mbi)) != 0) ? (HMODULE)mbi.AllocationBase : NULL);
 		::GetModuleFileNameA(hModule, selfPath, MAX_PATH);
 		std::string moduleDir(selfPath);
 		size_t idx = moduleDir.find_last_of('\\');

@@ -235,12 +235,17 @@ void myTest()
 		uint8_t* byteCode = qjs.JsValueToByteCode(ctx, res, &byteCodeLen, false);
 		if (byteCode)
 		{
+			//qjs.RunByteCode(ctx, byteCode, byteCodeLen);
+
 			qjs.SaveByteCodeToFile(byteCode, byteCodeLen, "1.bin");
 			qjs.FreeJsPointer(ctx, byteCode);
 
 			byteCode = qjs.LoadByteCodeFromFile("1.bin", &byteCodeLen);
-
-			qjs.RunByteCode(ctx, byteCode, byteCodeLen);
+			if (byteCode)
+			{
+				qjs.RunByteCode(ctx, byteCode, byteCodeLen);
+				free(byteCode);
+			}
 			
 		}
 	}
