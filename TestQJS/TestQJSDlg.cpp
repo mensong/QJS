@@ -529,4 +529,5 @@ void CTestQJSDlg::OnBnClickedButton5()
 void CTestQJSDlg::OnBnClickedBtnClearSrc()
 {
 	m_editScript.SetWindowText(_T(""));
+	m_curFilename = "";
 }
