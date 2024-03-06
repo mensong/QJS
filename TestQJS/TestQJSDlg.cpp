@@ -94,6 +94,20 @@ BOOL CTestQJSDlg::OnInitDialog()
 	m_btnContinue.EnableWindow(FALSE);
 	m_btnSingleStep.EnableWindow(FALSE);
 
+	m_scale.SetRectType(IDC_EDIT1, CCtrlScale::StaticLeft);
+	m_scale.SetRectType(IDC_EDIT1, CCtrlScale::AnchorRight);
+	m_scale.SetRectType(IDC_EDIT1, CCtrlScale::StaticTop);
+	m_scale.SetRectType(IDC_EDIT2, CCtrlScale::StaticLeft);
+	m_scale.SetRectType(IDC_EDIT2, CCtrlScale::AnchorRight);
+	m_scale.SetRectType(IDC_EDIT2, CCtrlScale::AnchorBottom);
+	m_scale.SetRectType(IDC_STATIC_DEBUG, CCtrlScale::StaticLeft);
+	m_scale.SetRectType(IDC_STATIC_DEBUG, CCtrlScale::AnchorRight);
+	m_scale.SetRectType(IDC_STATIC1, CCtrlScale::StaticLeft);
+	m_scale.SetRectType(IDC_STATIC2, CCtrlScale::StaticLeft);
+	m_scale.SetRectType(IDC_STATIC1, CCtrlScale::StaticRight);
+	m_scale.SetRectType(IDC_STATIC2, CCtrlScale::StaticRight);
+	m_scale.SetRectType(IDC_EDIT_BREAKPOITS, CCtrlScale::StaticLeft);
+	m_scale.SetRectType(IDC_EDIT3, CCtrlScale::StaticLeft);
 	m_scale.Init(this);
 
 	return TRUE;  // 除非将焦点设置到控件，否则返回 TRUE
