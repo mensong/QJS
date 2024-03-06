@@ -108,7 +108,12 @@ BOOL CTestQJSDlg::OnInitDialog()
 	m_scale.SetRectType(IDC_STATIC2, CCtrlScale::StaticRight);
 	m_scale.SetRectType(IDC_EDIT_BREAKPOITS, CCtrlScale::StaticLeft);
 	m_scale.SetRectType(IDC_EDIT3, CCtrlScale::StaticLeft);
-	m_scale.Init(this);
+	m_scale.SetRectType(IDC_BUTTON5, CCtrlScale::AnchorRight);
+	m_scale.SetRectType(IDC_EDIT3, CCtrlScale::AnchorRight);
+	m_scale.SetRectType(IDC_BUTTON2, CCtrlScale::AnchorRight);
+	m_scale.SetRectType(IDC_BTN_CLEAR_SRC, CCtrlScale::AnchorRight);
+	m_scale.SetRectType(IDC_BTN_LOAD_FROM_FILE, CCtrlScale::AnchorRight);
+	m_scale.Init(GetSafeHwnd());
 
 	return TRUE;  // 除非将焦点设置到控件，否则返回 TRUE
 }

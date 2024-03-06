@@ -1,7 +1,6 @@
 #pragma once
 #include <vector>
 #include <map>
-#include <set>
 
 typedef struct TAG_CTRLRECT
 {
@@ -51,11 +50,11 @@ public:
 
 public:
     CCtrlScale(void);
-    CCtrlScale(CWnd* pParentWnd);
+    CCtrlScale(HWND pParentWnd);
     virtual ~CCtrlScale(void);
 
     void SetRectType(int ctrlId, CCtrlScale::RectType rectType);
-    BOOL Init(CWnd* pParentWnd);
+    BOOL Init(HWND pParentWnd);
     
 protected:
     static std::map<HWND, CCtrlScale*> ms_scaleManagers;
@@ -66,13 +65,9 @@ protected:
     void Scale(int cx, int cy);
 
 private:
-    CWnd* m_pParentWnd;
-    CRect m_rect;
+    HWND m_pParentWnd;
+    RECT m_rectWin;
     std::vector<CTRLRECT> m_vecCtrl;//保存控件缩放信息
 
     std::map<int, DWORD> m_ctrlRectType;
-    //std::set<int> m_leftAnchor;
-    //std::set<int> m_rightAnchor;
-    //std::set<int> m_topAnchor;
-    //std::set<int> m_bottomAnchor;
 };

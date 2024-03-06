@@ -9,7 +9,7 @@ CCtrlScale::CCtrlScale(void)
 {
 }
 
-CCtrlScale::CCtrlScale(CWnd* pParentWnd)
+CCtrlScale::CCtrlScale(HWND pParentWnd)
 	: m_pParentWnd(pParentWnd)
 	, m_originalWinProc(NULL)
 {
@@ -23,20 +23,20 @@ CCtrlScale::~CCtrlScale(void)
 	m_vecCtrl.clear();
 }
 
-BOOL CCtrlScale::Init(CWnd* pParentWnd)
+BOOL CCtrlScale::Init(HWND pParentWnd)
 {
 	if (!pParentWnd)
 		return FALSE;
 
 	m_pParentWnd = pParentWnd;
-	m_pParentWnd->GetClientRect(&m_rect); //获取对话框的大小
+	::GetClientRect(m_pParentWnd, &m_rectWin);//获取对话框的大小
 
 	removeScaleManager();
 
-	m_originalWinProc = (WNDPROC)::SetWindowLongPtr(m_pParentWnd->m_hWnd, GWLP_WNDPROC, (LONG_PTR)ParentWinProc);
+	m_originalWinProc = (WNDPROC)::SetWindowLongPtr(m_pParentWnd, GWLP_WNDPROC, (LONG_PTR)ParentWinProc);
 	if (!m_originalWinProc)
 		return FALSE;
-	ms_scaleManagers[pParentWnd->m_hWnd] = this;
+	ms_scaleManagers[pParentWnd] = this;
 
 	return TRUE;
 }
@@ -51,21 +51,31 @@ void CCtrlScale::Scale(int cx, int cy)
 		return;
 
 	//获取控件得到大小以及原大小方便进行比例调整
-	CWnd* pWnd;
+	HWND pWnd = NULL;
 	int nID = 0;
 	//列出所有控件
-	HWND hChild = ::GetWindow(m_pParentWnd->m_hWnd, GW_CHILD);
+	HWND hChild = ::GetWindow(m_pParentWnd, GW_CHILD);
 	while (hChild)
 	{
 		nID = ::GetDlgCtrlID(hChild);//获得控件ID
-		pWnd = m_pParentWnd->GetDlgItem(nID);//获取控件指针
+		pWnd = ::GetDlgItem(m_pParentWnd, nID);//获取控件指针
 		if (pWnd)
 		{
-			CRect rect;//获取当前控件的大小
-			pWnd->GetWindowRect(&rect);
-			m_pParentWnd->ScreenToClient(&rect);//将控件大小转换为在窗口的区域坐标
+			RECT rect;//获取当前控件的大小
+			::GetWindowRect(pWnd, &rect);
+			POINT pt;
+			pt.x = rect.left;
+			pt.y = rect.top;
+			::ScreenToClient(m_pParentWnd, &pt);//将控件大小转换为在窗口的区域坐标
+			rect.left = pt.x;
+			rect.top = pt.y;
+			pt.x = rect.right;
+			pt.y = rect.bottom;
+			::ScreenToClient(m_pParentWnd, &pt);//将控件大小转换为在窗口的区域坐标
+			rect.right = pt.x;
+			rect.bottom = pt.y;
 			//防止控件失真
-			m_pParentWnd->InvalidateRect(rect);
+			::InvalidateRect(m_pParentWnd, &rect, TRUE);
 
 			CTRLRECT cr;
 			cr.nId = nID;
@@ -99,10 +109,12 @@ void CCtrlScale::Scale(int cx, int cy)
 			}
 			else
 			{//没有找到控件的比值，则加入
-				cr.dScale[0] = (double)rect.left / m_rect.Width();//注意类型转换，不然保存成long型就直接为0了
-				cr.dScale[1] = (double)rect.right / m_rect.Width();
-				cr.dScale[2] = (double)rect.top / m_rect.Height();
-				cr.dScale[3] = (double)rect.bottom / m_rect.Height();
+				LONG winWidth = m_rectWin.right - m_rectWin.left;
+				LONG winHeight = m_rectWin.bottom - m_rectWin.top;
+				cr.dScale[0] = (double)rect.left / winWidth;//注意类型转换，不然保存成long型就直接为0了
+				cr.dScale[1] = (double)rect.right / winWidth;
+				cr.dScale[2] = (double)rect.top / winHeight;
+				cr.dScale[3] = (double)rect.bottom / winHeight;
 
 				DWORD rectType = RectType::ProportionalScale;
 				std::map<int, DWORD>::iterator itFinder = m_ctrlRectType.find(nID);
@@ -117,9 +129,7 @@ void CCtrlScale::Scale(int cx, int cy)
 
 				if ((rectType & RectType::AnchorRight) != 0)
 				{//AnchorRight
-					CRect rectWin;
-					m_pParentWnd->GetClientRect(rectWin);
-					cr.rightOffset = rectWin.Width() - rect.right;
+					cr.rightOffset = winWidth - rect.right;
 					rect.right = cx - cr.rightOffset;
 				}
 				else if ((rectType & RectType::StaticRight) == 0)
@@ -131,9 +141,7 @@ void CCtrlScale::Scale(int cx, int cy)
 
 				if ((rectType & RectType::AnchorBottom) != 0)
 				{//AnchorBottom
-					CRect rectWin;
-					m_pParentWnd->GetClientRect(rectWin);
-					cr.bottomOffset = rectWin.Height() - rect.bottom;
+					cr.bottomOffset = winHeight - rect.bottom;
 					rect.bottom = cy - cr.bottomOffset;
 				}
 				else if ((rectType & RectType::StaticBottom) == 0)
@@ -143,19 +151,21 @@ void CCtrlScale::Scale(int cx, int cy)
 				m_vecCtrl.push_back(cr);
 			}
 
-			if (pWnd->IsKindOf(RUNTIME_CLASS(CComboBox)))
+			//if (pWnd->IsKindOf(RUNTIME_CLASS(CComboBox)))
+			//{
+			//	//解决ComboBox缩放后,无法下拉的问题
+			//	pWnd->MoveWindow(rect.left, rect.top, rect.Width(), rect.Height() + 200);
+			//}
+			//else
 			{
-				//解决ComboBox缩放后,无法下拉的问题
-				pWnd->MoveWindow(rect.left, rect.top, rect.Width(), rect.Height() + 200);
-			}
-			else
-			{
-				pWnd->MoveWindow(rect);//设置控件大小
+				LONG ctrlWidth = rect.right - rect.left;
+				LONG ctrlHeight = rect.bottom - rect.top;
+				::MoveWindow(pWnd, rect.left, rect.top, ctrlWidth, ctrlHeight, TRUE);//设置控件大小
 			}
 		}
 		hChild = ::GetWindow(hChild, GW_HWNDNEXT);
 	}
-	m_pParentWnd->GetClientRect(&m_rect);//获取变化后的窗口大小
+	::GetClientRect(m_pParentWnd, &m_rectWin);//获取变化后的窗口大小
 }
 
 void CCtrlScale::SetRectType(int id, CCtrlScale::RectType rectType)
@@ -167,12 +177,12 @@ void CCtrlScale::removeScaleManager()
 {
 	if (m_pParentWnd)
 	{
-		std::map<HWND, CCtrlScale*>::iterator itFinder = ms_scaleManagers.find(m_pParentWnd->m_hWnd);
+		std::map<HWND, CCtrlScale*>::iterator itFinder = ms_scaleManagers.find(m_pParentWnd);
 		if (itFinder != ms_scaleManagers.end())
 		{
 			CCtrlScale* scale = itFinder->second;
-			::SetWindowLongPtr(m_pParentWnd->m_hWnd, GWLP_WNDPROC, (LONG_PTR)scale->m_originalWinProc);
-			ms_scaleManagers.erase(m_pParentWnd->m_hWnd);
+			::SetWindowLongPtr(m_pParentWnd, GWLP_WNDPROC, (LONG_PTR)scale->m_originalWinProc);
+			ms_scaleManagers.erase(m_pParentWnd);
 		}
 	}
 }
