@@ -1,5 +1,6 @@
 #pragma once
 #include <vector>
+#include <map>
 
 typedef struct TAG_CTRLRECT
 {
@@ -30,7 +31,14 @@ public:
     CCtrlScale(CWnd* pParentWnd);
     virtual ~CCtrlScale(void);
 
-    void Init(CWnd* pParentWnd);
+    BOOL Init(CWnd* pParentWnd);
+    
+protected:
+    static std::map<HWND, CCtrlScale*> ms_scaleManagers;
+    void removeScaleManager();
+
+    WNDPROC m_oldWinProc;
+    static LRESULT CALLBACK ParentWinProc(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam);
     void Scale(int cx, int cy);
 
 private:

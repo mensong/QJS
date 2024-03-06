@@ -487,7 +487,7 @@ void CTestQJSDlg::OnSize(UINT nType, int cx, int cy)
 {
 	CDialogEx::OnSize(nType, cx, cy);
 
-	m_scale.Scale(cx, cy);
+	//m_scale.Scale(cx, cy);
 }
 
 
