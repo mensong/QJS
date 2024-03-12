@@ -1,7 +1,11 @@
-#include "pch.h"
 #include "CtrlScale.h"
 
 std::map<HWND, CCtrlScale*> CCtrlScale::ms_scaleManagers;
+
+bool CCtrlScale::HasAnchorType(DWORD flags, CCtrlScale::AnchorType rectType)
+{
+	return (flags & rectType) != 0;
+}
 
 CCtrlScale::CCtrlScale(void)
 	: m_pParentWnd(NULL)
@@ -20,7 +24,7 @@ CCtrlScale::~CCtrlScale(void)
 {
 	removeScaleManager();
 
-	m_vecCtrl.clear();
+	m_ctrlRect.clear();
 }
 
 BOOL CCtrlScale::Init(HWND pParentWnd)
@@ -41,6 +45,13 @@ BOOL CCtrlScale::Init(HWND pParentWnd)
 	return TRUE;
 }
 
+void CCtrlScale::Reset()
+{
+	m_ctrlRect.clear();
+	m_ctrlAnchorType.clear();
+	m_ctrlExclude.clear();
+}
+
 void CCtrlScale::Scale(int cx, int cy)
 {
 	if (!m_pParentWnd)
@@ -58,6 +69,12 @@ void CCtrlScale::Scale(int cx, int cy)
 	while (hChild)
 	{
 		nID = ::GetDlgCtrlID(hChild);//获得控件ID
+		if (m_ctrlExclude.find(nID) != m_ctrlExclude.end())
+		{
+			hChild = ::GetWindow(hChild, GW_HWNDNEXT);
+			continue;
+		}
+
 		pWnd = ::GetDlgItem(m_pParentWnd, nID);//获取控件指针
 		if (pWnd)
 		{
@@ -76,36 +93,20 @@ void CCtrlScale::Scale(int cx, int cy)
 			rect.bottom = pt.y;
 			//防止控件失真
 			::InvalidateRect(m_pParentWnd, &rect, TRUE);
+			
+			//获得AnchorType
+			DWORD anchorType = AnchorType::ProportionalScale;
+			std::map<int, DWORD>::iterator itFinder = m_ctrlAnchorType.find(nID);
+			if (itFinder != m_ctrlAnchorType.end())
+			{
+				anchorType = itFinder->second;
+			}
 
 			CTRLRECT cr;
-			cr.nId = nID;
-			std::vector<CTRLRECT>::iterator it = find_if(m_vecCtrl.begin(), m_vecCtrl.end(), cr);
-			if (it != m_vecCtrl.end())
+			std::map<int, CTRLRECT>::iterator it = m_ctrlRect.find(nID);
+			if (it != m_ctrlRect.end())
 			{//如果保存的有该控件与窗口比值，直接乘上当前窗口大小
-				DWORD rectType = RectType::ProportionalScale;
-				std::map<int, DWORD>::iterator itFinder = m_ctrlRectType.find(nID);
-				if (itFinder != m_ctrlRectType.end())
-				{
-					rectType = itFinder->second;
-				}
-
-				if ((rectType & RectType::StaticLeft) == 0)
-					rect.left = it->dScale[0] * cx;
-
-				if ((rectType & RectType::AnchorRight) != 0)
-					rect.right = cx - it->rightOffset;//AnchorRight
-				else if ((rectType & RectType::StaticRight) == 0)
-					rect.right = it->dScale[1] * cx;//ProportionalScale
-				//else rect.right = rect.right; //StaticRight
-
-				if ((rectType & RectType::StaticTop) == 0)
-					rect.top = it->dScale[2] * cy;
-
-				if ((rectType & RectType::AnchorBottom) != 0)
-					rect.bottom = cy - it->bottomOffset;//AnchorBottom
-				else if ((rectType & RectType::StaticBottom) == 0)
-					rect.bottom = it->dScale[3] * cy;//ProportionalScale
-				//else rect.bottom = rect.bottom; //StaticBottom
+				cr = it->second;
 			}
 			else
 			{//没有找到控件的比值，则加入
@@ -115,41 +116,54 @@ void CCtrlScale::Scale(int cx, int cy)
 				cr.dScale[1] = (double)rect.right / winWidth;
 				cr.dScale[2] = (double)rect.top / winHeight;
 				cr.dScale[3] = (double)rect.bottom / winHeight;
+								
+				//设置Anchor
+				if (HasAnchorType(anchorType, AnchorType::AnchorLeftToWinRight))
+					cr.offsetAnchor[AnchorType::AnchorLeftToWinRight] = winWidth - rect.left;
 
-				DWORD rectType = RectType::ProportionalScale;
-				std::map<int, DWORD>::iterator itFinder = m_ctrlRectType.find(nID);
-				if (itFinder != m_ctrlRectType.end())
-				{
-					rectType = itFinder->second;
-				}
+				if (HasAnchorType(anchorType, AnchorType::AnchorRightToWinRight))
+					cr.offsetAnchor[AnchorType::AnchorRightToWinRight] = winWidth - rect.right;
+				else if (HasAnchorType(anchorType, AnchorType::AnchorRightToWinLeft))
+					cr.offsetAnchor[AnchorType::AnchorRightToWinLeft] = rect.right;
 
-				//调整控件大小
-				if ((rectType & RectType::StaticLeft) == 0)
-					rect.left = cr.dScale[0] * cx;
+				if (HasAnchorType(anchorType, AnchorType::AnchorTopToWinBottom))
+					cr.offsetAnchor[AnchorType::AnchorTopToWinBottom] = winHeight - rect.top;
 
-				if ((rectType & RectType::AnchorRight) != 0)
-				{//AnchorRight
-					cr.rightOffset = winWidth - rect.right;
-					rect.right = cx - cr.rightOffset;
-				}
-				else if ((rectType & RectType::StaticRight) == 0)
-					rect.right = cr.dScale[1] * cx;//ProportionalScale
-				//else rect.right = rect.right;//StaticRight
+				if (HasAnchorType(anchorType, AnchorType::AnchorBottomToWinBottom))
+					cr.offsetAnchor[AnchorType::AnchorBottomToWinBottom] = winHeight - rect.bottom;
 
-				if ((rectType & RectType::StaticTop) == 0)
-					rect.top = cr.dScale[2] * cy;
-
-				if ((rectType & RectType::AnchorBottom) != 0)
-				{//AnchorBottom
-					cr.bottomOffset = winHeight - rect.bottom;
-					rect.bottom = cy - cr.bottomOffset;
-				}
-				else if ((rectType & RectType::StaticBottom) == 0)
-					rect.bottom = cr.dScale[3] * cy;//ProportionalScale
-				//else rect.bottom = rect.bottom;//StaticBottom
-
-				m_vecCtrl.push_back(cr);
+				m_ctrlRect.insert(std::make_pair(nID, cr));
 			}
+
+			//调整控件
+			if (HasAnchorType(anchorType, AnchorType::AnchorLeftToWinLeft))
+				;//StaticLeft
+			else if (HasAnchorType(anchorType, AnchorType::AnchorLeftToWinRight))
+				rect.left = cx - cr.offsetAnchor[AnchorType::AnchorLeftToWinRight];
+			else
+				rect.left = cr.dScale[0] * cx;//ProportionalScale
+
+			if (HasAnchorType(anchorType, AnchorType::AnchorRightToWinRight))
+				rect.right = cx - cr.offsetAnchor[AnchorType::AnchorRightToWinRight];
+			else if (HasAnchorType(anchorType, AnchorType::AnchorRightToWinLeft))
+				rect.right = cr.offsetAnchor[AnchorType::AnchorRightToWinLeft];
+			else
+				rect.right = cr.dScale[1] * cx;//ProportionalScale
+
+			if (HasAnchorType(anchorType, AnchorType::AnchorTopToWinTop))
+				;//StaticTop
+			else if (HasAnchorType(anchorType, AnchorType::AnchorTopToWinBottom))
+				rect.top = cy - cr.offsetAnchor[AnchorType::AnchorTopToWinBottom];
+			else
+				rect.top = cr.dScale[2] * cy;//ProportionalScale
+
+			if (HasAnchorType(anchorType, AnchorType::AnchorBottomToWinBottom))
+				rect.bottom = cy - cr.offsetAnchor[AnchorType::AnchorBottomToWinBottom];
+			else if (HasAnchorType(anchorType, AnchorType::AnchorBottomToWinTop))
+				;
+			else
+				rect.bottom = cr.dScale[3] * cy;//ProportionalScale
+
 
 			//if (pWnd->IsKindOf(RUNTIME_CLASS(CComboBox)))
 			//{
@@ -168,9 +182,19 @@ void CCtrlScale::Scale(int cx, int cy)
 	::GetClientRect(m_pParentWnd, &m_rectWin);//获取变化后的窗口大小
 }
 
-void CCtrlScale::SetRectType(int id, CCtrlScale::RectType rectType)
+void CCtrlScale::SetAnchor(int id, DWORD/*CCtrlScale::AnchorType*/ rectType)
 {
-	m_ctrlRectType[id] |= rectType;
+	m_ctrlAnchorType[id] |= rectType;
+}
+
+void CCtrlScale::AddExclude(int ctrlId)
+{
+	m_ctrlExclude.insert(ctrlId);
+}
+
+void CCtrlScale::RemoveExclude(int ctrlId)
+{
+	m_ctrlExclude.erase(ctrlId);
 }
 
 void CCtrlScale::removeScaleManager()
