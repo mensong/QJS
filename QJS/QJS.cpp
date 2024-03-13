@@ -7,6 +7,11 @@
 #include <quickjs-libc.h>
 #include <cassert>
 
+#pragma region Extend
+#include "Extend.h"
+#pragma endregion
+
+
 /* quickjs参数为JSValue的内部会自动JS_FreeValue；为JSValueConst则不会 */
 
 #undef __has_attribute
@@ -58,6 +63,15 @@ struct InnerContext
 		extendHandles.insert(std::make_pair(filename.c_str(), hDll));
 
 		return hDll;
+	}
+	void unloadExtend(const std::string& filename)
+	{
+		std::map<std::string, HMODULE>::iterator itFinder = extendHandles.find(filename.c_str());
+		if (itFinder != extendHandles.end())
+		{
+			FreeLibrary(itFinder->second);
+			extendHandles.erase(itFinder);
+		}
 	}
 #pragma endregion
 
@@ -1042,6 +1056,7 @@ ValueHandle GetDebuggerLocalVariables(ContextHandle ctx, int stack_idx)
 	return ret;
 }
 
+#pragma region Extend
 ValueHandle _extendCallHelper(
 	ContextHandle ctx, ValueHandle this_val, int argc, ValueHandle* argv, void* user_data)
 {
@@ -1055,11 +1070,39 @@ ValueHandle LoadExtend(ContextHandle ctx, const char* extendFile)
 	if (!hDll)
 		return TheJsUndefined();
 
-	::GetProcAddress(hDll, "");
+	FN_entry entry = (FN_entry)::GetProcAddress(hDll, "entry");
+	if (!entry)
+	{
+		_ctx->unloadExtend(extendFile);
+		return TheJsUndefined();
+	}
+	FN_function_list function_list = (FN_function_list)::GetProcAddress(hDll, "function_list");
+	if (!function_list)
+	{
+		_ctx->unloadExtend(extendFile);
+		return TheJsUndefined();
+	}
+
+	int entryRes = entry(ctx);
+	if (entryRes != 0)
+	{
+		_ctx->unloadExtend(extendFile);
+		return TheJsUndefined();
+	}
+
+	const char* funcList = function_list();
+	if (!funcList)
+	{
+		_ctx->unloadExtend(extendFile);
+		return TheJsUndefined();
+	}
+
+
 
 	ValueHandle obj = NewObjectJsValue(ctx);
 	return obj;
 }
+#pragma endregion
 
 std::wstring Ret_AnsiToUnicode;
 const wchar_t* AnsiToUnicode(const char* multiByteStr)

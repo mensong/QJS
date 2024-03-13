@@ -96,6 +96,9 @@
     <ClInclude Include="quickjs\storage\dybase\src\sync.h">
       <Filter>quickjs\storage\dybase</Filter>
     </ClInclude>
+    <ClInclude Include="Extend.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dllmain.cpp">

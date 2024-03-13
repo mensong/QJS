@@ -1,14 +1,13 @@
 #include "pch.h"
 
-#define QJS_EXPORTS
-#include "../QJS/QJS.h"
+#include "../QJS/Extend.h"
 
 QJS_API int entry(ContextHandle ctx)
 {
 	return 0;
 }
 
-QJS_API const char* function_names()
+QJS_API const char* function_list()
 {
 	return 
 		"testFoo1\0"
