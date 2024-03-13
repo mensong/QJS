@@ -1042,6 +1042,12 @@ ValueHandle GetDebuggerLocalVariables(ContextHandle ctx, int stack_idx)
 	return ret;
 }
 
+ValueHandle _extendCallHelper(
+	ContextHandle ctx, ValueHandle this_val, int argc, ValueHandle* argv, void* user_data)
+{
+
+}
+
 ValueHandle LoadExtend(ContextHandle ctx, const char* extendFile)
 {
 	InnerContext* _ctx = (InnerContext*)ctx;
