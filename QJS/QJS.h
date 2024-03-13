@@ -232,6 +232,8 @@ QJS_API ValueHandle GetDebuggerClosureVariables(ContextHandle ctx, int stack_idx
 QJS_API ValueHandle GetDebuggerLocalVariables(ContextHandle ctx, int stack_idx);
 
 
+QJS_API ValueHandle LoadExtend(ContextHandle ctx, const char* extendFile);
+
 class QJS
 {
 #define DEF_PROC(name) \

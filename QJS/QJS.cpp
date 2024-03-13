@@ -18,10 +18,48 @@
 #define MALLOC_OVERHEAD  8
 #endif
 
+//InnerContext* == ContextHandle
 struct InnerContext
 {
 	JSContext* context;
 	std::vector<uint64_t> values;
+
+#pragma region Extend
+	std::map<std::string, HMODULE> extendHandles;
+	HMODULE getOrAddExtend(const std::string& filename)
+	{
+		if (filename.empty())
+			return NULL;
+
+		std::map<std::string, HMODULE>::iterator itFinder = extendHandles.find(filename.c_str());
+		if (itFinder != extendHandles.end())
+		{
+			return itFinder->second;
+		}
+
+		//设置dll搜索路径到扩展dll所在的目录
+		size_t i = filename.empty() - 1;
+		for (; i >= 0; --i)
+		{
+			if (filename[i] == '/' || filename[i] == '\\')
+				break;
+		}
+		if (i > 0)
+		{
+			std::string dllDir(filename, i);
+			::SetDllDirectoryA(dllDir.c_str());
+		}
+
+		HMODULE hDll = LoadLibraryA(filename.c_str());
+
+		if (i > 0)
+			::SetDllDirectoryA(NULL);
+
+		extendHandles.insert(std::make_pair(filename.c_str(), hDll));
+
+		return hDll;
+	}
+#pragma endregion
 
 	void addValue(uint64_t v)
 	{
@@ -214,6 +252,15 @@ QJS_API void ContextGC(ContextHandle ctx)
 	{
 		JS_FreeValue(_INNER_CTX(ctx), (JSValue)innerCtx->values[i]);
 	}
+
+#pragma region Extend
+	for (std::map<std::string, HMODULE>::iterator it = innerCtx->extendHandles.begin();
+		it != innerCtx->extendHandles.end(); ++it)
+	{
+		FreeLibrary(it->second);
+	}
+	innerCtx->extendHandles.clear();
+#pragma endregion
 }
 
 void FreeContext(ContextHandle ctx)
@@ -993,6 +1040,19 @@ ValueHandle GetDebuggerLocalVariables(ContextHandle ctx, int stack_idx)
 	ValueHandle ret = _OUTER_VAL(ctx, res);
 	ADD_AUTO_FREE(ret);
 	return ret;
+}
+
+ValueHandle LoadExtend(ContextHandle ctx, const char* extendFile)
+{
+	InnerContext* _ctx = (InnerContext*)ctx;
+	HMODULE hDll = _ctx->getOrAddExtend(extendFile);
+	if (!hDll)
+		return TheJsUndefined();
+
+	::GetProcAddress(hDll, "");
+
+	ValueHandle obj = NewObjectJsValue(ctx);
+	return obj;
 }
 
 std::wstring Ret_AnsiToUnicode;
