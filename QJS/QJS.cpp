@@ -26,24 +26,51 @@
 //InnerContext* == ContextHandle
 struct InnerContext
 {
+	bool temp;
 	JSContext* context;
 	std::vector<uint64_t> values;
 
+	InnerContext()
+	{
+		temp = false;
+		context = NULL;
+		extendHandles = new std::map<std::string, HMODULE>();
+		extendFuncionsCache = new std::map<std::string, std::map<std::string, FN_JsFunctionCallback*>>;
+	}
+
+	~InnerContext()
+	{
+		if (!temp) 
+		{
+			if (extendHandles)
+				delete extendHandles;
+			if (extendFuncionsCache)
+				delete extendFuncionsCache;
+		}
+	}
+
+	void addValue(uint64_t v)
+	{
+		values.push_back(v);
+	}
+
 #pragma region Extend
-	std::map<std::string, HMODULE> extendHandles;
+	std::map<std::string, HMODULE>* extendHandles;
+	std::map<std::string, std::map<std::string, FN_JsFunctionCallback*>>* extendFuncionsCache;
+
 	HMODULE getOrAddExtend(const std::string& filename)
 	{
 		if (filename.empty())
 			return NULL;
 
-		std::map<std::string, HMODULE>::iterator itFinder = extendHandles.find(filename.c_str());
-		if (itFinder != extendHandles.end())
+		std::map<std::string, HMODULE>::iterator itFinder = extendHandles->find(filename.c_str());
+		if (itFinder != extendHandles->end())
 		{
 			return itFinder->second;
 		}
 
 		//设置dll搜索路径到扩展dll所在的目录
-		size_t i = filename.empty() - 1;
+		int i = filename.size() - 1;
 		for (; i >= 0; --i)
 		{
 			if (filename[i] == '/' || filename[i] == '\\')
@@ -60,25 +87,52 @@ struct InnerContext
 		if (i > 0)
 			::SetDllDirectoryA(NULL);
 
-		extendHandles.insert(std::make_pair(filename.c_str(), hDll));
+		extendHandles->insert(std::make_pair(filename.c_str(), hDll));
 
 		return hDll;
 	}
+
 	void unloadExtend(const std::string& filename)
 	{
-		std::map<std::string, HMODULE>::iterator itFinder = extendHandles.find(filename.c_str());
-		if (itFinder != extendHandles.end())
+		std::map<std::string, HMODULE>::iterator itFinder = extendHandles->find(filename.c_str());
+		if (itFinder != extendHandles->end())
 		{
-			FreeLibrary(itFinder->second);
-			extendHandles.erase(itFinder);
+			HMODULE hDll = itFinder->second;			
+			FreeLibrary(hDll);
+			extendHandles->erase(itFinder);
+
+			//卸载扩展时，只是把扩展的函数设置为NULL，不能直接delete(因为还有可能被调用)，delete在FreeContext里
+			auto itFunc = extendFuncionsCache->find(filename.c_str());
+			if (itFunc != extendFuncionsCache->end())
+			{
+				for (auto itFunc2 = itFunc->second.begin();
+					itFunc2 != itFunc->second.end(); ++itFunc2)
+				{
+					*(itFunc2->second) = NULL;
+				}
+			}
 		}
 	}
-#pragma endregion
 
-	void addValue(uint64_t v)
+	FN_JsFunctionCallback* addExtendFunction(const std::string& filename, 
+		const std::string& funcName, FN_JsFunctionCallback func)
 	{
-		values.push_back(v);
+		FN_JsFunctionCallback* pFn = NULL;
+		auto itFinder = (*extendFuncionsCache)[filename.c_str()].find(funcName.c_str());
+		if (itFinder != (*extendFuncionsCache)[filename.c_str()].end())
+		{
+			*itFinder->second = func;
+			pFn = itFinder->second;
+		}
+		else
+		{
+			pFn = new FN_JsFunctionCallback;
+			*pFn = func;
+			(*extendFuncionsCache)[filename.c_str()].insert(std::make_pair(funcName.c_str(), pFn));
+		}
+		return pFn;
 	}
+#pragma endregion
 };
 #define ADD_AUTO_FREE(v) if (v.ctx && v.value)((InnerContext*)v.ctx)->addValue(v.value)
 
@@ -233,6 +287,19 @@ void* GetRuntimeUserData(RuntimeHandle runtime)
 	return JS_GetRuntimeOpaque(_INNER_RT(runtime));
 }
 
+struct ContextUserData
+{
+	InnerContext* innerContext;
+
+	void* outerData;
+
+	ContextUserData()
+	{
+		innerContext = NULL;
+		outerData = NULL;
+	}
+};
+
 ContextHandle NewContext(RuntimeHandle runtime)
 {
 	if (runtime == NULL)
@@ -253,10 +320,33 @@ ContextHandle NewContext(RuntimeHandle runtime)
 	_ctx->context = context;
 	_ctx->values.reserve(1024);
 
+	ContextUserData* contextUserData = new ContextUserData;
+	contextUserData->innerContext = _ctx;
+	JS_SetContextOpaque(context, contextUserData);
+
 	return _OUTER_CTX(_ctx);
 }
 
-QJS_API void ContextGC(ContextHandle ctx)
+ContextUserData* getContextUserData(JSContext* ctx)
+{
+	ContextUserData* contextUserData = (ContextUserData*)JS_GetContextOpaque(ctx);
+	return contextUserData;
+}
+
+ContextUserData* getContextUserData(ContextHandle ctx)
+{
+	return getContextUserData(_INNER_CTX(ctx));
+}
+
+ContextHandle rawContextToContextHandle(JSContext* ctx)
+{
+	ContextUserData* contextUserData = getContextUserData(ctx);
+	if (!contextUserData)
+		return NULL;
+	return (ContextHandle)contextUserData->innerContext;
+}
+
+void ResetContext(ContextHandle ctx)
 {
 	if (!ctx)
 		return;
@@ -268,12 +358,22 @@ QJS_API void ContextGC(ContextHandle ctx)
 	}
 
 #pragma region Extend
-	for (std::map<std::string, HMODULE>::iterator it = innerCtx->extendHandles.begin();
-		it != innerCtx->extendHandles.end(); ++it)
+	for (std::map<std::string, HMODULE>::iterator it = innerCtx->extendHandles->begin();
+		it != innerCtx->extendHandles->end(); ++it)
 	{
 		FreeLibrary(it->second);
 	}
-	innerCtx->extendHandles.clear();
+	innerCtx->extendHandles->clear();
+		
+	for (auto it2 = innerCtx->extendFuncionsCache->begin(); 
+		it2 != innerCtx->extendFuncionsCache->end(); ++it2)
+	{
+		for (auto it3 = it2->second.begin(); it3 != it2->second.end(); ++it3)
+		{
+			delete it3->second;
+		}
+	}
+	innerCtx->extendFuncionsCache->clear();
 #pragma endregion
 }
 
@@ -282,7 +382,14 @@ void FreeContext(ContextHandle ctx)
 	if (!ctx)
 		return;
 
-	ContextGC(ctx);
+	ResetContext(ctx);
+		
+	ContextUserData* contextUserData = (ContextUserData*)JS_GetContextOpaque(_INNER_CTX(ctx));
+	if (contextUserData)
+	{
+		delete contextUserData;
+	}
+
 
 	JS_FreeContext(_INNER_CTX(ctx));
 
@@ -292,12 +399,21 @@ void FreeContext(ContextHandle ctx)
 
 void SetContextUserData(ContextHandle ctx, void* user_data)
 {
-	JS_SetContextOpaque(_INNER_CTX(ctx), user_data);
+	ContextUserData* contextUserData = (ContextUserData*)JS_GetContextOpaque(_INNER_CTX(ctx));
+	if (contextUserData)
+	{
+		contextUserData->outerData = user_data;
+	}
 }
 
 void* GetContextUserData(ContextHandle ctx)
 {
-	return JS_GetContextOpaque(_INNER_CTX(ctx));
+	ContextUserData* contextUserData = (ContextUserData*)JS_GetContextOpaque(_INNER_CTX(ctx));
+	if (contextUserData)
+	{
+		return contextUserData->outerData;
+	}
+	return NULL;
 }
 
 ValueHandle GetGlobalObject(ContextHandle ctx)
@@ -316,8 +432,15 @@ static JSValue __NewFunctionCallHelper(JSContext* rawCtx, JSValue this_val, int 
 	{
 		if (itFinder->second.first)
 		{
+			InnerContext* globalCtx = (InnerContext*)rawContextToContextHandle(rawCtx);
+			if (!globalCtx)
+				return JS_UNDEFINED;
+
 			InnerContext innerCtx;
+			innerCtx.temp = true;
 			innerCtx.context = rawCtx;
+			innerCtx.extendHandles = globalCtx->extendHandles;
+			innerCtx.extendFuncionsCache = globalCtx->extendFuncionsCache;
 
 			ValueHandle* _innerArgv = NULL;
 			if (argc > 0)
@@ -1057,51 +1180,139 @@ ValueHandle GetDebuggerLocalVariables(ContextHandle ctx, int stack_idx)
 }
 
 #pragma region Extend
+bool GetExportNames(const char* dllPath, std::vector<std::string>& outExportNames)
+{
+	HANDLE hFile, hFileMap;//文件句柄和内存映射文件句柄
+	DWORD fileAttrib = 0;//存储文件属性用，在createfile中用到。
+	void* mod_base;//内存映射文件的起始地址，也是模块的起始地址
+	typedef PVOID(CALLBACK* PFNEXPORTFUNC)(PIMAGE_NT_HEADERS, PVOID, ULONG, PIMAGE_SECTION_HEADER*);
+	//首先取得ImageRvaToVa函数本来只要#include <Dbghelp.h>就可以使用这个函数，但是可能没有这个头文件
+	PFNEXPORTFUNC ImageRvaToVax = NULL;
+	HMODULE hModule = ::LoadLibraryA("DbgHelp.dll");
+	if (hModule != NULL)
+	{
+		ImageRvaToVax = (PFNEXPORTFUNC)::GetProcAddress(hModule, "ImageRvaToVa");
+		if (ImageRvaToVax == NULL)
+		{
+			::FreeLibrary(hModule);
+			return false;
+		}
+	}
+	else
+	{
+		return false;
+	}
+
+	hFile = CreateFileA(dllPath, GENERIC_READ, 0, 0, OPEN_EXISTING, fileAttrib, 0);
+	if (hFile == INVALID_HANDLE_VALUE)
+	{
+		::FreeLibrary(hModule);
+		return false;
+	}
+	hFileMap = CreateFileMapping(hFile, 0, PAGE_READONLY, 0, 0, 0);
+	if (hFileMap == NULL)
+	{
+		CloseHandle(hFile);
+		::FreeLibrary(hModule);
+		return false;
+	}
+	mod_base = MapViewOfFile(hFileMap, FILE_MAP_READ, 0, 0, 0);
+	if (mod_base == NULL)
+	{
+		CloseHandle(hFileMap);
+		CloseHandle(hFile);
+		::FreeLibrary(hModule);
+		return false;
+	}
+	IMAGE_DOS_HEADER* pDosHeader = (IMAGE_DOS_HEADER*)mod_base;
+	IMAGE_NT_HEADERS* pNtHeader =
+		(IMAGE_NT_HEADERS*)((BYTE*)mod_base + pDosHeader->e_lfanew);//得到NT头首址
+	IMAGE_OPTIONAL_HEADER* pOptHeader =
+		(IMAGE_OPTIONAL_HEADER*)((BYTE*)mod_base + pDosHeader->e_lfanew + 24);//optional头首址
+	IMAGE_EXPORT_DIRECTORY* pExportDesc = (IMAGE_EXPORT_DIRECTORY*)
+		ImageRvaToVax(pNtHeader, mod_base, pOptHeader->DataDirectory[0].VirtualAddress, 0);
+	if (pExportDesc != NULL)
+	{
+		//导出表首址。函数名称表首地址每个DWORD代表一个函数名字字符串的地址
+		PDWORD nameAddr = (PDWORD)ImageRvaToVax(pNtHeader, mod_base, pExportDesc->AddressOfNames, 0);
+		DWORD i = 0;
+		DWORD unti = pExportDesc->NumberOfNames;
+		for (i = 0; i < unti; i++)
+		{
+			const char* func_name = (const char*)ImageRvaToVax(pNtHeader, mod_base, (DWORD)nameAddr[i], 0);
+			if (func_name)
+				outExportNames.push_back(func_name);
+		}
+	}
+
+	::FreeLibrary(hModule);
+	UnmapViewOfFile(mod_base);
+	CloseHandle(hFileMap);
+	CloseHandle(hFile);
+
+	return true;
+}
+
+//这里做一次代理是防止插件被提前卸载后崩溃
 ValueHandle _extendCallHelper(
 	ContextHandle ctx, ValueHandle this_val, int argc, ValueHandle* argv, void* user_data)
 {
+	FN_JsFunctionCallback* pFn = (FN_JsFunctionCallback*)user_data;
+	if (!pFn || !(*pFn))
+		return TheJsUndefined();
 
+	return (*pFn)(ctx, this_val, argc, argv, NULL);
 }
 
 ValueHandle LoadExtend(ContextHandle ctx, const char* extendFile)
 {
+	std::vector<std::string> function_list;
+	if (!GetExportNames(extendFile, function_list) || function_list.size() == 0)
+		return TheJsUndefined();
+
 	InnerContext* _ctx = (InnerContext*)ctx;
 	HMODULE hDll = _ctx->getOrAddExtend(extendFile);
 	if (!hDll)
 		return TheJsUndefined();
 
-	FN_entry entry = (FN_entry)::GetProcAddress(hDll, "entry");
-	if (!entry)
-	{
-		_ctx->unloadExtend(extendFile);
-		return TheJsUndefined();
-	}
-	FN_function_list function_list = (FN_function_list)::GetProcAddress(hDll, "function_list");
-	if (!function_list)
-	{
-		_ctx->unloadExtend(extendFile);
-		return TheJsUndefined();
-	}
-
-	int entryRes = entry(ctx);
-	if (entryRes != 0)
-	{
-		_ctx->unloadExtend(extendFile);
-		return TheJsUndefined();
-	}
-
-	const char* funcList = function_list();
-	if (!funcList)
-	{
-		_ctx->unloadExtend(extendFile);
-		return TheJsUndefined();
-	}
-
-
-
 	ValueHandle obj = NewObjectJsValue(ctx);
+	for (size_t i = 0; i < function_list.size(); i++)
+	{
+		std::string funcName = function_list[i];
+
+		FARPROC func = ::GetProcAddress(hDll, funcName.c_str());
+		if (!func)
+			continue;
+
+		//入口
+		if (funcName == "entry")
+		{
+			FN_entry entry = (FN_entry)func;
+			int entryRes = entry(ctx);
+			if (entryRes != 0)
+			{
+				_ctx->unloadExtend(extendFile);
+				return TheJsUndefined();
+			}
+		}
+		else
+		{
+			FN_JsFunctionCallback* pFn = _ctx->addExtendFunction(
+				extendFile, funcName, (FN_JsFunctionCallback)func);//记录以管理释放
+			ValueHandle jsFunc = NewFunction(ctx, _extendCallHelper, 0, pFn);
+			SetNamedJsValue(ctx, funcName.c_str(), jsFunc, obj);
+		}
+	}
+
 	return obj;
 }
+
+void UnloadExtend(ContextHandle ctx, const char* extendFile)
+{
+	InnerContext* _ctx = (InnerContext*)ctx;
+	_ctx->unloadExtend(extendFile);
+}
+
 #pragma endregion
 
 std::wstring Ret_AnsiToUnicode;

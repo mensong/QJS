@@ -317,10 +317,39 @@ void myTest()
 	qjs.FreeRuntime(rt);
 }
 
+void extendTest()
+{
+	RuntimeHandle rt = qjs.NewRuntime();
+	ContextHandle ctx = qjs.NewContext(rt);
+
+	ValueHandle ext1 = qjs.LoadExtend(ctx, "SampleExtend.dll");
+	qjs.SetNamedJsValue(ctx, "Sample", ext1, qjs.TheJsNull());
+	//qjs.UnloadExtend(ctx, "SampleExtend.dll");
+
+	ValueHandle result = qjs.RunScript(ctx, qjs.UnicodeToUtf8(L"Sample.testFoo1();"), qjs.TheJsNull(), "");
+	if (!qjs.JsValueIsException(result))
+	{
+		const char* sz = qjs.JsValueToString(ctx, result);
+		printf("运行成功:%s\n", sz);
+		qjs.FreeJsValueToStringBuffer(ctx, sz);
+	}
+	else
+	{
+		ValueHandle exception = qjs.GetAndClearJsLastException(ctx);
+		const char* sz = qjs.JsValueToString(ctx, exception);
+		printf("运行错误:%s\n", sz);
+		qjs.FreeJsValueToStringBuffer(ctx, sz);
+	}
+
+	qjs.FreeContext(ctx);
+	qjs.FreeRuntime(rt);
+}
+
 int main()
 {
 	baseTest();
+	extendTest();
 	myTest();
-
+	
 	return 0;
 }

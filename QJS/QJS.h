@@ -74,7 +74,7 @@ QJS_API void* GetRuntimeUserData(RuntimeHandle runtime);
 //创建js上下文
 QJS_API ContextHandle NewContext(RuntimeHandle runtime);
 //把此前所有申请的C++Value释放
-QJS_API void ContextGC(ContextHandle ctx);
+QJS_API void ResetContext(ContextHandle ctx);
 //销毁js上下文
 QJS_API void FreeContext(ContextHandle ctx);
 //get set context userdata
@@ -233,6 +233,7 @@ QJS_API ValueHandle GetDebuggerLocalVariables(ContextHandle ctx, int stack_idx);
 
 
 QJS_API ValueHandle LoadExtend(ContextHandle ctx, const char* extendFile);
+QJS_API void UnloadExtend(ContextHandle ctx, const char* extendFile);
 
 class QJS
 {
@@ -254,6 +255,7 @@ public:
 		SET_PROC(hDll, SetRuntimeUserData); 
 		SET_PROC(hDll, GetRuntimeUserData);
 		SET_PROC(hDll, NewContext);
+		SET_PROC(hDll, ResetContext);
 		SET_PROC(hDll, FreeContext); 
 		SET_PROC(hDll, SetContextUserData); 
 		SET_PROC(hDll, GetContextUserData);
@@ -328,6 +330,8 @@ public:
 		SET_PROC(hDll, GetDebuggerBacktrace);
 		SET_PROC(hDll, GetDebuggerClosureVariables); 
 		SET_PROC(hDll, GetDebuggerLocalVariables);
+		SET_PROC(hDll, LoadExtend);
+		SET_PROC(hDll, UnloadExtend);
 	}
 
 
@@ -336,6 +340,7 @@ public:
 	DEF_PROC(SetRuntimeUserData); 
 	DEF_PROC(GetRuntimeUserData);
 	DEF_PROC(NewContext);
+	DEF_PROC(ResetContext);
 	DEF_PROC(FreeContext); 
 	DEF_PROC(SetContextUserData); 
 	DEF_PROC(GetContextUserData);
@@ -410,6 +415,8 @@ public:
 	DEF_PROC(GetDebuggerBacktrace);
 	DEF_PROC(GetDebuggerClosureVariables); 
 	DEF_PROC(GetDebuggerLocalVariables);
+	DEF_PROC(LoadExtend);
+	DEF_PROC(UnloadExtend);
 
 	//ValueHandle转std::string
 	std::string JsValueToStdString(ContextHandle ctx, ValueHandle value, const std::string& defVal = "")
