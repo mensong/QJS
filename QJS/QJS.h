@@ -85,7 +85,7 @@ QJS_API void* GetContextUserData(ContextHandle ctx);
 QJS_API ValueHandle GetGlobalObject(ContextHandle ctx);
 
 //运行脚本
-QJS_API ValueHandle RunScript(ContextHandle ctx, const char* script, ValueHandle parent, const char* filename="");
+QJS_API ValueHandle RunScript(ContextHandle ctx, const char* script, ValueHandle parent, const char* filename/*=""*/);
 //执行js中函数，没有参数时args=NULL并且argc=0
 QJS_API ValueHandle CallJsFunction(ContextHandle ctx, ValueHandle jsFunction, ValueHandle args[], int argc, ValueHandle parent);
 
