@@ -4,7 +4,8 @@
 
 QJS_API int entry(ContextHandle ctx)
 {
-	return 1;
+	return 0;//加载插件
+	//return 1;//不能加载插件
 }
 
 QJS_API ValueHandle testFoo1(

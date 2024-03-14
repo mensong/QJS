@@ -3,6 +3,7 @@
 #include "QJS.h"
 
 //入口函数原型
+// return 错误码。返回非0则不加载插件
 typedef int (*FN_entry)(ContextHandle ctx);
 
 //扩展函数原型
