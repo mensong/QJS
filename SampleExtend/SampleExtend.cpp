@@ -11,11 +11,13 @@ QJS_API int entry(ContextHandle ctx)
 QJS_API ValueHandle testFoo1(
 	ContextHandle ctx, ValueHandle this_val, int argc, ValueHandle* argv, void* user_data)
 {
+	MessageBoxA(NULL, "testFoo1", "SampleExtend", 0);
 	return qjs.TheJsUndefined();
 }
 
 QJS_API ValueHandle testFoo2(
 	ContextHandle ctx, ValueHandle this_val, int argc, ValueHandle* argv, void* user_data)
 {
+	MessageBoxA(NULL, "testFoo2", "SampleExtend", 0);
 	return qjs.TheJsUndefined();
 }
