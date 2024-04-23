@@ -43,7 +43,13 @@ struct InnerContext
 		if (!temp) 
 		{
 			if (extendHandles)
+			{
+				//不需要，在ResetContext中已做
+				//for (auto it = extendHandles->begin(); it != extendHandles->end(); ++it)
+				//	unloadExtend(it->first);
+				//extendHandles->clear();
 				delete extendHandles;
+			}
 			if (extendFuncionsCache)
 				delete extendFuncionsCache;
 		}
@@ -97,10 +103,6 @@ struct InnerContext
 		std::map<std::string, HMODULE>::iterator itFinder = extendHandles->find(filename.c_str());
 		if (itFinder != extendHandles->end())
 		{
-			HMODULE hDll = itFinder->second;			
-			FreeLibrary(hDll);
-			extendHandles->erase(itFinder);
-
 			//卸载扩展时，只是把扩展的函数设置为NULL，不能直接delete(因为还有可能被调用)，delete在FreeContext里
 			auto itFunc = extendFuncionsCache->find(filename.c_str());
 			if (itFunc != extendFuncionsCache->end())
@@ -111,6 +113,10 @@ struct InnerContext
 					*(itFunc2->second) = NULL;
 				}
 			}
+
+			HMODULE hDll = itFinder->second;			
+			FreeLibrary(hDll);
+			extendHandles->erase(itFinder);
 		}
 	}
 
