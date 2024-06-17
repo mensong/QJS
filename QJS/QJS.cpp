@@ -76,7 +76,7 @@ struct InnerContext
 		}
 
 		//设置dll搜索路径到扩展dll所在的目录
-		int i = filename.size() - 1;
+		int i = (int)filename.size() - 1;
 		for (; i >= 0; --i)
 		{
 			if (filename[i] == '/' || filename[i] == '\\')
@@ -691,6 +691,18 @@ ValueHandle TheJsException()
 	return _OUTER_VAL(NULL, JS_EXCEPTION);
 }
 
+void FreeJsPointer(ContextHandle ctx, void* ptr)
+{
+	if (ptr)
+		js_free(_INNER_CTX(ctx), ptr);
+}
+
+uint8_t* LoadFile(ContextHandle ctx, size_t* outLen, const char* filename)
+{
+	uint8_t* buf = js_load_file(_INNER_CTX(ctx), outLen, filename);
+	return buf;
+}
+
 ValueHandle RunScript(ContextHandle ctx, const char* script, ValueHandle parent, const char* filename/* = ""*/)
 {
 	JSValue res = JS_UNDEFINED;
@@ -703,6 +715,20 @@ ValueHandle RunScript(ContextHandle ctx, const char* script, ValueHandle parent,
 	ValueHandle ret = _OUTER_VAL(ctx, res);
 	ADD_AUTO_FREE(ret);
 	return ret;
+}
+
+ValueHandle RunScriptFile(ContextHandle ctx, const char* filename)
+{
+	size_t buf_len = 0;
+	uint8_t* buf = LoadFile(_INNER_CTX(ctx), &buf_len, filename);
+	if (buf)
+	{
+		ValueHandle ret = RunScript(ctx, (const char*)buf, TheJsNull(), filename);
+		FreeJsPointer(ctx, buf);
+		return ret;
+	}
+
+	return TheJsUndefined();
 }
 
 ValueHandle CallJsFunction(ContextHandle ctx, ValueHandle jsFunction, ValueHandle args[], int argc, ValueHandle parent)
@@ -971,12 +997,6 @@ ValueHandle ByteCodeToJsValue(ContextHandle ctx, const uint8_t* byteCode, size_t
 	return ret;
 }
 
-void FreeJsPointer(ContextHandle ctx, void* ptr)
-{
-	if (ptr)
-		js_free(_INNER_CTX(ctx), ptr);
-}
-
 QJS_API bool SaveByteCodeToFile(const uint8_t* byteCode, size_t byteCodeLen, const char* filepath)
 {
 	bool res = false;
@@ -988,32 +1008,6 @@ QJS_API bool SaveByteCodeToFile(const uint8_t* byteCode, size_t byteCodeLen, con
 		fclose(file);
 	}
 	return res;
-}
-
-QJS_API uint8_t* LoadByteCodeFromFile(const char* filepath, size_t* outByteCodeLen)
-{
-	uint8_t* buf = NULL;
-	FILE* file = fopen(filepath, "rb");
-	if (file) 
-	{
-		fseek(file, 0, SEEK_END);
-		long fileSize = ftell(file);
-		if (fileSize > 0)
-		{
-			fseek(file, 0, SEEK_SET);
-			buf = (uint8_t*)malloc(fileSize);
-			memset(buf, 0, fileSize);
-			if (buf)
-			{
-				fread(buf, 1, fileSize, file);
-			}
-		}
-		*outByteCodeLen = fileSize / sizeof(uint8_t);
-
-		fclose(file);
-	}
-
-	return buf;
 }
 
 ValueType GetValueType(ValueHandle value)

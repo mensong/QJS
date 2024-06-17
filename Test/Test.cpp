@@ -240,11 +240,11 @@ void myTest()
 			qjs.SaveByteCodeToFile(byteCode, byteCodeLen, "1.bin");
 			qjs.FreeJsPointer(ctx, byteCode);
 
-			byteCode = qjs.LoadByteCodeFromFile("1.bin", &byteCodeLen);
+			byteCode = qjs.LoadFile(ctx, &byteCodeLen, "1.bin");
 			if (byteCode)
 			{
 				qjs.RunByteCode(ctx, byteCode, byteCodeLen);
-				free(byteCode);
+				qjs.FreeJsPointer(ctx, byteCode);
 			}
 			
 		}
@@ -311,6 +311,10 @@ void myTest()
 	{
 		ValueHandle testMsg = qjs.NewStringJsValue(ctx, "mensong");
 		std::string s = qjs.JsValueToStdString(ctx, testMsg, "");
+	}
+
+	{
+		qjs.RunScriptFile(ctx, "test.js");
 	}
 
 	qjs.FreeContext(ctx);

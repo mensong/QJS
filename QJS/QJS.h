@@ -84,8 +84,15 @@ QJS_API void* GetContextUserData(ContextHandle ctx);
 //获得顶层对象
 QJS_API ValueHandle GetGlobalObject(ContextHandle ctx);
 
+//释放js指针
+QJS_API void FreeJsPointer(ContextHandle ctx, void* ptr);
+//读取文件到缓存，成功返回内容，不成功返回NULL，返回的内容需要自行FreeJsPointer
+QJS_API uint8_t* LoadFile(ContextHandle ctx, size_t* outLen, const char* filename);
+
 //运行脚本
 QJS_API ValueHandle RunScript(ContextHandle ctx, const char* script, ValueHandle parent, const char* filename/*=""*/);
+//运行文件
+QJS_API ValueHandle RunScriptFile(ContextHandle ctx, const char* filename);
 //执行js中函数，没有参数时args=NULL并且argc=0
 QJS_API ValueHandle CallJsFunction(ContextHandle ctx, ValueHandle jsFunction, ValueHandle args[], int argc, ValueHandle parent);
 
@@ -174,12 +181,8 @@ QJS_API ValueHandle CompileScript(ContextHandle ctx, const char* script, const c
 QJS_API uint8_t* JsValueToByteCode(ContextHandle ctx, ValueHandle value, size_t* outByteCodeLen, bool byte_swap/* = false*/);
 //ByteCode转ValueHandle
 QJS_API ValueHandle ByteCodeToJsValue(ContextHandle ctx, const uint8_t* byteCode, size_t byteCodeLen);
-//释放js指针
-QJS_API void FreeJsPointer(ContextHandle ctx, void* ptr);
-//保存ByteCode到文件
+//保存ByteCode到文件，可以使用LoadFile读入内存
 QJS_API bool SaveByteCodeToFile(const uint8_t* byteCode, size_t byteCodeLen, const char* filepath);
-//从文件加载ByteCode,返回的需要自行free
-QJS_API uint8_t* LoadByteCodeFromFile(const char* filepath, size_t* outByteCodeLen);
 //执行bytecode脚本
 QJS_API ValueHandle RunByteCode(ContextHandle ctx, const uint8_t* byteCode, size_t byteCodeLen);
 
@@ -271,14 +274,15 @@ public:
 		SET_PROC(hDll, DeleteIndexedJsValue); 
 		SET_PROC(hDll, GetPrototype);
 		SET_PROC(hDll, SetPrototype);
+		SET_PROC(hDll, FreeJsPointer);
+		SET_PROC(hDll, LoadFile);
 		SET_PROC(hDll, RunScript);
+		SET_PROC(hDll, RunScriptFile);
 		SET_PROC(hDll, CallJsFunction);
 		SET_PROC(hDll, CompileScript);
 		SET_PROC(hDll, JsValueToByteCode);
-		SET_PROC(hDll, ByteCodeToJsValue);
-		SET_PROC(hDll, FreeJsPointer);
+		SET_PROC(hDll, ByteCodeToJsValue);		
 		SET_PROC(hDll, SaveByteCodeToFile);
-		SET_PROC(hDll, LoadByteCodeFromFile);
 		SET_PROC(hDll, RunByteCode);
 		SET_PROC(hDll, TheJsUndefined);
 		SET_PROC(hDll, TheJsNull);
@@ -356,14 +360,15 @@ public:
 	DEF_PROC(DeleteIndexedJsValue); 
 	DEF_PROC(GetPrototype);
 	DEF_PROC(SetPrototype);
+	DEF_PROC(FreeJsPointer);
+	DEF_PROC(LoadFile);
 	DEF_PROC(RunScript);
+	DEF_PROC(RunScriptFile);
 	DEF_PROC(CallJsFunction);
 	DEF_PROC(CompileScript);
 	DEF_PROC(JsValueToByteCode);
 	DEF_PROC(ByteCodeToJsValue);
-	DEF_PROC(FreeJsPointer);
 	DEF_PROC(SaveByteCodeToFile);
-	DEF_PROC(LoadByteCodeFromFile);
 	DEF_PROC(RunByteCode);
 	DEF_PROC(TheJsUndefined);
 	DEF_PROC(TheJsNull);
