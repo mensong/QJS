@@ -235,7 +235,7 @@ QJS_API ValueHandle GetDebuggerClosureVariables(ContextHandle ctx, int stack_idx
 QJS_API ValueHandle GetDebuggerLocalVariables(ContextHandle ctx, int stack_idx);
 
 
-QJS_API ValueHandle LoadExtend(ContextHandle ctx, const char* extendFile);
+QJS_API ValueHandle LoadExtend(ContextHandle ctx, const char* extendFile, ValueHandle parent);
 QJS_API void UnloadExtend(ContextHandle ctx, const char* extendFile);
 
 class QJS
@@ -304,6 +304,7 @@ public:
 		SET_PROC(hDll, JsValueToString);
 		SET_PROC(hDll, FreeJsValueToStringBuffer);
 		SET_PROC(hDll, JsValueToInt);
+		SET_PROC(hDll, JsValueToInt64);
 		SET_PROC(hDll, JsValueToDouble);
 		SET_PROC(hDll, JsValueToBool);
 		SET_PROC(hDll, GetValueType);
@@ -390,6 +391,7 @@ public:
 	DEF_PROC(JsValueToString);
 	DEF_PROC(FreeJsValueToStringBuffer);
 	DEF_PROC(JsValueToInt);
+	DEF_PROC(JsValueToInt64);
 	DEF_PROC(JsValueToDouble);
 	DEF_PROC(JsValueToBool);
 	DEF_PROC(GetValueType);

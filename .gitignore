@@ -17,3 +17,6 @@
 /Test/1.bin
 /SampleExtend/x64
 /SampleExtend/Win32
+/JsExtends/JsExtendBase/x64
+/JsExtends/JsExtendPath/x64
+/JsExtends/JsExtendReg/x64

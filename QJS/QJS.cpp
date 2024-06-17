@@ -1264,7 +1264,7 @@ ValueHandle _extendCallHelper(
 	return (*pFn)(ctx, this_val, argc, argv, NULL);
 }
 
-ValueHandle LoadExtend(ContextHandle ctx, const char* extendFile)
+ValueHandle LoadExtend(ContextHandle ctx, const char* extendFile, ValueHandle parent)
 {
 	std::vector<std::string> function_list;
 	if (!GetExportNames(extendFile, function_list) || function_list.size() == 0)
@@ -1275,7 +1275,8 @@ ValueHandle LoadExtend(ContextHandle ctx, const char* extendFile)
 	if (!hDll)
 		return TheJsUndefined();
 
-	ValueHandle obj = NewObjectJsValue(ctx);
+	if (!JsValueIsObject(parent))
+		parent = NewObjectJsValue(ctx);
 	for (size_t i = 0; i < function_list.size(); i++)
 	{
 		std::string funcName = function_list[i];
@@ -1300,11 +1301,11 @@ ValueHandle LoadExtend(ContextHandle ctx, const char* extendFile)
 			FN_JsFunctionCallback* pFn = _ctx->addExtendFunction(
 				extendFile, funcName, (FN_JsFunctionCallback)func);//记录以管理释放
 			ValueHandle jsFunc = NewFunction(ctx, _extendCallHelper, 0, pFn);
-			SetNamedJsValue(ctx, funcName.c_str(), jsFunc, obj);
+			SetNamedJsValue(ctx, funcName.c_str(), jsFunc, parent);
 		}
 	}
 
-	return obj;
+	return parent;
 }
 
 void UnloadExtend(ContextHandle ctx, const char* extendFile)

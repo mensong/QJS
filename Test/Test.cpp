@@ -326,7 +326,7 @@ void extendTest()
 	RuntimeHandle rt = qjs.NewRuntime();
 	ContextHandle ctx = qjs.NewContext(rt);
 
-	ValueHandle ext1 = qjs.LoadExtend(ctx, "SampleExtend.dll");
+	ValueHandle ext1 = qjs.LoadExtend(ctx, "SampleExtend.dll", qjs.TheJsNull());
 	qjs.SetNamedJsValue(ctx, "Sample", ext1, qjs.TheJsNull());
 	//qjs.UnloadExtend(ctx, "SampleExtend.dll");
 
@@ -349,11 +349,28 @@ void extendTest()
 	qjs.FreeRuntime(rt);
 }
 
+void regExtendTest()
+{
+	RuntimeHandle rt = qjs.NewRuntime();
+	ContextHandle ctx = qjs.NewContext(rt);
+
+	qjs.LoadExtend(ctx, "JsExtendBase.dll", qjs.GetGlobalObject(ctx));
+
+	ValueHandle ext1 = qjs.LoadExtend(ctx, "JsExtendReg.dll", qjs.TheJsNull());
+	qjs.SetNamedJsValue(ctx, "Reg", ext1, qjs.TheJsNull());
+
+	ValueHandle result = qjs.RunScriptFile(ctx, "regTest.js");
+
+	qjs.FreeContext(ctx);
+	qjs.FreeRuntime(rt);
+}
+
 int main()
 {
 	baseTest();
 	extendTest();
 	myTest();
+	regExtendTest();
 	
 	return 0;
 }
