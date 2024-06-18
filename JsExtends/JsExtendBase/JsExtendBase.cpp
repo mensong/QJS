@@ -122,3 +122,18 @@ QJS_API ValueHandle require(
 
 	return jexports;
 }
+
+QJS_API ValueHandle include(
+	ContextHandle ctx, ValueHandle this_val, int argc, ValueHandle* argv, void* user_data)
+{
+	if (argc < 1)
+		return qjs.TheJsUndefined();
+
+	std::string filename = qjs.JsValueToStdString(ctx, argv[0]);
+	std::wstring wfilename = qjs.Utf8ToUnicode(filename.c_str());
+	filename = qjs.UnicodeToAnsi(wfilename.c_str());
+
+	ValueHandle jret = qjs.RunScriptFile(ctx, filename.c_str());
+
+	return jret;
+}
