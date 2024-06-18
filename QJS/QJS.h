@@ -104,12 +104,18 @@ QJS_API bool SetNamedJsValue(ContextHandle ctx, const char* varName, ValueHandle
 QJS_API bool DeleteNamedJsValue(ContextHandle ctx, const char* varName, ValueHandle parent);
 //是否有一个名称的js变量值
 QJS_API bool HasNamedJsValue(ContextHandle ctx, const char* varName, ValueHandle parent);
+//获得对象属性名列表。onlyEnumerable-只获取可列举的属性名；enableSymbol-可以获取Symbol的属性名
+QJS_API ValueHandle GetObjectPropertyKeys(ContextHandle ctx, ValueHandle jObj, bool onlyEnumerable/*=true*/, bool enableSymbol/*=false*/);
+
 //根据序号获得一个js变量值
 QJS_API ValueHandle GetIndexedJsValue(ContextHandle ctx, uint32_t idx, ValueHandle parent);
 //根据序号设置一个js变量值
 QJS_API bool SetIndexedJsValue(ContextHandle ctx, uint32_t idx, ValueHandle varValue, ValueHandle parent);
 //根据序号删除一个js变量值
 QJS_API bool DeleteIndexedJsValue(ContextHandle ctx, uint32_t idx, ValueHandle parent);
+
+//获得.length属性 失败返回-1
+QJS_API int64_t GetLength(ContextHandle ctx, ValueHandle obj);
 
 ///原型
 //获得一个js变量的原型对象
@@ -156,9 +162,6 @@ typedef ValueHandle(*FN_JsFunctionCallback)(
 	ContextHandle ctx, ValueHandle this_val, int argc, ValueHandle* argv, void* user_data);
 //创建一个JS函数
 QJS_API ValueHandle NewFunction(ContextHandle ctx, FN_JsFunctionCallback cb, int argc, void* user_data);
-
-//获得.length属性 失败返回-1
-QJS_API int64_t GetLength(ContextHandle ctx, ValueHandle obj);
 
 //ValueHandle转string
 QJS_API const char* JsValueToString(ContextHandle ctx, ValueHandle value);
@@ -269,6 +272,7 @@ public:
 		SET_PROC(hDll, SetNamedJsValue);
 		SET_PROC(hDll, DeleteNamedJsValue); 
 		SET_PROC(hDll, HasNamedJsValue);
+		SET_PROC(hDll, GetObjectPropertyKeys);
 		SET_PROC(hDll, GetIndexedJsValue);
 		SET_PROC(hDll, SetIndexedJsValue);
 		SET_PROC(hDll, DeleteIndexedJsValue); 
@@ -356,6 +360,7 @@ public:
 	DEF_PROC(SetNamedJsValue);
 	DEF_PROC(DeleteNamedJsValue); 
 	DEF_PROC(HasNamedJsValue);
+	DEF_PROC(GetObjectPropertyKeys);
 	DEF_PROC(GetIndexedJsValue);
 	DEF_PROC(SetIndexedJsValue);
 	DEF_PROC(DeleteIndexedJsValue); 

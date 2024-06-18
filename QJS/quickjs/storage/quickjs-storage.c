@@ -227,7 +227,7 @@ void db_store_object_data(JSContext *ctx, JSStorage* pst, dybase_oid_t oid, JSVa
   JS_FreeValue(ctx, cname);
 
   JS_GetOwnPropertyNames(ctx, &tab, &len, obj, JS_GPN_STRING_MASK | JS_GPN_ENUM_ONLY);
-
+  
   dybase_store_object_field(h, ".", dybase_map_type, 0, len);
   
   for (uint32_t n = 0; n < len; ++n) {

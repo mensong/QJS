@@ -598,6 +598,39 @@ bool HasNamedJsValue(ContextHandle ctx, const char* varName, ValueHandle parent)
 	return b;
 }
 
+ValueHandle GetObjectPropertyKeys(ContextHandle ctx, ValueHandle jObj, bool onlyEnumerable, bool enableSymbol)
+{
+	JSPropertyEnum* tab = NULL;
+	uint32_t len = 0;
+	int flags = JS_GPN_STRING_MASK;
+	if (onlyEnumerable) 
+		flags |= JS_GPN_ENUM_ONLY;
+	if (enableSymbol) 
+		flags |= JS_GPN_SYMBOL_MASK;
+	if (JS_GetOwnPropertyNames(_INNER_CTX(ctx), &tab, &len, _INNER_VAL(jObj), flags) != 0)
+		return TheJsUndefined();
+
+	ValueHandle jRetArr = NewArrayJsValue(ctx);
+
+	for (uint32_t n = 0; n < len; ++n) {
+		JSValue name = JS_AtomToValue(_INNER_CTX(ctx), tab[n].atom);
+		if (JS_IsException(name))
+		{
+			JS_FreeValue(_INNER_CTX(ctx), name);
+			js_free_prop_enum(_INNER_CTX(ctx), tab, len);
+			return qjs.TheJsUndefined();
+		}
+
+		ValueHandle jname = _OUTER_VAL(ctx, name);
+		ADD_AUTO_FREE(jname);
+		SetIndexedJsValue(ctx, n, jname, jRetArr);
+	}
+
+	js_free_prop_enum(_INNER_CTX(ctx), tab, len);
+
+	return jRetArr;
+}
+
 ValueHandle GetIndexedJsValue(ContextHandle ctx, uint32_t idx, ValueHandle parent)
 {
 	JSValue _this = _INNER_VAL(parent);

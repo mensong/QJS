@@ -110,6 +110,17 @@ void myTest()
 	qjs.SetNamedJsValue(ctx, "print", printFunc, qjs.TheJsNull());
 
 	{
+		ValueHandle arrNames = qjs.GetObjectPropertyKeys(ctx, qjs.GetGlobalObject(ctx), true, false);
+		int64_t len = qjs.GetLength(ctx, arrNames);
+		for (int i = 0; i < len; i++)
+		{
+			auto jname = qjs.GetIndexedJsValue(ctx, i, arrNames);
+			std::string name = qjs.JsValueToStdString(ctx, jname);
+			printf("Property name:%s\n", name.c_str());
+		}
+	}
+
+	{
 		auto argv = qjs.NewStringJsValue(ctx, "mensong,");
 		ValueHandle argvs[] = { argv, argv, argv };
 		auto ret1 = qjs.CallJsFunction(ctx, printFunc, argvs, 3, qjs.TheJsNull());
@@ -129,6 +140,15 @@ void myTest()
 		ValueHandle o = qjs.NewObjectJsValue(ctx);
 		qjs.SetNamedJsValue(ctx, "bv", bv, o);
 		qjs.SetNamedJsValue(ctx, "o", o, qjs.TheJsNull());
+
+		ValueHandle arrNames = qjs.GetObjectPropertyKeys(ctx, o, true, false);
+		int64_t len = qjs.GetLength(ctx, arrNames);
+		for (int i = 0; i < len; i++)
+		{
+			auto jname = qjs.GetIndexedJsValue(ctx, i, arrNames);
+			std::string name = qjs.JsValueToStdString(ctx, jname);
+			printf("Property name:%s\n", name.c_str());
+		}
 	}
 
 	{
@@ -181,6 +201,15 @@ void myTest()
 		auto setter = qjs.NewFunction(ctx, JsSetter, 1, NULL);
 		qjs.DefineGetterSetter(ctx, test_getter_setter, "gs", getter, setter);
 		qjs.RunScript(ctx, "test_getter_setter.gs='123';test_getter_setter.gs", qjs.GetGlobalObject(ctx), "");
+
+		ValueHandle arrNames = qjs.GetObjectPropertyKeys(ctx, test_getter_setter, false, false);
+		int64_t len = qjs.GetLength(ctx, arrNames);
+		for (int i = 0; i < len; i++)
+		{
+			auto jname = qjs.GetIndexedJsValue(ctx, i, arrNames);
+			std::string name = qjs.JsValueToStdString(ctx, jname);
+			printf("Property name:%s\n", name.c_str());
+		}
 	}
 
 	{
