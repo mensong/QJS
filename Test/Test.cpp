@@ -378,6 +378,32 @@ void extendTest()
 	qjs.FreeRuntime(rt);
 }
 
+void baseExtendTest()
+{
+	RuntimeHandle rt = qjs.NewRuntime();
+	ContextHandle ctx = qjs.NewContext(rt);
+
+	qjs.LoadExtend(ctx, "JsExtendBase.dll", qjs.GetGlobalObject(ctx));
+
+	ValueHandle result = qjs.RunScriptFile(ctx, "baseTest.js");
+	if (qjs.JsValueIsException(result))
+	{
+		ValueHandle exception = qjs.GetAndClearJsLastException(ctx);
+		const char* sz = qjs.JsValueToString(ctx, exception);
+		printf("运行错误:%s\n", sz);
+		qjs.FreeJsValueToStringBuffer(ctx, sz);
+	}
+	else
+	{
+		ValueHandle js = qjs.JsonStringify(ctx, result);
+		std::string s = qjs.JsValueToStdString(ctx, js);
+		printf("模块:%s\n", s.c_str());
+	}
+
+	qjs.FreeContext(ctx);
+	qjs.FreeRuntime(rt);
+}
+
 void regExtendTest()
 {
 	RuntimeHandle rt = qjs.NewRuntime();
@@ -399,6 +425,7 @@ int main()
 	baseTest();
 	extendTest();
 	myTest();
+	baseExtendTest();
 	regExtendTest();
 	
 	return 0;

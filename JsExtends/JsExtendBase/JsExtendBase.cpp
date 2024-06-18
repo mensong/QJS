@@ -72,6 +72,27 @@ QJS_API ValueHandle debug(
 	return qjs.TheJsUndefined();
 }
 
+QJS_API ValueHandle debugObject(
+	ContextHandle ctx, ValueHandle this_val, int argc, ValueHandle* argv, void* user_data)
+{
+	if (argc < 1)
+		return qjs.NewStringJsValue(ctx, "");
+
+	std::string json;
+	ValueHandle arrKeys = qjs.GetObjectPropertyKeys(ctx, argv[0], false, true);
+	int64_t len = qjs.GetLength(ctx, arrKeys);
+	for (size_t i = 0; i < len; i++)
+	{
+		ValueHandle jkey = qjs.GetIndexedJsValue(ctx, i, arrKeys);
+		std::string key = qjs.JsValueToStdString(ctx, jkey);
+		ValueHandle jval = qjs.GetNamedJsValue(ctx, key.c_str(), argv[0]);
+		std::string val = qjs.JsValueToStdString(ctx, jval);
+		json += key + ":" + val + "\n";
+	}
+
+	return qjs.NewStringJsValue(ctx, json.c_str());
+}
+
 QJS_API ValueHandle require(
 	ContextHandle ctx, ValueHandle this_val, int argc, ValueHandle* argv, void* user_data)
 {
@@ -89,15 +110,15 @@ QJS_API ValueHandle require(
 	ValueHandle jmodule = qjs.NewObjectJsValue(ctx);
 	if (!qjs.SetNamedJsValue(ctx, "module", jmodule, qjs.GetGlobalObject(ctx)))
 		return qjs.TheJsUndefined();
+	qjs.SetNamedJsValue(ctx, "exports", jexports, jmodule);
 
 	ValueHandle jret = qjs.RunScriptFile(ctx, filename.c_str());
 	if (qjs.JsValueIsException(jret))
 		return jret;
 
-	//qjs.GetNamedJsValue(ctx, "exports", qjs.GetGlobalObject(ctx));
-	//ValueHandle jmodule = qjs.GetNamedJsValue(ctx, "module", qjs.GetGlobalObject(ctx));
-	//qjs.GetNamedJsValue(ctx, "exports", jmodule);
-	
+	jexports = qjs.GetNamedJsValue(ctx, "exports", qjs.GetGlobalObject(ctx));
+	qjs.DeleteNamedJsValue(ctx, "exports", qjs.GetGlobalObject(ctx));
+	qjs.DeleteNamedJsValue(ctx, "module", qjs.GetGlobalObject(ctx));
 
-	return qjs.TheJsUndefined();
+	return jexports;
 }
