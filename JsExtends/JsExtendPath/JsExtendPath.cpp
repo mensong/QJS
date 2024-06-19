@@ -5,7 +5,7 @@
 #include "../../QJS/Extend.h"
 #include "pystring.h"
 
-QJS_API int entry(ContextHandle ctx)
+QJS_API int _entry(ContextHandle ctx)
 {
 	return 0;
 }

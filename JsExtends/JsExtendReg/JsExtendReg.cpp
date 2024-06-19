@@ -3,7 +3,7 @@
 #include "RegOperator.h"
 #include "../JsExtendPath/pystring.h"
 
-QJS_API int entry(ContextHandle ctx)
+QJS_API int _entry(ContextHandle ctx)
 {
 	return 0;
 }

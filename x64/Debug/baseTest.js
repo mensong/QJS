@@ -1,5 +1,8 @@
 
+ENV.isDebug = false;
 var m = require("module.js");
-alert(debugObject(m));
+debug(debugObject(m));
 var util = require("util.js");
-alert(debugObject(util));
+debug(debugObject(util));
+
+console.log("我","是","console.log");

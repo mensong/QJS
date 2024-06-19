@@ -393,12 +393,12 @@ void baseExtendTest()
 		printf("运行错误:%s\n", sz);
 		qjs.FreeJsValueToStringBuffer(ctx, sz);
 	}
-	else
-	{
-		ValueHandle js = qjs.JsonStringify(ctx, result);
-		std::string s = qjs.JsValueToStdString(ctx, js);
-		printf("模块:%s\n", s.c_str());
-	}
+	//else
+	//{
+	//	ValueHandle js = qjs.JsonStringify(ctx, result);
+	//	std::string s = qjs.JsValueToStdString(ctx, js);
+	//	printf("模块:%s\n", s.c_str());
+	//}
 
 	qjs.FreeContext(ctx);
 	qjs.FreeRuntime(rt);
@@ -422,11 +422,11 @@ void regExtendTest()
 
 int main()
 {
-	baseTest();
-	extendTest();
-	myTest();
+	//baseTest();
+	//extendTest();
+	//myTest();
 	baseExtendTest();
-	regExtendTest();
+	//regExtendTest();
 	
 	return 0;
 }

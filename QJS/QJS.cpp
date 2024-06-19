@@ -1319,7 +1319,7 @@ ValueHandle LoadExtend(ContextHandle ctx, const char* extendFile, ValueHandle pa
 			continue;
 
 		//Èë¿Ú
-		if (funcName == "entry")
+		if (funcName == "_entry")
 		{
 			FN_entry entry = (FN_entry)func;
 			int entryRes = entry(ctx);
@@ -1328,6 +1328,11 @@ ValueHandle LoadExtend(ContextHandle ctx, const char* extendFile, ValueHandle pa
 				_ctx->unloadExtend(extendFile);
 				return TheJsUndefined();
 			}
+		}
+		else if (funcName == "_completed")
+		{
+			FN_completed completed = (FN_completed)func;
+			completed(ctx);
 		}
 		else
 		{

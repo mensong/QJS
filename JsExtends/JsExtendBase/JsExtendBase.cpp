@@ -30,8 +30,16 @@ BOOL IsPathExist(const TCHAR* csPath)
 //	return 0 != GetFileAttributesEx(csPath, GetFileExInfoStandard, &attrs);
 //}
 
-QJS_API int entry(ContextHandle ctx)
+QJS_API int _entry(ContextHandle ctx)
 {
+
+	ValueHandle jENV = qjs.GetNamedJsValue(ctx, "ENV", qjs.GetGlobalObject(ctx));
+	if (!qjs.JsValueIsObject(jENV))
+	{
+		jENV = qjs.NewObjectJsValue(ctx);
+		qjs.SetNamedJsValue(ctx, "ENV", jENV, qjs.GetGlobalObject(ctx));
+	}
+
 	return 0;//加载插件
 }
 
@@ -77,25 +85,38 @@ QJS_API ValueHandle print(
 		qjs.FreeJsValueToStringBuffer(ctx, sz);
 	}
 
+	std::wcout.imbue(std::locale("chs"));
 	std::wcout << ss.str();
 	return qjs.TheJsUndefined();
 }
 
+//可设定ENV.isDebug=true/false;来控制开关debug
 QJS_API ValueHandle debug(
 	ContextHandle ctx, ValueHandle this_val, int argc, ValueHandle* argv, void* user_data)
 {
-#ifdef _DEBUG
-	std::wstringstream ss;
-	for (int i = 0; i < argc; i++)
+	ValueHandle jENV = qjs.GetNamedJsValue(ctx, "ENV", qjs.GetGlobalObject(ctx));
+	if (!qjs.JsValueIsObject(jENV))
+		return qjs.TheJsUndefined();
+	
+	ValueHandle jisDebug = qjs.GetNamedJsValue(ctx, "isDebug", jENV);
+	if (!qjs.JsValueIsBool(jisDebug))
+		return qjs.TheJsUndefined();
+
+	bool isDebug = qjs.JsValueToBool(ctx, jisDebug, false);
+	if (isDebug) 
 	{
-		const char* sz = qjs.JsValueToString(ctx, argv[i]);
-		if (sz)
-			ss << qjs.Utf8ToUnicode(sz);
-		qjs.FreeJsValueToStringBuffer(ctx, sz);
+		std::wstringstream ss;
+		for (int i = 0; i < argc; i++)
+		{
+			const char* sz = qjs.JsValueToString(ctx, argv[i]);
+			if (sz)
+				ss << qjs.Utf8ToUnicode(sz);
+			qjs.FreeJsValueToStringBuffer(ctx, sz);
+		}
+
+		MessageBoxW(NULL, ss.str().c_str(), L"Debug", 0);
 	}
 
-	MessageBoxW(NULL, ss.str().c_str(), L"Debug", 0);
-#endif
 	return qjs.TheJsUndefined();
 }
 
@@ -179,4 +200,19 @@ QJS_API ValueHandle include(
 	ValueHandle jret = qjs.RunScriptFile(ctx, filename.c_str());
 
 	return jret;
+}
+
+QJS_API void _completed(ContextHandle ctx)
+{
+	//console
+	ValueHandle jconsole = qjs.GetNamedJsValue(ctx, "console", qjs.GetGlobalObject(ctx));
+	if (!qjs.JsValueIsObject(jconsole))
+	{
+		jconsole = qjs.NewObjectJsValue(ctx);
+		qjs.SetNamedJsValue(ctx, "console", jconsole, qjs.GetGlobalObject(ctx));
+	}
+
+	//console.log
+	ValueHandle jprint = qjs.NewFunction(ctx, print, 0, NULL);
+	qjs.SetNamedJsValue(ctx, "log", jprint, jconsole);
 }
