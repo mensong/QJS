@@ -1,7 +1,34 @@
 #include "pch.h"
+#include <windows.h>
 #include "../../QJS/Extend.h"
 #include <sstream>
 #include <iostream>
+
+// 判断文件是否存在
+BOOL IsFileExist(const TCHAR* csFile)
+{
+	DWORD dwAttrib = GetFileAttributes(csFile);
+	return INVALID_FILE_ATTRIBUTES != dwAttrib && 0 == (dwAttrib & FILE_ATTRIBUTE_DIRECTORY);
+}
+// 判断文件夹是否存在
+BOOL IsDirExist(const TCHAR* csDir)
+{
+	DWORD dwAttrib = GetFileAttributes(csDir);
+	return INVALID_FILE_ATTRIBUTES != dwAttrib && 0 != (dwAttrib & FILE_ATTRIBUTE_DIRECTORY);
+}
+// 判断文件或文件夹是否存在
+BOOL IsPathExist(const TCHAR* csPath)
+{
+	DWORD dwAttrib = GetFileAttributes(csPath);
+	return INVALID_FILE_ATTRIBUTES != dwAttrib;
+}
+
+//// 变变变变变种(听说会更快一点)，见备注1
+//BOOL IsPathExist(const TCHAR* csPath)
+//{
+//	WIN32_FILE_ATTRIBUTE_DATA attrs = { 0 };
+//	return 0 != GetFileAttributesEx(csPath, GetFileExInfoStandard, &attrs);
+//}
 
 QJS_API int entry(ContextHandle ctx)
 {
@@ -97,10 +124,18 @@ QJS_API ValueHandle require(
 	ContextHandle ctx, ValueHandle this_val, int argc, ValueHandle* argv, void* user_data)
 {
 	if (argc < 1)
-		return qjs.TheJsUndefined();
+	{
+		ValueHandle ex = qjs.NewStringJsValue(ctx, "no filename input");
+		return qjs.NewThrowJsValue(ctx, ex);
+	}
 
 	std::string filename = qjs.JsValueToStdString(ctx, argv[0]);
 	std::wstring wfilename = qjs.Utf8ToUnicode(filename.c_str());
+	if (!IsFileExist(wfilename.c_str()))
+	{
+		ValueHandle ex = qjs.NewStringJsValue(ctx, (filename + " not exist.").c_str());
+		return qjs.NewThrowJsValue(ctx, ex);
+	}
 	filename = qjs.UnicodeToAnsi(wfilename.c_str());
 
 	ValueHandle jexports = qjs.NewObjectJsValue(ctx);
@@ -127,10 +162,18 @@ QJS_API ValueHandle include(
 	ContextHandle ctx, ValueHandle this_val, int argc, ValueHandle* argv, void* user_data)
 {
 	if (argc < 1)
-		return qjs.TheJsUndefined();
+	{
+		ValueHandle ex = qjs.NewStringJsValue(ctx, "input filename");
+		return qjs.NewThrowJsValue(ctx, ex);
+	}
 
 	std::string filename = qjs.JsValueToStdString(ctx, argv[0]);
 	std::wstring wfilename = qjs.Utf8ToUnicode(filename.c_str());
+	if (!IsFileExist(wfilename.c_str()))
+	{
+		ValueHandle ex = qjs.NewStringJsValue(ctx, (filename + " not exist.").c_str());
+		return qjs.NewThrowJsValue(ctx, ex);
+	}
 	filename = qjs.UnicodeToAnsi(wfilename.c_str());
 
 	ValueHandle jret = qjs.RunScriptFile(ctx, filename.c_str());
