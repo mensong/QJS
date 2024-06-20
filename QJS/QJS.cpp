@@ -703,7 +703,7 @@ ValueHandle GetPrototype(ContextHandle ctx, ValueHandle jObj)
 {
 	ValueHandle ret = { NULL,NULL };
 
-	if (JsValueIsDate(ctx, jObj))
+	if (JsValueIsDate(jObj))
 		ret = _OUTER_VAL(ctx, JS_GetPrototypeOfDate(_INNER_CTX(ctx)));
 	else
 		ret = _OUTER_VAL(ctx, JS_GetPrototype(_INNER_CTX(ctx), _INNER_VAL(jObj)));
@@ -1096,9 +1096,11 @@ bool JsValueIsObject(ValueHandle value)
 	return JS_IsObject(_INNER_VAL(value)) == TRUE;
 }
 
-bool JsValueIsArray(ContextHandle ctx, ValueHandle value)
+bool JsValueIsArray(ValueHandle value)
 {
-	return JS_IsArray(_INNER_CTX(ctx), _INNER_VAL(value)) == TRUE;
+	if (!value.ctx)
+		return false;
+	return JS_IsArray(_INNER_CTX(value.ctx), _INNER_VAL(value)) == TRUE;
 }
 
 bool JsValueIsException(ValueHandle value)
@@ -1116,9 +1118,11 @@ bool JsValueIsNull(ValueHandle value)
 	return JS_IsNull(_INNER_VAL(value)) == TRUE;
 }
 
-bool JsValueIsDate(ContextHandle ctx, ValueHandle value)
+bool JsValueIsDate(ValueHandle value)
 {
-	return JS_IsDate(_INNER_CTX(ctx), _INNER_VAL(value), NULL) == TRUE;
+	if (!value.ctx)
+		return false;
+	return JS_IsDate(_INNER_CTX(value.ctx), _INNER_VAL(value), NULL) == TRUE;
 }
 
 ValueHandle JsonStringify(ContextHandle ctx, ValueHandle value)
@@ -1137,9 +1141,11 @@ ValueHandle JsonParse(ContextHandle ctx, const char* json)
 	return ret;
 }
 
-bool JsValueIsFunction(ContextHandle ctx, ValueHandle value)
+bool JsValueIsFunction(ValueHandle value)
 {
-	return JS_IsFunction(_INNER_CTX(ctx), _INNER_VAL(value)) == TRUE;
+	if (!value.ctx)
+		return false;
+	return JS_IsFunction(_INNER_CTX(value.ctx), _INNER_VAL(value)) == TRUE;
 }
 
 ValueHandle GetAndClearJsLastException(ContextHandle ctx)

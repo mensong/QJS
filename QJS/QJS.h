@@ -200,12 +200,12 @@ QJS_API bool JsValueIsNumber(ValueHandle value);
 QJS_API bool JsValueIsDouble(ValueHandle value);
 QJS_API bool JsValueIsBool(ValueHandle value);
 QJS_API bool JsValueIsObject(ValueHandle value);
-QJS_API bool JsValueIsArray(ContextHandle ctx, ValueHandle value);
-QJS_API bool JsValueIsFunction(ContextHandle ctx, ValueHandle value);
+QJS_API bool JsValueIsArray(ValueHandle value);
+QJS_API bool JsValueIsFunction(ValueHandle value);
 QJS_API bool JsValueIsException(ValueHandle value);
 QJS_API bool JsValueIsUndefined(ValueHandle value);
 QJS_API bool JsValueIsNull(ValueHandle value);
-QJS_API bool JsValueIsDate(ContextHandle ctx, ValueHandle value);
+QJS_API bool JsValueIsDate(ValueHandle value);
 
 //js value to string
 QJS_API ValueHandle JsonStringify(ContextHandle ctx, ValueHandle value);

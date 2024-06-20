@@ -193,9 +193,9 @@ void myTest()
 			//...
 		}
 
-		bool b = qjs.JsValueIsArray(ctx, arr);
+		bool b = qjs.JsValueIsArray(arr);
 		auto jToString = qjs.GetNamedJsValue(ctx, "toString", arr);
-		b = qjs.JsValueIsFunction(ctx, jToString);
+		b = qjs.JsValueIsFunction(jToString);
 		if (b)
 		{
 			auto jstrToString = qjs.CallJsFunction(ctx, jToString, NULL, 0, arr);
@@ -207,7 +207,7 @@ void myTest()
 		arrLen = qjs.JsValueToInt(ctx, jlen, 0);
 
 		auto jpush = qjs.GetNamedJsValue(ctx, "push", arr);
-		b = qjs.JsValueIsFunction(ctx, jpush);
+		b = qjs.JsValueIsFunction(jpush);
 		if (b)
 		{
 			ValueHandle argv[] = {qjs.NewStringJsValue(ctx, "aaa")};

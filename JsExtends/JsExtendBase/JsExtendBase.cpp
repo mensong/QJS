@@ -45,11 +45,11 @@ ValueHandle _jprocess_addPath(
 		return qjs.TheJsFalse();
 	
 	ValueHandle jpaths = qjs.GetNamedJsValue(ctx, "paths", jprocess);
-	if (!qjs.JsValueIsArray(ctx, jpaths))
+	if (!qjs.JsValueIsArray(jpaths))
 		return qjs.TheJsFalse();
 
 	auto jpush = qjs.GetNamedJsValue(ctx, "push", jpaths);
-	if (!qjs.JsValueIsFunction(ctx, jpush))
+	if (!qjs.JsValueIsFunction(jpush))
 		return qjs.TheJsFalse();
 	
 	ValueHandle params[] = { argv[0]};
@@ -116,8 +116,10 @@ static void init_process(ContextHandle ctx)
 	qjs.SetNamedJsValue(ctx, "pid", jpid, jprocess);
 	
 	//构造process.paths
+	//  把exe所在的目录也算在里面
+	paths.push_back(os_path::dirname(exePath));
 	ValueHandle jpaths = qjs.GetNamedJsValue(ctx, "paths", jprocess);
-	if (!qjs.JsValueIsArray(ctx, jpaths))
+	if (!qjs.JsValueIsArray(jpaths))
 	{
 		jpaths = qjs.NewArrayJsValue(ctx);
 		for (size_t i = 0; i < paths.size(); i++)
@@ -250,7 +252,7 @@ std::wstring resolveFilePath(ContextHandle ctx, const std::wstring& filename)
 		return L"";
 
 	ValueHandle jpaths = qjs.GetNamedJsValue(ctx, "paths", jprocess);
-	if (!qjs.JsValueIsArray(ctx, jpaths))
+	if (!qjs.JsValueIsArray(jpaths))
 		return L"";
 
 	int64_t len = qjs.GetLength(ctx, jpaths);
