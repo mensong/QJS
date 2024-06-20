@@ -3,7 +3,7 @@
 
 #include "stdafx.h"
 #include "../../QJS/Extend.h"
-#include "pystring.h"
+#include "../pystring/pystring.h"
 
 QJS_API int _entry(ContextHandle ctx)
 {

@@ -152,10 +152,29 @@ void myTest()
 	}
 
 	{
+		ValueHandle v = qjs.TheJsException(); qjs.FreeValueHandle(&v);
+		v = qjs.TheJsFalse(); qjs.FreeValueHandle(&v);
+		v = qjs.TheJsNull(); qjs.FreeValueHandle(&v);
+		v = qjs.TheJsTrue(); qjs.FreeValueHandle(&v);
+		v = qjs.TheJsUndefined(); qjs.FreeValueHandle(&v);
+		v = qjs.NewArrayJsValue(ctx); qjs.FreeValueHandle(&v);
+		v = qjs.NewBoolJsValue(ctx, false); qjs.FreeValueHandle(&v);
+		v = qjs.NewDateJsValue(ctx, 1718849344); qjs.FreeValueHandle(&v);
+		v = qjs.NewDoubleJsValue(ctx, 123.0); qjs.FreeValueHandle(&v);
+		v = qjs.NewFunction(ctx, JsPrint, 0, NULL); qjs.FreeValueHandle(&v);
+		v = qjs.NewInt64JsValue(ctx, 123); qjs.FreeValueHandle(&v);
+		v = qjs.NewIntJsValue(ctx, 123); qjs.FreeValueHandle(&v);
+		v = qjs.NewObjectJsValue(ctx); qjs.FreeValueHandle(&v);
+		v = qjs.NewStringJsValue(ctx, "abc"); qjs.FreeValueHandle(&v);
+		v = qjs.NewThrowJsValue(ctx, qjs.NewStringJsValue(ctx, "abc")); qjs.FreeValueHandle(&v);
+	}
+
+	{
 		ValueHandle arr = qjs.NewArrayJsValue(ctx);
 		ValueHandle str = qjs.NewStringJsValue(ctx, "mensong");
 		qjs.SetIndexedJsValue(ctx, 10, str, arr);//设置id 10的元素为字符串mensong
 		qjs.SetIndexedJsValue(ctx, 2, str, arr);
+		qjs.FreeValueHandle(&str);//测试手动释放ValueHandle
 		qjs.DeleteIndexedJsValue(ctx, 2, arr);
 		qjs.SetNamedJsValue(ctx, "arr", arr, qjs.TheJsNull());
 
@@ -186,6 +205,18 @@ void myTest()
 
 		ValueHandle jlen = qjs.GetNamedJsValue(ctx, "length", arr);
 		arrLen = qjs.JsValueToInt(ctx, jlen, 0);
+
+		auto jpush = qjs.GetNamedJsValue(ctx, "push", arr);
+		b = qjs.JsValueIsFunction(ctx, jpush);
+		if (b)
+		{
+			ValueHandle argv[] = {qjs.NewStringJsValue(ctx, "aaa")};
+			qjs.CallJsFunction(ctx, jpush, argv, sizeof(argv) / sizeof(ValueHandle), arr);
+
+			jlen = qjs.GetNamedJsValue(ctx, "length", arr);
+			arrLen = qjs.JsValueToInt(ctx, jlen, 0);
+			arrLen = 0;
+		}
 	}
 
 	{

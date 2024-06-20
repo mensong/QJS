@@ -502,6 +502,24 @@ ValueHandle NewFunction(ContextHandle ctx, FN_JsFunctionCallback cb, int argc, v
 	return ret;
 }
 
+void FreeValueHandle(ValueHandle* value)
+{
+	if (!value || !value->ctx)
+		return;
+	
+	InnerContext* innerCtx = (InnerContext*)value->ctx;
+	std::vector<uint64_t>::iterator itFinder = std::find(
+		innerCtx->values.begin(),
+		innerCtx->values.end(), value->value);
+	if (itFinder != innerCtx->values.end())
+		innerCtx->values.erase(itFinder);
+
+	JS_FreeValue(_INNER_CTX(value->ctx), (JSValue)value->value);
+
+	value->ctx = NULL;
+	value->value = NULL;
+}
+
 bool DefineGetterSetter(ContextHandle ctx, ValueHandle parent, 
 	const char* propName, ValueHandle getter, ValueHandle setter)
 {

@@ -25,8 +25,8 @@ typedef void* RuntimeHandle;
 typedef void* ContextHandle;
 struct ValueHandle
 {
-	ContextHandle ctx;
-	uint64_t value;
+	ContextHandle		ctx;
+	uint64_t/*JSValue*/ value;
 };
 
 //Js value类型
@@ -162,6 +162,9 @@ typedef ValueHandle(*FN_JsFunctionCallback)(
 	ContextHandle ctx, ValueHandle this_val, int argc, ValueHandle* argv, void* user_data);
 //创建一个JS函数
 QJS_API ValueHandle NewFunction(ContextHandle ctx, FN_JsFunctionCallback cb, int argc, void* user_data);
+
+//手工释放一个ValueHandle，一般不用
+QJS_API void FreeValueHandle(ValueHandle* value);
 
 //ValueHandle转string
 QJS_API const char* JsValueToString(ContextHandle ctx, ValueHandle value);
@@ -303,7 +306,8 @@ public:
 		SET_PROC(hDll, GetObjectUserData);
 		SET_PROC(hDll, NewArrayJsValue);
 		SET_PROC(hDll, NewThrowJsValue); 
-		SET_PROC(hDll, NewDateJsValue);		
+		SET_PROC(hDll, NewDateJsValue);
+		SET_PROC(hDll, FreeValueHandle);
 		SET_PROC(hDll, GetLength);
 		SET_PROC(hDll, JsValueToString);
 		SET_PROC(hDll, FreeJsValueToStringBuffer);
@@ -392,6 +396,7 @@ public:
 	DEF_PROC(NewArrayJsValue);
 	DEF_PROC(NewThrowJsValue); 
 	DEF_PROC(NewDateJsValue);
+	DEF_PROC(FreeValueHandle);
 	DEF_PROC(GetLength);
 	DEF_PROC(JsValueToString);
 	DEF_PROC(FreeJsValueToStringBuffer);

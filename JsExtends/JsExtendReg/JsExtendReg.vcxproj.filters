@@ -24,7 +24,10 @@
     <ClInclude Include="RegOperator.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="..\JsExtendPath\pystring.h">
+    <ClInclude Include="..\pystring\pystring.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\pystring\pywstring.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>
@@ -41,7 +44,10 @@
     <ClCompile Include="RegOperator.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="..\JsExtendPath\pystring.cpp">
+    <ClCompile Include="..\pystring\pystring.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="..\pystring\pywstring.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>

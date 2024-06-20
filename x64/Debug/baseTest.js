@@ -1,5 +1,9 @@
 
-ENV.isDebug = false;
+process.isDebug = true;
+
+debug(debugObject(process));
+debug(debugObject(process.env));
+
 var m = require("module.js");
 debug(debugObject(m));
 var util = require("util.js");
