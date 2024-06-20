@@ -103,6 +103,8 @@ void myTest()
 	RuntimeHandle rt = qjs.NewRuntime();
 	ContextHandle ctx = qjs.NewContext(rt);
 
+	qjs.LoadExtend(ctx, "JsExtendBase.dll", qjs.GetGlobalObject(ctx));
+
 	ValueHandle alertFunc = qjs.NewFunction(ctx, JsAlert, 2, NULL);
 	 qjs.SetNamedJsValue(ctx, "alert", alertFunc, qjs.TheJsNull());
 
@@ -217,6 +219,26 @@ void myTest()
 			arrLen = qjs.JsValueToInt(ctx, jlen, 0);
 			arrLen = 0;
 		}
+
+		printf("Array Prototype:\n");
+		ValueHandle pro = qjs.GetPrototype(ctx, arr);
+		ValueHandle arrKeys = qjs.GetObjectPropertyKeys(ctx, pro, false, true);
+		arrLen = qjs.GetLength(ctx, arrKeys);
+		for (int i = 0; i < arrLen; i++)
+		{
+			ValueHandle jitem = qjs.GetIndexedJsValue(ctx, i, arrKeys);
+			std::string key = qjs.JsValueToStdString(ctx, jitem);
+			printf("%s\n", key.c_str());
+		}
+
+		auto jprototype = qjs.NewObjectJsValue(ctx);
+		qjs.SetNamedJsValue(ctx, "num", qjs.NewIntJsValue(ctx, 123), jprototype);
+		auto jobj = qjs.NewObjectJsValue(ctx);
+		qjs.SetNamedJsValue(ctx, "testproto", jobj, qjs.TheJsNull());
+		bool bres = qjs.SetPrototype(ctx, jobj, jprototype);
+		auto jnum = qjs.RunScript(ctx, "testproto.num", qjs.TheJsNull(), "");
+		int num = qjs.JsValueToInt(ctx, jnum, 0);
+		num = 0;
 	}
 
 	{
@@ -430,7 +452,7 @@ void baseExtendTest()
 	//	std::string s = qjs.JsValueToStdString(ctx, js);
 	//	printf("模块:%s\n", s.c_str());
 	//}
-
+		
 	qjs.FreeContext(ctx);
 	qjs.FreeRuntime(rt);
 }
@@ -455,7 +477,7 @@ int main()
 {
 	//baseTest();
 	//extendTest();
-	//myTest();
+	myTest();
 	baseExtendTest();
 	//regExtendTest();
 	

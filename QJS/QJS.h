@@ -104,7 +104,8 @@ QJS_API bool SetNamedJsValue(ContextHandle ctx, const char* varName, ValueHandle
 QJS_API bool DeleteNamedJsValue(ContextHandle ctx, const char* varName, ValueHandle parent);
 //是否有一个名称的js变量值
 QJS_API bool HasNamedJsValue(ContextHandle ctx, const char* varName, ValueHandle parent);
-//获得对象属性名列表。onlyEnumerable-只获取可列举的属性名；enableSymbol-可以获取Symbol的属性名
+//获得对象属性名列表，成功返回JsArray，失败返回JsUndefined。
+//  onlyEnumerable-只获取可列举的属性名；enableSymbol-可以获取Symbol的属性名
 QJS_API ValueHandle GetObjectPropertyKeys(ContextHandle ctx, ValueHandle jObj, bool onlyEnumerable/*=true*/, bool enableSymbol/*=false*/);
 
 //根据序号获得一个js变量值
