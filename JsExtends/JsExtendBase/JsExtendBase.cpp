@@ -59,12 +59,22 @@ ValueHandle _jprocess_addPath(
 	if (!qjs.JsValueIsArray(jpaths))
 		return qjs.TheJsFalse();
 
+	auto jindexOf = qjs.GetNamedJsValue(ctx, "indexOf", jpaths);
+	if (!qjs.JsValueIsFunction(jindexOf))
+		return qjs.TheJsFalse();
+	ValueHandle params[] = { argv[0] };
+	ValueHandle jidx = qjs.CallJsFunction(ctx, jindexOf, params, sizeof(params) / sizeof(ValueHandle), jpaths);
+	if (qjs.JsValueIsInt(jidx))
+	{
+		int idx = qjs.JsValueToInt(ctx, jidx, -1);
+		if (idx != -1)//已有则跳过
+			return qjs.TheJsFalse();
+	}
+
 	auto jpush = qjs.GetNamedJsValue(ctx, "push", jpaths);
 	if (!qjs.JsValueIsFunction(jpush))
-		return qjs.TheJsFalse();
-	
-	ValueHandle params[] = { argv[0]};
-	qjs.CallJsFunction(ctx, jpush, argv, sizeof(params) / sizeof(ValueHandle), jpaths);
+		return qjs.TheJsFalse();	
+	qjs.CallJsFunction(ctx, jpush, params, sizeof(params) / sizeof(ValueHandle), jpaths);
 	return qjs.TheJsTrue();
 }
 
@@ -259,24 +269,29 @@ std::wstring resolveAndUpdateFilePath(ContextHandle ctx, const std::wstring& fil
 {
 	if (IsFileExist(filename.c_str()))
 	{
+		std::wstring wpath;
 		if (filename.find(L':') != std::wstring::npos)
 		{//全路径
-			//全路径却存在时需要添加查找路径
-			ValueHandle jaddPath = qjs.RunScript(ctx, "process.addPath", qjs.TheJsNull(), "");
-			if (qjs.JsValueIsFunction(jaddPath))
-			{
-				std::wstring wdir = os_pathw::dirname(filename);
-				std::string dir = qjs.UnicodeToUtf8(wdir.c_str());
-				ValueHandle param[] = { qjs.NewStringJsValue(ctx, dir.c_str()) };
-				qjs.CallJsFunction(ctx, jaddPath, param, sizeof(param) / sizeof(ValueHandle), qjs.TheJsNull());
-			}
-
-			return filename;
+			wpath = filename;
+		}
+		else
+		{
+			wchar_t dir[MAX_PATH] = { 0 };
+			::GetCurrentDirectoryW(MAX_PATH, dir);
+			wpath = os_pathw::join(dir, filename);
 		}
 
-		wchar_t dir[MAX_PATH] = { 0 };
-		::GetCurrentDirectoryW(MAX_PATH, dir);
-		return os_pathw::join(dir, filename);
+		//添加查找路径
+		ValueHandle jaddPath = qjs.RunScript(ctx, "process.addPath", qjs.TheJsNull(), "");
+		if (qjs.JsValueIsFunction(jaddPath))
+		{
+			std::wstring wdir = os_pathw::dirname(wpath);
+			std::string dir = qjs.UnicodeToUtf8(wdir.c_str());
+			ValueHandle param[] = { qjs.NewStringJsValue(ctx, dir.c_str()) };
+			qjs.CallJsFunction(ctx, jaddPath, param, sizeof(param) / sizeof(ValueHandle), qjs.TheJsNull());
+		}
+
+		return wpath;
 	}
 
 	if (filename.find(L':') != std::wstring::npos)
