@@ -439,6 +439,8 @@ void baseExtendTest()
 
 	qjs.LoadExtend(ctx, "JsExtendBase.dll", qjs.GetGlobalObject(ctx));
 	JsExtendBase::Ins().AddPath(ctx, L"D:\\");
+	JsExtendBase::Ins().AddPath(ctx, L"D:\\");
+	JsExtendBase::Ins().AddPath(ctx, L"D:\\");
 
 	ValueHandle result = qjs.RunScriptFile(ctx, "baseTest.js");
 	if (qjs.JsValueIsException(result))
