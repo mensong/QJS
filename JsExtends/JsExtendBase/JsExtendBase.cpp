@@ -7,6 +7,7 @@
 #include <iostream>
 #include <tchar.h>
 #include <vector>
+#include "JsExtendBase.h"
 
 // 判断文件是否存在
 BOOL IsFileExist(const TCHAR* csFile)
@@ -34,6 +35,16 @@ BOOL IsPathExist(const TCHAR* csPath)
 //	return 0 != GetFileAttributesEx(csPath, GetFileExInfoStandard, &attrs);
 //}
 
+ValueHandle _jprocess_cwd(
+	ContextHandle ctx, ValueHandle this_val, int argc, ValueHandle* argv, void* user_data)
+{
+	wchar_t dir[MAX_PATH] = { 0 };
+	::GetCurrentDirectoryW(MAX_PATH, dir);
+
+	std::string cwd = qjs.UnicodeToUtf8(dir);
+	return qjs.NewStringJsValue(ctx, cwd.c_str());
+}
+
 ValueHandle _jprocess_addPath(
 	ContextHandle ctx, ValueHandle this_val, int argc, ValueHandle* argv, void* user_data)
 {
@@ -53,7 +64,8 @@ ValueHandle _jprocess_addPath(
 		return qjs.TheJsFalse();
 	
 	ValueHandle params[] = { argv[0]};
-	return qjs.CallJsFunction(ctx, jpush, argv, sizeof(params) / sizeof(ValueHandle), jpaths);	
+	qjs.CallJsFunction(ctx, jpush, argv, sizeof(params) / sizeof(ValueHandle), jpaths);
+	return qjs.TheJsTrue();
 }
 
 static void init_process(ContextHandle ctx)
@@ -129,9 +141,13 @@ static void init_process(ContextHandle ctx)
 		}
 		qjs.SetNamedJsValue(ctx, "paths", jpaths, jprocess);
 	}
-	//process.addPath
+	//构造process.addPath
 	ValueHandle jprocess_addPath = qjs.NewFunction(ctx, _jprocess_addPath, 1, NULL);
 	qjs.SetNamedJsValue(ctx, "addPath", jprocess_addPath, jprocess);
+
+	//构造process.cwd()
+	ValueHandle jprocess_cwd = qjs.NewFunction(ctx, _jprocess_cwd, 0, NULL);
+	qjs.SetNamedJsValue(ctx, "cwd", jprocess_cwd, jprocess);
 }
 
 QJS_API int _entry(ContextHandle ctx)
@@ -239,10 +255,29 @@ QJS_API ValueHandle debugObject(
 	return qjs.NewStringJsValue(ctx, json.c_str());
 }
 
-std::wstring resolveFilePath(ContextHandle ctx, const std::wstring& filename)
+std::wstring resolveAndUpdateFilePath(ContextHandle ctx, const std::wstring& filename)
 {
 	if (IsFileExist(filename.c_str()))
-		return filename;
+	{
+		if (filename.find(L':') != std::wstring::npos)
+		{//全路径
+			//全路径却存在时需要添加查找路径
+			ValueHandle jaddPath = qjs.RunScript(ctx, "process.addPath", qjs.TheJsNull(), "");
+			if (qjs.JsValueIsFunction(jaddPath))
+			{
+				std::wstring wdir = os_pathw::dirname(filename);
+				std::string dir = qjs.UnicodeToUtf8(wdir.c_str());
+				ValueHandle param[] = { qjs.NewStringJsValue(ctx, dir.c_str()) };
+				qjs.CallJsFunction(ctx, jaddPath, param, sizeof(param) / sizeof(ValueHandle), qjs.TheJsNull());
+			}
+
+			return filename;
+		}
+
+		wchar_t dir[MAX_PATH] = { 0 };
+		::GetCurrentDirectoryW(MAX_PATH, dir);
+		return os_pathw::join(dir, filename);
+	}
 
 	if (filename.find(L':') != std::wstring::npos)
 		return L"";
@@ -280,7 +315,7 @@ QJS_API ValueHandle require(
 
 	std::string filename = qjs.JsValueToStdString(ctx, argv[0]);
 	std::wstring wfilename = qjs.Utf8ToUnicode(filename.c_str());
-	wfilename = resolveFilePath(ctx, wfilename);
+	wfilename = resolveAndUpdateFilePath(ctx, wfilename);
 	if (wfilename == L"")
 	{
 		ValueHandle ex = qjs.NewStringJsValue(ctx, (filename + " not exist.").c_str());
@@ -319,7 +354,7 @@ QJS_API ValueHandle include(
 
 	std::string filename = qjs.JsValueToStdString(ctx, argv[0]);
 	std::wstring wfilename = qjs.Utf8ToUnicode(filename.c_str());
-	wfilename = resolveFilePath(ctx, wfilename);
+	wfilename = resolveAndUpdateFilePath(ctx, wfilename);
 	if (wfilename == L"")
 	{
 		ValueHandle ex = qjs.NewStringJsValue(ctx, (filename + " not exist.").c_str());
@@ -345,4 +380,22 @@ QJS_API void _completed(ContextHandle ctx)
 	//console.log
 	ValueHandle jprint = qjs.NewFunction(ctx, print, 0, NULL);
 	qjs.SetNamedJsValue(ctx, "log", jprint, jconsole);
+}
+
+QJS_API bool AddPath(ContextHandle ctx, const wchar_t* dir)
+{
+	//全路径却存在时需要添加查找路径
+	ValueHandle jaddPath = qjs.RunScript(ctx, "process.addPath", qjs.TheJsNull(), "");
+	if (qjs.JsValueIsFunction(jaddPath))
+	{
+		std::string sdir = qjs.UnicodeToUtf8(dir);
+		ValueHandle param[] = { qjs.NewStringJsValue(ctx, sdir.c_str()) };
+		ValueHandle jret = qjs.CallJsFunction(ctx, jaddPath, param, sizeof(param) / sizeof(ValueHandle), qjs.TheJsNull());
+		if (qjs.JsValueIsBool(jret))
+		{
+			return qjs.JsValueToBool(ctx, jret, false);
+		}
+	}
+
+	return false;
 }

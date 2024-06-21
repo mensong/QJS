@@ -3,6 +3,7 @@
 
 #include <stdio.h>
 #include "..\QJS\QJS.h"
+#include "..\JsExtends\JsExtendBase\JsExtendBase.h"
 #include <sstream>
 
 void baseTest()
@@ -437,6 +438,7 @@ void baseExtendTest()
 	ContextHandle ctx = qjs.NewContext(rt);
 
 	qjs.LoadExtend(ctx, "JsExtendBase.dll", qjs.GetGlobalObject(ctx));
+	JsExtendBase::Ins().AddPath(ctx, L"D:\\");
 
 	ValueHandle result = qjs.RunScriptFile(ctx, "baseTest.js");
 	if (qjs.JsValueIsException(result))
@@ -477,7 +479,7 @@ int main()
 {
 	//baseTest();
 	//extendTest();
-	myTest();
+	//myTest();
 	baseExtendTest();
 	//regExtendTest();
 	
