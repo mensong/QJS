@@ -479,11 +479,11 @@ void regExtendTest()
 
 int main()
 {
-	//baseTest();
-	//extendTest();
-	//myTest();
+	baseTest();
+	extendTest();
+	myTest();
 	baseExtendTest();
-	//regExtendTest();
+	regExtendTest();
 	
 	return 0;
 }

@@ -6,7 +6,7 @@ debug(debugObject(process.env));
 
 var m = require("module.js");
 debug(debugObject(m));
-var util = require("util.js");
-debug(debugObject(util));
+
+include("incTest.js");
 
 console.log("我","是","console.log");
