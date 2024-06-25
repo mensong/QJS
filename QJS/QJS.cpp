@@ -23,14 +23,14 @@
 #define MALLOC_OVERHEAD  8
 #endif
 
-//InnerContext* == ContextHandle
-struct InnerContext
+//QJSContext* == ContextHandle
+struct QJSContext
 {
 	bool temp;
 	JSContext* context;
 	std::vector<uint64_t> values;
 
-	InnerContext()
+	QJSContext()
 	{
 		temp = false;
 		context = NULL;
@@ -38,7 +38,7 @@ struct InnerContext
 		extendFuncionsCache = new std::map<std::string, std::map<std::string, FN_JsFunctionCallback*>>;
 	}
 
-	~InnerContext()
+	~QJSContext()
 	{
 		if (!temp) 
 		{
@@ -61,9 +61,12 @@ struct InnerContext
 	}
 
 #pragma region Extend
+	//<fileName, hDll>
 	std::map<std::string, HMODULE>* extendHandles;
+	//<fileName, <funcName, JS_Func>>
 	std::map<std::string, std::map<std::string, FN_JsFunctionCallback*>>* extendFuncionsCache;
 
+	//根据文件名获得hDll，如果没有加载则加载
 	HMODULE getOrAddExtend(const std::string& filename)
 	{
 		if (filename.empty())
@@ -98,6 +101,7 @@ struct InnerContext
 		return hDll;
 	}
 
+	//根据文件名卸载扩展dll
 	void unloadExtend(const std::string& filename)
 	{
 		std::map<std::string, HMODULE>::iterator itFinder = extendHandles->find(filename.c_str());
@@ -120,6 +124,7 @@ struct InnerContext
 		}
 	}
 
+	//添加扩展函数
 	FN_JsFunctionCallback* addExtendFunction(const std::string& filename, 
 		const std::string& funcName, FN_JsFunctionCallback func)
 	{
@@ -140,12 +145,12 @@ struct InnerContext
 	}
 #pragma endregion
 };
-#define ADD_AUTO_FREE(v) if (v.ctx && v.value)((InnerContext*)v.ctx)->addValue(v.value)
+#define ADD_AUTO_FREE(v) if (v.ctx && v.value)((QJSContext*)v.ctx)->addValue(v.value)
 
 #define _INNER_RT(rt) (JSRuntime*)rt
 #define _OUTER_RT(rt) (RuntimeHandle)rt
 
-#define _INNER_CTX(ctx) (JSContext*)(((InnerContext*)ctx)->context)
+#define _INNER_CTX(ctx) (JSContext*)(((QJSContext*)ctx)->context)
 #define _OUTER_CTX(ctx) (ContextHandle)ctx
 
 #define _INNER_VAL(val) (JSValue)val.value
@@ -295,7 +300,7 @@ void* GetRuntimeUserData(RuntimeHandle runtime)
 
 struct ContextUserData
 {
-	InnerContext* innerContext;
+	QJSContext* innerContext;
 
 	void* outerData;
 
@@ -322,7 +327,7 @@ ContextHandle NewContext(RuntimeHandle runtime)
 		JS_EnableBignumExt(context, TRUE);
 #endif
 
-	InnerContext* _ctx = new InnerContext();
+	QJSContext* _ctx = new QJSContext();
 	_ctx->context = context;
 	_ctx->values.reserve(1024);
 
@@ -357,7 +362,7 @@ void ResetContext(ContextHandle ctx)
 	if (!ctx)
 		return;
 
-	InnerContext* innerCtx = (InnerContext*)ctx;
+	QJSContext* innerCtx = (QJSContext*)ctx;
 	for (size_t i = 0; i < innerCtx->values.size(); i++)
 	{
 		JS_FreeValue(_INNER_CTX(ctx), (JSValue)innerCtx->values[i]);
@@ -399,7 +404,7 @@ void FreeContext(ContextHandle ctx)
 
 	JS_FreeContext(_INNER_CTX(ctx));
 
-	InnerContext* innerCtx = (InnerContext*)ctx;
+	QJSContext* innerCtx = (QJSContext*)ctx;
 	delete innerCtx;
 }
 
@@ -438,11 +443,11 @@ static JSValue __NewFunctionCallHelper(JSContext* rawCtx, JSValue this_val, int 
 	{
 		if (itFinder->second.first)
 		{
-			InnerContext* globalCtx = (InnerContext*)rawContextToContextHandle(rawCtx);
+			QJSContext* globalCtx = (QJSContext*)rawContextToContextHandle(rawCtx);
 			if (!globalCtx)
 				return JS_UNDEFINED;
 
-			InnerContext innerCtx;
+			QJSContext innerCtx;
 			innerCtx.temp = true;
 			innerCtx.context = rawCtx;
 			innerCtx.extendHandles = globalCtx->extendHandles;
@@ -507,7 +512,7 @@ void FreeValueHandle(ValueHandle* value)
 	if (!value || !value->ctx)
 		return;
 	
-	InnerContext* innerCtx = (InnerContext*)value->ctx;
+	QJSContext* innerCtx = (QJSContext*)value->ctx;
 	std::vector<uint64_t>::iterator itFinder = std::find(
 		innerCtx->values.begin(),
 		innerCtx->values.end(), value->value);
@@ -1182,7 +1187,7 @@ JS_BOOL __SetDebuggerCheckLineNoCallbackHelper(JSContext* rawCtx, JSAtom file_na
 		{
 			if (itFinder->second.first)
 			{
-				InnerContext innerCtx;
+				QJSContext innerCtx;
 				innerCtx.context = rawCtx;
 
 				itFinder->second.first(&innerCtx, line_no, pc, itFinder->second.second);
@@ -1327,7 +1332,7 @@ ValueHandle LoadExtend(ContextHandle ctx, const char* extendFile, ValueHandle pa
 	if (!GetExportNames(extendFile, function_list) || function_list.size() == 0)
 		return TheJsUndefined();
 
-	InnerContext* _ctx = (InnerContext*)ctx;
+	QJSContext* _ctx = (QJSContext*)ctx;
 	HMODULE hDll = _ctx->getOrAddExtend(extendFile);
 	if (!hDll)
 		return TheJsUndefined();
@@ -1372,7 +1377,7 @@ ValueHandle LoadExtend(ContextHandle ctx, const char* extendFile, ValueHandle pa
 
 void UnloadExtend(ContextHandle ctx, const char* extendFile)
 {
-	InnerContext* _ctx = (InnerContext*)ctx;
+	QJSContext* _ctx = (QJSContext*)ctx;
 	_ctx->unloadExtend(extendFile);
 }
 
