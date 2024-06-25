@@ -356,8 +356,8 @@ QJS_API ValueHandle ReadStringValue(
 	std::string val;
 	if (reg.ReadValue(valueKey.c_str(), val))
 	{
-		std::wstring wval = qjs.AnsiToUnicode(val.c_str());
-		val = qjs.UnicodeToUtf8(wval.c_str());
+		std::wstring wval = qjs.AnsiToUnicode(ctx, val.c_str());
+		val = qjs.UnicodeToUtf8(ctx, wval.c_str());
 		return qjs.NewStringJsValue(ctx, val.c_str());
 	}
 
@@ -509,8 +509,8 @@ QJS_API ValueHandle EnumSubKeys(
 		ValueHandle jSubKeys = qjs.NewArrayJsValue(ctx);
 		for (size_t i = 0; i < subTreeNames.size(); i++)
 		{
-			std::wstring wval = qjs.AnsiToUnicode(subTreeNames[i].c_str());
-			std::string val = qjs.UnicodeToUtf8(wval.c_str());
+			std::wstring wval = qjs.AnsiToUnicode(ctx, subTreeNames[i].c_str());
+			std::string val = qjs.UnicodeToUtf8(ctx, wval.c_str());
 
 			qjs.SetIndexedJsValue(ctx, i, 
 				qjs.NewStringJsValue(ctx, val.c_str()), jSubKeys);
@@ -547,8 +547,8 @@ QJS_API ValueHandle EnumValueNameKeys(
 		ValueHandle jSubValueNames = qjs.NewArrayJsValue(ctx);
 		for (size_t i = 0; i < subValueNames.size(); i++)
 		{
-			std::wstring wval = qjs.AnsiToUnicode(subValueNames[i].c_str());
-			std::string val = qjs.UnicodeToUtf8(wval.c_str());
+			std::wstring wval = qjs.AnsiToUnicode(ctx, subValueNames[i].c_str());
+			std::string val = qjs.UnicodeToUtf8(ctx, wval.c_str());
 
 			qjs.SetIndexedJsValue(ctx, i,
 				qjs.NewStringJsValue(ctx, val.c_str()), jSubValueNames);

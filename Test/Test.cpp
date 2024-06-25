@@ -11,7 +11,7 @@ void baseTest()
 	RuntimeHandle rt = qjs.NewRuntime();
 	ContextHandle ctx = qjs.NewContext(rt);
 
-	ValueHandle result = qjs.RunScript(ctx, qjs.UnicodeToUtf8(L"var a=123;a"), qjs.TheJsNull(), "");
+	ValueHandle result = qjs.RunScript(ctx, qjs.UnicodeToUtf8(ctx, L"var a=123;a"), qjs.TheJsNull(), "");
 	if (!qjs.JsValueIsException(result))
 	{
 		const char* sz = qjs.JsValueToString(ctx, result);
@@ -69,7 +69,7 @@ ValueHandle JsPrint(ContextHandle ctx, ValueHandle this_val, int argc, ValueHand
 		qjs.FreeJsValueToStringBuffer(ctx, sz);
 	}
 
-	wprintf(L"%s", qjs.Utf8ToUnicode(ss.str().c_str()));
+	wprintf(L"%s", qjs.Utf8ToUnicode(ctx, ss.str().c_str()));
 
 	return qjs.NewStringJsValue(ctx, ss.str().c_str());
 }
@@ -413,7 +413,7 @@ void extendTest()
 	qjs.SetNamedJsValue(ctx, "Sample", ext1, qjs.TheJsNull());
 	//qjs.UnloadExtend(ctx, "SampleExtend.dll");
 
-	ValueHandle result = qjs.RunScript(ctx, qjs.UnicodeToUtf8(L"Sample.testFoo1();"), qjs.TheJsNull(), "");
+	ValueHandle result = qjs.RunScript(ctx, qjs.UnicodeToUtf8(ctx, L"Sample.testFoo1();"), qjs.TheJsNull(), "");
 	if (!qjs.JsValueIsException(result))
 	{
 		const char* sz = qjs.JsValueToString(ctx, result);
@@ -477,13 +477,52 @@ void regExtendTest()
 	qjs.FreeRuntime(rt);
 }
 
+ValueHandle setTimeoutCallback(ContextHandle ctx, int argc, ValueHandle* argv)
+{
+	return qjs.TheJsTrue();
+}
+
+
+
+void pendingJobTest()
+{
+	RuntimeHandle rt = qjs.NewRuntime();
+	ContextHandle ctx = qjs.NewContext(rt);
+
+	qjs.LoadExtend(ctx, "JsExtendBase.dll", qjs.GetGlobalObject(ctx));
+
+	ValueHandle argv[] = { qjs.NewStringJsValue(ctx, "123") };
+	qjs.EnqueueJob(ctx, setTimeoutCallback, argv, sizeof(argv)/sizeof(ValueHandle));
+
+	ValueHandle result = qjs.RunScript(ctx, "setTimeout(function(){alert('setTimeout');},3000);", qjs.TheJsNull(), "");
+	if (qjs.JsValueIsException(result))
+	{
+		ValueHandle exception = qjs.GetAndClearJsLastException(ctx);
+		const char* sz = qjs.JsValueToString(ctx, exception);
+		printf("运行错误:%s\n", sz);
+		qjs.FreeJsValueToStringBuffer(ctx, sz);
+	}
+
+	while (1)
+	{
+		void* rawCtx = NULL;
+		qjs.ExecutePendingJob(rt, &rawCtx);
+		Sleep(10);
+	}
+
+	qjs.FreeContext(ctx);
+	qjs.FreeRuntime(rt);
+}
+
 int main()
 {
-	baseTest();
-	extendTest();
-	myTest();
-	baseExtendTest();
-	regExtendTest();
+	//baseTest();
+	//extendTest();
+	//myTest();
+	//baseExtendTest();
+	//regExtendTest();
 	
+	pendingJobTest();
+
 	return 0;
 }

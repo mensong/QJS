@@ -52,13 +52,13 @@ void CTestQJSDlg::AppendResultText(const wchar_t* msg, bool newLine)
 void CTestQJSDlg::AppendResultText(ContextHandle ctx, const ValueHandle& msg, bool newLine)
 {
 	const char* sz = qjs.JsValueToString(ctx, msg);
-	AppendResultText(sz, newLine);
+	AppendResultText(ctx, sz, newLine);
 	qjs.FreeJsValueToStringBuffer(ctx, sz);
 }
 
-void CTestQJSDlg::AppendResultText(const char* msg, bool newLine)
+void CTestQJSDlg::AppendResultText(ContextHandle ctx, const char* msg, bool newLine)
 {
-	CString text = qjs.Utf8ToUnicode(msg);
+	CString text = qjs.Utf8ToUnicode(ctx, msg);
 	AppendResultText(text, newLine);
 }
 
@@ -193,7 +193,7 @@ ValueHandle JsPrint(ContextHandle ctx, ValueHandle this_val, int argc, ValueHand
 	}
 
 	CTestQJSDlg* _this = (CTestQJSDlg*)user_data;
-	_this->AppendResultText(qjs.Utf8ToUnicode(ss.str().c_str()));
+	_this->AppendResultText(qjs.Utf8ToUnicode(ctx, ss.str().c_str()));
 	return qjs.NewStringJsValue(ctx, ss.str().c_str());
 }
 
@@ -294,7 +294,7 @@ void CTestQJSDlg::DebuggerLineCallback(ContextHandle ctx, uint32_t line_no, cons
 							_this->m_editTestScript.SetSel(0, script.GetLength());
 							if (!script.IsEmpty())
 							{
-								ValueHandle res = qjs.RunScript(ctx, qjs.UnicodeToUtf8(script.GetString()), qjs.TheJsNull(), "");
+								ValueHandle res = qjs.RunScript(ctx, qjs.UnicodeToUtf8(ctx, script.GetString()), qjs.TheJsNull(), "");
 								if (!qjs.JsValueIsException(res))
 								{
 									_this->AppendResultText(_T("(DEBUG)") + script + _T(":"), true);
@@ -434,7 +434,7 @@ void CTestQJSDlg::OnBnClickedButton1()
 	m_editScript.GetWindowText(script);
 
 	DWORD t1 = ::GetTickCount();
-	auto result = qjs.RunScript(ctx, qjs.UnicodeToUtf8(script), qjs.TheJsNull(), m_curFilename.c_str());
+	auto result = qjs.RunScript(ctx, qjs.UnicodeToUtf8(ctx, script), qjs.TheJsNull(), m_curFilename.c_str());
 	DWORD st = ::GetTickCount() - t1;
 
 	if (!qjs.JsValueIsException(result))
@@ -499,6 +499,23 @@ void CTestQJSDlg::OnSize(UINT nType, int cx, int cy)
 	CDialogEx::OnSize(nType, cx, cy);
 }
 
+std::string UnicodeToAnsi(const wchar_t* wideByteRet)
+{
+	char* pMultiCharStr; //定义返回的多字符指针
+	int nLenOfMultiCharStr; //保存多字符个数，注意不是字节数
+	//获取多字符的个数
+	nLenOfMultiCharStr = WideCharToMultiByte(CP_ACP, 0, wideByteRet, -1, NULL, 0, NULL, NULL);
+	//获得多字符指针
+	pMultiCharStr = (char*)(HeapAlloc(GetProcessHeap(), 0, nLenOfMultiCharStr * sizeof(char)));
+	WideCharToMultiByte(CP_ACP, 0, wideByteRet, -1, pMultiCharStr, nLenOfMultiCharStr, NULL, NULL);
+	//返回
+	std::string Ret_UnicodeToAnsi;
+	Ret_UnicodeToAnsi.resize(nLenOfMultiCharStr + 1, 0);
+	strcpy_s(&Ret_UnicodeToAnsi[0], Ret_UnicodeToAnsi.size(), pMultiCharStr);
+	//销毁内存中的字符串
+	HeapFree(GetProcessHeap(), 0, pMultiCharStr);
+	return Ret_UnicodeToAnsi.c_str();
+}
 
 void CTestQJSDlg::OnBnClickedBtnLoadFromFile()
 {
@@ -522,7 +539,7 @@ void CTestQJSDlg::OnBnClickedBtnLoadFromFile()
 
 			m_editScript.SetWindowText(strContent); // 将文件内容显示到文本编辑框中
 
-			m_curFilename = qjs.UnicodeToAnsi(strFileName.GetString());
+			m_curFilename = UnicodeToAnsi(strFileName.GetString());
 		}
 	}
 }

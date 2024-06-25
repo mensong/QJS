@@ -12,7 +12,7 @@
 #pragma endregion
 
 
-/* quickjs参数为JSValue的内部会自动JS_FreeValue；为JSValueConst则不会 */
+/* quickjs中参数为JSValue的内部会自动JS_FreeValue；为JSValueConst则不会需要自己调用JS_FreeValue */
 
 #undef __has_attribute
 #include <cutils.h>
@@ -23,35 +23,92 @@
 #define MALLOC_OVERHEAD  8
 #endif
 
+struct QJSContext;
+struct QJSRuntime;
+
+//QJSRuntime* == RuntimeHandle
+struct QJSRuntime
+{
+	JSRuntime* raw;
+	std::set<QJSContext*> contexts;
+	
+	std::map<int, void*> userData;
+
+	QJSRuntime()
+	{
+		raw = NULL;
+	}
+
+	~QJSRuntime();
+};
+
 //QJSContext* == ContextHandle
 struct QJSContext
 {
 	bool temp;
-	JSContext* context;
+	JSContext* raw;
+	QJSRuntime* runtime;
 	std::vector<uint64_t> values;
+
+	std::map<int, void*> userData;
+
+	int __magicIdx;
+	std::map<int, std::pair<FN_JsFunctionCallback, void*> > __NewFunctionFunctions;
+
+	int __JobFunctionIdx;
+	std::map<
+		int, /*__EnqueueJobCallHelper argv第一个参数的值代表函数标识*/
+		FN_JsJobCallback> __JobFunctions;
+
+	std::wstring Ret_AnsiToUnicode;
+	std::string Ret_UnicodeToAnsi;
+	std::string Ret_UnicodeToUtf8;
+	std::wstring Ret_Utf8ToUnicode;
+
+	//上下文释放前的回调
+	std::set<FN_OnFreeingContextCallback> onFreeingContextCallbacks;
 
 	QJSContext()
 	{
 		temp = false;
-		context = NULL;
+		raw = NULL;
+		runtime = NULL;
+
 		extendHandles = new std::map<std::string, HMODULE>();
 		extendFuncionsCache = new std::map<std::string, std::map<std::string, FN_JsFunctionCallback*>>;
+
+		__magicIdx = 0;
+		__JobFunctionIdx = 0;
+
 	}
 
 	~QJSContext()
 	{
+		for (size_t i = 0; i < values.size(); i++)
+		{
+			JS_FreeValue(raw, (JSValue)values[i]);
+		}
+		values.clear();
+
 		if (!temp) 
 		{
 			if (extendHandles)
 			{
-				//不需要，在ResetContext中已做
-				//for (auto it = extendHandles->begin(); it != extendHandles->end(); ++it)
-				//	unloadExtend(it->first);
-				//extendHandles->clear();
+				for (auto it = extendHandles->begin(); it != extendHandles->end(); ++it)
+					unloadExtend(it->first);
+				extendHandles->clear();
 				delete extendHandles;
 			}
 			if (extendFuncionsCache)
 				delete extendFuncionsCache;
+
+			JS_FreeContext(raw);
+		}
+
+		//清除runtime中context的引用
+		if (runtime)
+		{
+			runtime->contexts.erase(this);
 		}
 	}
 
@@ -144,17 +201,41 @@ struct QJSContext
 		return pFn;
 	}
 #pragma endregion
+
+	void MakeTempContext(QJSContext& outTemp)
+	{
+		outTemp.temp = true;
+		outTemp.raw = raw;
+		outTemp.runtime = runtime;
+		outTemp.values = values;
+		outTemp.extendHandles = extendHandles;
+		outTemp.extendFuncionsCache = extendFuncionsCache;
+
+		outTemp.runtime->contexts.insert(&outTemp);
+	}
 };
-#define ADD_AUTO_FREE(v) if (v.ctx && v.value)((QJSContext*)v.ctx)->addValue(v.value)
 
-#define _INNER_RT(rt) (JSRuntime*)rt
-#define _OUTER_RT(rt) (RuntimeHandle)rt
+QJSRuntime::~QJSRuntime()
+{
+	for (auto it = contexts.begin(); it != contexts.end(); ++it)
+	{
+		delete *it;
+	}
+	contexts.clear();
+}
 
-#define _INNER_CTX(ctx) (JSContext*)(((QJSContext*)ctx)->context)
-#define _OUTER_CTX(ctx) (ContextHandle)ctx
 
-#define _INNER_VAL(val) (JSValue)val.value
-#define _OUTER_VAL(ctx, val) { (ContextHandle)ctx, (uint64_t)val }
+
+#define ADD_AUTO_FREE(v) if ((v).ctx && (v).value)((QJSContext*)(v).ctx)->addValue((v).value)
+
+#define _INNER_RT(rt) (JSRuntime*)(((QJSRuntime*)(rt))->raw)
+//#define _OUTER_RT(rt) (RuntimeHandle)(rt)
+
+#define _INNER_CTX(ctx) (JSContext*)(((QJSContext*)(ctx))->raw)
+//#define _OUTER_CTX(ctx) (ContextHandle)(ctx)
+
+#define _INNER_VAL(val) (JSValue)(val).value
+#define _OUTER_VAL(ctx, val) { (ContextHandle)(ctx), (uint64_t)(val) }
 
 /* default memory allocation functions with memory limitation */
 static inline size_t js_qjs_malloc_usable_size(void* ptr)
@@ -268,16 +349,33 @@ inline int getValueRefCount(ValueHandle value)
 	return p->ref_count;
 }
 
+RuntimeHandle JSContextToContextHandle(JSRuntime* rt)
+{
+	QJSRuntime* qjsRt = (QJSRuntime*)JS_GetRuntimeOpaque(rt);
+	return (RuntimeHandle)qjsRt;
+}
+
+ContextHandle JSContextToContextHandle(JSContext* ctx)
+{
+	QJSContext* qjsCtx = (QJSContext*)JS_GetContextOpaque(ctx);
+	return (ContextHandle)qjsCtx;
+}
+
 RuntimeHandle NewRuntime()
 {
 	// Create a runtime. 
-	JSRuntime* runtime = NULL;
-	runtime = JS_NewRuntime2(&qjs_malloc_funcs, NULL);
+	JSRuntime* runtime =  JS_NewRuntime2(&qjs_malloc_funcs, NULL);
 
 	//js_std_init_handlers(runtime);
 	//JS_SetModuleLoaderFunc(runtime, nullptr, js_module_loader, nullptr);
 
-	return _OUTER_RT(runtime);
+	QJSRuntime* _rt = new QJSRuntime();
+	_rt->raw = runtime;
+
+	//JSRuntime*的Opaque是QJSRuntime*
+	JS_SetRuntimeOpaque(runtime, _rt);
+
+	return (RuntimeHandle)_rt;
 }
 
 void FreeRuntime(RuntimeHandle runtime)
@@ -288,28 +386,20 @@ void FreeRuntime(RuntimeHandle runtime)
 	JS_FreeRuntime(_INNER_RT(runtime));
 }
 
-void SetRuntimeUserData(RuntimeHandle runtime, void* user_data)
+void SetRuntimeUserData(RuntimeHandle runtime, int key, void* user_data)
 {
-	JS_SetRuntimeOpaque(_INNER_RT(runtime), user_data);
+	QJSRuntime* thisRt = (QJSRuntime*)runtime;
+	thisRt->userData[key] = user_data;
 }
 
-void* GetRuntimeUserData(RuntimeHandle runtime)
+void* GetRuntimeUserData(RuntimeHandle runtime, int key)
 {
-	return JS_GetRuntimeOpaque(_INNER_RT(runtime));
+	QJSRuntime* thisRt = (QJSRuntime*)runtime;
+	auto itFinder = thisRt->userData.find(key);
+	if (itFinder == thisRt->userData.end())
+		return NULL;
+	return itFinder->second;
 }
-
-struct ContextUserData
-{
-	QJSContext* innerContext;
-
-	void* outerData;
-
-	ContextUserData()
-	{
-		innerContext = NULL;
-		outerData = NULL;
-	}
-};
 
 ContextHandle NewContext(RuntimeHandle runtime)
 {
@@ -328,33 +418,14 @@ ContextHandle NewContext(RuntimeHandle runtime)
 #endif
 
 	QJSContext* _ctx = new QJSContext();
-	_ctx->context = context;
+	_ctx->raw = context;
+	_ctx->runtime = (QJSRuntime*)runtime;
 	_ctx->values.reserve(1024);
 
-	ContextUserData* contextUserData = new ContextUserData;
-	contextUserData->innerContext = _ctx;
-	JS_SetContextOpaque(context, contextUserData);
+	//JSContext*的Opaque为QJSContext*
+	JS_SetContextOpaque(context, _ctx);
 
-	return _OUTER_CTX(_ctx);
-}
-
-ContextUserData* getContextUserData(JSContext* ctx)
-{
-	ContextUserData* contextUserData = (ContextUserData*)JS_GetContextOpaque(ctx);
-	return contextUserData;
-}
-
-ContextUserData* getContextUserData(ContextHandle ctx)
-{
-	return getContextUserData(_INNER_CTX(ctx));
-}
-
-ContextHandle rawContextToContextHandle(JSContext* ctx)
-{
-	ContextUserData* contextUserData = getContextUserData(ctx);
-	if (!contextUserData)
-		return NULL;
-	return (ContextHandle)contextUserData->innerContext;
+	return (ContextHandle)_ctx;
 }
 
 void ResetContext(ContextHandle ctx)
@@ -367,6 +438,7 @@ void ResetContext(ContextHandle ctx)
 	{
 		JS_FreeValue(_INNER_CTX(ctx), (JSValue)innerCtx->values[i]);
 	}
+	innerCtx->values.clear();
 
 #pragma region Extend
 	for (std::map<std::string, HMODULE>::iterator it = innerCtx->extendHandles->begin();
@@ -394,37 +466,47 @@ void FreeContext(ContextHandle ctx)
 		return;
 
 	ResetContext(ctx);
-		
-	ContextUserData* contextUserData = (ContextUserData*)JS_GetContextOpaque(_INNER_CTX(ctx));
-	if (contextUserData)
-	{
-		delete contextUserData;
-	}
-
-
-	JS_FreeContext(_INNER_CTX(ctx));
-
+	
+	//删除context内存
 	QJSContext* innerCtx = (QJSContext*)ctx;
 	delete innerCtx;
 }
 
-void SetContextUserData(ContextHandle ctx, void* user_data)
+void AddFreeingContextCallback(ContextHandle ctx, FN_OnFreeingContextCallback cb)
 {
-	ContextUserData* contextUserData = (ContextUserData*)JS_GetContextOpaque(_INNER_CTX(ctx));
-	if (contextUserData)
-	{
-		contextUserData->outerData = user_data;
-	}
+	QJSContext* thisCtx = (QJSContext*)ctx;
+	thisCtx->onFreeingContextCallbacks.insert(cb);
 }
 
-void* GetContextUserData(ContextHandle ctx)
+bool RemoveFreeingContextCallback(ContextHandle ctx, FN_OnFreeingContextCallback cb)
 {
-	ContextUserData* contextUserData = (ContextUserData*)JS_GetContextOpaque(_INNER_CTX(ctx));
-	if (contextUserData)
-	{
-		return contextUserData->outerData;
-	}
-	return NULL;
+	QJSContext* thisCtx = (QJSContext*)ctx;
+	auto itFinder = thisCtx->onFreeingContextCallbacks.find(cb);
+	if (itFinder == thisCtx->onFreeingContextCallbacks.end())
+		return false;
+	thisCtx->onFreeingContextCallbacks.erase(itFinder);
+	return true;
+}
+
+void SetContextUserData(ContextHandle ctx, int key, void* user_data)
+{
+	QJSContext* thisCtx = (QJSContext*)ctx;
+	thisCtx->userData[key] = user_data;
+}
+
+QJS_API void* GetContextUserData(ContextHandle ctx, int key)
+{
+	QJSContext* thisCtx = (QJSContext*)ctx;
+	auto itFinder = thisCtx->userData.find(key);
+	if (itFinder == thisCtx->userData.end())
+		return NULL;
+	return itFinder->second;
+}
+
+RuntimeHandle GetContextRuntime(ContextHandle ctx)
+{
+	QJSContext* thisCtx = (QJSContext*)ctx;
+	return (RuntimeHandle)(thisCtx->runtime);
 }
 
 ValueHandle GetGlobalObject(ContextHandle ctx)
@@ -434,24 +516,20 @@ ValueHandle GetGlobalObject(ContextHandle ctx)
 	return ret;
 }
 
-static int __magicIdx = 0;
-static std::map<int, std::pair<FN_JsFunctionCallback, void*> > __NewFunctionFunctions;
 static JSValue __NewFunctionCallHelper(JSContext* rawCtx, JSValue this_val, int argc, JSValue* argv, int magic)
 {
-	auto itFinder = __NewFunctionFunctions.find(magic);
-	if (itFinder != __NewFunctionFunctions.end())
+	QJSContext* thisCtx = (QJSContext*)JSContextToContextHandle(rawCtx);
+	if (thisCtx == NULL)
+		return JS_EXCEPTION;
+
+	auto itFinder = thisCtx->__NewFunctionFunctions.find(magic);
+	if (itFinder != thisCtx->__NewFunctionFunctions.end())
 	{
 		if (itFinder->second.first)
 		{
-			QJSContext* globalCtx = (QJSContext*)rawContextToContextHandle(rawCtx);
-			if (!globalCtx)
-				return JS_UNDEFINED;
-
-			QJSContext innerCtx;
-			innerCtx.temp = true;
-			innerCtx.context = rawCtx;
-			innerCtx.extendHandles = globalCtx->extendHandles;
-			innerCtx.extendFuncionsCache = globalCtx->extendFuncionsCache;
+			QJSContext tempCtx;
+			thisCtx->MakeTempContext(tempCtx);
+			tempCtx.values.clear();//不使用源值
 
 			ValueHandle* _innerArgv = NULL;
 			if (argc > 0)
@@ -462,18 +540,18 @@ static JSValue __NewFunctionCallHelper(JSContext* rawCtx, JSValue this_val, int 
 			}
 
 			ValueHandle ret = itFinder->second.first( 
-				&innerCtx, { rawCtx, this_val }, argc, (ValueHandle*)_innerArgv, itFinder->second.second);
+				&tempCtx, { rawCtx, this_val }, argc, (ValueHandle*)_innerArgv, itFinder->second.second);
 
 			if (_innerArgv)
 				delete[] _innerArgv;
 
 			//这里的值是传给内部的，由内部自己释放，防止在下面被释放
-			JS_DupValue(rawCtx, _INNER_VAL(ret));
-			//释放函数内部所申请的内存
-			for (size_t i = 0; i < innerCtx.values.size(); i++)
-			{
-				JS_FreeValue(rawCtx, (JSValue)innerCtx.values[i]);
-			}
+			JS_DupValue(rawCtx, _INNER_VAL(ret));//这次是为了应付tempCtx的释放
+
+			////把值从tempCtx往thisCtx中转移
+			//JS_DupValue(rawCtx, _INNER_VAL(ret));//这次是为了应付thisCtx的释放
+			//ret.ctx = (ContextHandle)thisCtx;
+			//ADD_AUTO_FREE(ret);
 
 			return _INNER_VAL(ret);
 		}
@@ -488,16 +566,20 @@ ValueHandle NewFunction(ContextHandle ctx, FN_JsFunctionCallback cb, int argc, v
 {
 	if (!ctx)
 	{
-		return { NULL, NULL };
+		return TheJsException();
 	}
 
+	QJSContext* thisCtx = (QJSContext*)ctx;
+	if (thisCtx == NULL)
+		return TheJsException();
+
 	JSValue fv = JS_NewCFunctionMagic(_INNER_CTX(ctx), 
-		(JSCFunctionMagic*)__NewFunctionCallHelper, NULL, argc, JS_CFUNC_generic_magic, __magicIdx);
+		(JSCFunctionMagic*)__NewFunctionCallHelper, NULL, argc, JS_CFUNC_generic_magic, thisCtx->__magicIdx);
 
 	if (JS_IsFunction(_INNER_CTX(ctx), fv))
 	{
-		__NewFunctionFunctions.insert(std::make_pair(__magicIdx, std::make_pair(cb, user_data)));
-		__magicIdx++;
+		thisCtx->__NewFunctionFunctions.insert(std::make_pair(thisCtx->__magicIdx, std::make_pair(cb, user_data)));
+		thisCtx->__magicIdx++;
 	}
 
 	ValueHandle ret = { ctx, fv };
@@ -1053,7 +1135,7 @@ ValueHandle ByteCodeToJsValue(ContextHandle ctx, const uint8_t* byteCode, size_t
 	return ret;
 }
 
-QJS_API bool SaveByteCodeToFile(const uint8_t* byteCode, size_t byteCodeLen, const char* filepath)
+bool SaveByteCodeToFile(const uint8_t* byteCode, size_t byteCodeLen, const char* filepath)
 {
 	bool res = false;
 	FILE* file = fopen(filepath, "wb"); 
@@ -1161,12 +1243,88 @@ ValueHandle GetAndClearJsLastException(ContextHandle ctx)
 	return ret;
 }
 
-int ExecutePendingJob(RuntimeHandle runtime, void*& outCurCtx)
+JSValue __EnqueueJobCallHelper(JSContext* ctx, int argc, JSValueConst* argv)
+{
+	if (argc == 0)
+		return JS_EXCEPTION;
+
+	QJSContext* thisCtx = (QJSContext*)JSContextToContextHandle(ctx);
+	if (!thisCtx)
+		return JS_EXCEPTION;
+
+	int jobIdx = 0;
+	if (JS_ToInt32(ctx, &jobIdx, argv[0]) != 0)
+		return JS_EXCEPTION;
+	auto itFinder = thisCtx->__JobFunctions.find(jobIdx);
+	if (itFinder == thisCtx->__JobFunctions.end())
+		return JS_EXCEPTION;
+
+	QJSContext tmpCtx;
+	thisCtx->MakeTempContext(tmpCtx);
+	tmpCtx.values.clear();
+
+	ValueHandle* _argv = NULL;
+	if (argc - 1 > 0)
+		_argv = new ValueHandle[argc - 1];
+	ValueHandle ret = itFinder->second((ContextHandle)&tmpCtx, argc - 1, _argv);
+	if (_argv)
+		delete[] _argv;
+
+	//这里的值是传给内部的，由内部自己释放，防止在下面被释放
+	JS_DupValue(ctx, _INNER_VAL(ret));//这次是为了应付tempCtx的释放
+
+	return _INNER_VAL(ret);
+}
+
+bool EnqueueJob(ContextHandle ctx, FN_JsJobCallback funcJob, ValueHandle args[], int argc)
+{
+	QJSContext* thisCtx = (QJSContext*)ctx;
+
+	JSValue* innerArr = new JSValue[argc + 1/*+1多加了一个函数标识*/];
+
+	//构造函数标识
+	int jobIdx = thisCtx->__JobFunctionIdx++;
+	innerArr[0] = JS_NewInt32(_INNER_CTX(ctx), jobIdx);
+	thisCtx->__JobFunctions.insert(std::make_pair(jobIdx, funcJob));
+
+	if (argc > 0)
+	{
+		for (size_t i = 0; i < argc; i++)
+		{
+			innerArr[i + 1] = args[i].value;
+		}
+	}
+
+	int res = JS_EnqueueJob(_INNER_CTX(ctx), __EnqueueJobCallHelper, argc + 1/*+1多加了一个函数标识*/, innerArr);
+
+	if (innerArr)
+	{
+		delete[] innerArr;
+	}
+
+	return res == 0;
+}
+
+int ExecutePendingJob(RuntimeHandle runtime, void** outRawCtx)
 {
 	JSContext* curCtx = NULL;
-	int res = JS_ExecutePendingJob(_INNER_RT(runtime), (JSContext**)curCtx);
-	outCurCtx = curCtx;
+	int res = JS_ExecutePendingJob(_INNER_RT(runtime), (JSContext**)&curCtx);
+	*outRawCtx = curCtx;
 	return res;
+}
+
+ContextHandle GetContextByRaw(RuntimeHandle runtime, void* rawCtx)
+{
+	auto& contexts = ((QJSRuntime*)runtime)->contexts;
+	for (auto it = contexts.begin(); it != contexts.end(); ++it)
+	{
+		if ((*it)->raw == rawCtx)
+		{
+			return (*it);
+		}
+	}
+
+	return NULL;
 }
 
 void SetDebuggerMode(ContextHandle ctx, bool onoff)
@@ -1187,16 +1345,14 @@ JS_BOOL __SetDebuggerCheckLineNoCallbackHelper(JSContext* rawCtx, JSAtom file_na
 		{
 			if (itFinder->second.first)
 			{
-				QJSContext innerCtx;
-				innerCtx.context = rawCtx;
+				//QJSContext innerCtx;
+				//innerCtx.context = rawCtx;
+				QJSContext tmpCtx;
+				QJSContext* thisCtx = (QJSContext*)JSContextToContextHandle(rawCtx);
+				thisCtx->MakeTempContext(tmpCtx);
+				tmpCtx.values.clear();
 
-				itFinder->second.first(&innerCtx, line_no, pc, itFinder->second.second);
-
-				//释放调试内部所申请的内存
-				for (size_t i = 0; i < innerCtx.values.size(); i++)
-				{
-					JS_FreeValue(rawCtx, (JSValue)innerCtx.values[i]);
-				}
+				itFinder->second.first(&tmpCtx, line_no, pc, itFinder->second.second);
 			}
 		}
 	} while (0);
@@ -1383,9 +1539,13 @@ void UnloadExtend(ContextHandle ctx, const char* extendFile)
 
 #pragma endregion
 
-std::wstring Ret_AnsiToUnicode;
-const wchar_t* AnsiToUnicode(const char* multiByteStr)
+
+const wchar_t* AnsiToUnicode(ContextHandle ctx, const char* multiByteStr)
 {
+	QJSContext* thisCtx = (QJSContext*)ctx;
+	if (thisCtx == NULL)
+		return L"";
+
 	wchar_t* pWideCharStr; //定义返回的宽字符指针
 	int nLenOfWideCharStr; //保存宽字符个数，注意不是字节数
 	//获取宽字符的个数
@@ -1394,16 +1554,19 @@ const wchar_t* AnsiToUnicode(const char* multiByteStr)
 	pWideCharStr = (wchar_t*)(HeapAlloc(GetProcessHeap(), 0, nLenOfWideCharStr * sizeof(wchar_t)));
 	MultiByteToWideChar(CP_ACP, 0, multiByteStr, -1, pWideCharStr, nLenOfWideCharStr);
 	//返回
-	Ret_AnsiToUnicode.resize(nLenOfWideCharStr + 1, 0);
-	wcscpy_s(&Ret_AnsiToUnicode[0], Ret_AnsiToUnicode.size(), pWideCharStr);
+	thisCtx->Ret_AnsiToUnicode.resize(nLenOfWideCharStr + 1, 0);
+	wcscpy_s(&thisCtx->Ret_AnsiToUnicode[0], thisCtx->Ret_AnsiToUnicode.size(), pWideCharStr);
 	//销毁内存中的字符串
 	HeapFree(GetProcessHeap(), 0, pWideCharStr);
-	return Ret_AnsiToUnicode.c_str();
+	return thisCtx->Ret_AnsiToUnicode.c_str();
 }
 
-std::string Ret_UnicodeToAnsi;
-const char* UnicodeToAnsi(const wchar_t* wideByteRet)
+const char* UnicodeToAnsi(ContextHandle ctx, const wchar_t* wideByteRet)
 {
+	QJSContext* thisCtx = (QJSContext*)ctx;
+	if (thisCtx == NULL)
+		return "";
+
 	char* pMultiCharStr; //定义返回的多字符指针
 	int nLenOfMultiCharStr; //保存多字符个数，注意不是字节数
 	//获取多字符的个数
@@ -1412,16 +1575,19 @@ const char* UnicodeToAnsi(const wchar_t* wideByteRet)
 	pMultiCharStr = (char*)(HeapAlloc(GetProcessHeap(), 0, nLenOfMultiCharStr * sizeof(char)));
 	WideCharToMultiByte(CP_ACP, 0, wideByteRet, -1, pMultiCharStr, nLenOfMultiCharStr, NULL, NULL);
 	//返回
-	Ret_UnicodeToAnsi.resize(nLenOfMultiCharStr + 1, 0);
-	strcpy_s(&Ret_UnicodeToAnsi[0], Ret_UnicodeToAnsi.size(), pMultiCharStr);
+	thisCtx->Ret_UnicodeToAnsi.resize(nLenOfMultiCharStr + 1, 0);
+	strcpy_s(&thisCtx->Ret_UnicodeToAnsi[0], thisCtx->Ret_UnicodeToAnsi.size(), pMultiCharStr);
 	//销毁内存中的字符串
 	HeapFree(GetProcessHeap(), 0, pMultiCharStr);
-	return Ret_UnicodeToAnsi.c_str();
+	return thisCtx->Ret_UnicodeToAnsi.c_str();
 }
 
-std::string Ret_UnicodeToUtf8;
-const char* UnicodeToUtf8(const wchar_t* wideByteRet)
+const char* UnicodeToUtf8(ContextHandle ctx, const wchar_t* wideByteRet)
 {
+	QJSContext* thisCtx = (QJSContext*)ctx;
+	if (thisCtx == NULL)
+		return "";
+
 	char* pMultiCharStr; //定义返回的多字符指针
 	int nLenOfMultiCharStr; //保存多字符个数，注意不是字节数
 	//获取多字符的个数
@@ -1430,16 +1596,19 @@ const char* UnicodeToUtf8(const wchar_t* wideByteRet)
 	pMultiCharStr = (char*)(HeapAlloc(GetProcessHeap(), 0, nLenOfMultiCharStr * sizeof(char)));
 	WideCharToMultiByte(CP_UTF8, 0, wideByteRet, -1, pMultiCharStr, nLenOfMultiCharStr, NULL, NULL);
 	//返回
-	Ret_UnicodeToUtf8.resize(nLenOfMultiCharStr + 1, 0);
-	strcpy_s(&Ret_UnicodeToUtf8[0], Ret_UnicodeToUtf8.size(), pMultiCharStr);
+	thisCtx->Ret_UnicodeToUtf8.resize(nLenOfMultiCharStr + 1, 0);
+	strcpy_s(&thisCtx->Ret_UnicodeToUtf8[0], thisCtx->Ret_UnicodeToUtf8.size(), pMultiCharStr);
 	//销毁内存中的字符串
 	HeapFree(GetProcessHeap(), 0, pMultiCharStr);
-	return Ret_UnicodeToUtf8.c_str();
+	return thisCtx->Ret_UnicodeToUtf8.c_str();
 }
 
-std::wstring Ret_Utf8ToUnicode;
-const wchar_t* Utf8ToUnicode(const char* utf8ByteStr)
+const wchar_t* Utf8ToUnicode(ContextHandle ctx, const char* utf8ByteStr)
 {
+	QJSContext* thisCtx = (QJSContext*)ctx;
+	if (thisCtx == NULL)
+		return L"";
+
 	wchar_t* pWideCharStr; //定义返回的宽字符指针
 	int nLenOfWideCharStr; //保存宽字符个数，注意不是字节数
 	//获取宽字符的个数
@@ -1448,9 +1617,10 @@ const wchar_t* Utf8ToUnicode(const char* utf8ByteStr)
 	pWideCharStr = (wchar_t*)(HeapAlloc(GetProcessHeap(), 0, nLenOfWideCharStr * sizeof(wchar_t)));
 	MultiByteToWideChar(CP_UTF8, 0, utf8ByteStr, -1, pWideCharStr, nLenOfWideCharStr);
 	//返回
-	Ret_Utf8ToUnicode.resize(nLenOfWideCharStr + 1, 0);
-	wcscpy_s(&Ret_Utf8ToUnicode[0], Ret_Utf8ToUnicode.size(), pWideCharStr);
+	thisCtx->Ret_Utf8ToUnicode.resize(nLenOfWideCharStr + 1, 0);
+	wcscpy_s(&thisCtx->Ret_Utf8ToUnicode[0], thisCtx->Ret_Utf8ToUnicode.size(), pWideCharStr);
 	//销毁内存中的字符串
 	HeapFree(GetProcessHeap(), 0, pWideCharStr);
-	return Ret_Utf8ToUnicode.c_str();
+	return thisCtx->Ret_Utf8ToUnicode.c_str();
 }
+

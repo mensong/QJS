@@ -52,24 +52,13 @@ enum ValueType
 	JS_TYPE_BIG_DECIMAL = 15,
 };
 
-
-//将Ansi字符转换为Unicode字符串
-QJS_API const wchar_t* AnsiToUnicode(const char* multiByteStr);
-//将Unicode字符转换为Ansi字符串
-QJS_API const char* UnicodeToAnsi(const wchar_t* wideByteRet);
-//将Unicode字符转换为UTF8字符串
-QJS_API const char* UnicodeToUtf8(const wchar_t* wideByteRet);
-//将UTF8字符转换为Unicode字符串
-QJS_API const wchar_t* Utf8ToUnicode(const char* utf8ByteStr);
-
-
 //创建js运行时
 QJS_API RuntimeHandle NewRuntime();
 //销毁js运行时
 QJS_API void FreeRuntime(RuntimeHandle runtime);
 //get set runtime userdata
-QJS_API void SetRuntimeUserData(RuntimeHandle runtime, void* user_data);
-QJS_API void* GetRuntimeUserData(RuntimeHandle runtime);
+QJS_API void SetRuntimeUserData(RuntimeHandle runtime, int key, void* user_data);
+QJS_API void* GetRuntimeUserData(RuntimeHandle runtime, int key);
 
 //创建js上下文
 QJS_API ContextHandle NewContext(RuntimeHandle runtime);
@@ -77,9 +66,15 @@ QJS_API ContextHandle NewContext(RuntimeHandle runtime);
 QJS_API void ResetContext(ContextHandle ctx);
 //销毁js上下文
 QJS_API void FreeContext(ContextHandle ctx);
+//销毁js上下文前回调
+typedef void (*FN_OnFreeingContextCallback)(ContextHandle ctx);
+QJS_API void AddFreeingContextCallback(ContextHandle ctx, FN_OnFreeingContextCallback cb);
+QJS_API bool RemoveFreeingContextCallback(ContextHandle ctx, FN_OnFreeingContextCallback cb);
+//根据上下文获得Runtime
+QJS_API RuntimeHandle GetContextRuntime(ContextHandle ctx);
 //get set context userdata
-QJS_API void SetContextUserData(ContextHandle ctx, void* user_data);
-QJS_API void* GetContextUserData(ContextHandle ctx);
+QJS_API void SetContextUserData(ContextHandle ctx, int key, void* user_data);
+QJS_API void* GetContextUserData(ContextHandle ctx, int key);
 
 //获得顶层对象
 QJS_API ValueHandle GetGlobalObject(ContextHandle ctx);
@@ -221,11 +216,15 @@ QJS_API ValueHandle JsonParse(ContextHandle ctx, const char* json);
 //The actual exception object is stored in the JSContext and can be retrieved with GetException()
 QJS_API ValueHandle GetAndClearJsLastException(ContextHandle ctx);
 
+//添加事件
+typedef ValueHandle(*FN_JsJobCallback)(ContextHandle ctx, int argc, ValueHandle* argv);
+QJS_API bool EnqueueJob(ContextHandle ctx, FN_JsJobCallback funcJob, ValueHandle args[], int argc);
 //处理事件
 // return < 0 if exception, 
 // return 0 if no job pending, 
 // return 1 if a job was executed successfully, the context of the job is stored in 'outCurCtx'
-QJS_API int ExecutePendingJob(RuntimeHandle runtime, void*& outCurCtx);
+QJS_API int ExecutePendingJob(RuntimeHandle runtime, void** outRawCtx);
+QJS_API ContextHandle GetContextByRaw(RuntimeHandle runtime, void* rawCtx);
 
 //开启调试模式
 QJS_API void SetDebuggerMode(ContextHandle ctx, bool onoff);
@@ -241,9 +240,19 @@ QJS_API ValueHandle GetDebuggerBacktrace(ContextHandle ctx, const uint8_t* pc);
 QJS_API ValueHandle GetDebuggerClosureVariables(ContextHandle ctx, int stack_idx);
 QJS_API ValueHandle GetDebuggerLocalVariables(ContextHandle ctx, int stack_idx);
 
-
+//加载扩展
+// parent - 如果是JsObject，则把加载到的这个对象里面；否则新建一个对象以存储加载的内容。如果想要直接加载到全局，parent=qjs.GetGlobalObject(ctx)即可。
 QJS_API ValueHandle LoadExtend(ContextHandle ctx, const char* extendFile, ValueHandle parent);
 QJS_API void UnloadExtend(ContextHandle ctx, const char* extendFile);
+
+//将Ansi字符转换为Unicode字符串
+QJS_API const wchar_t* AnsiToUnicode(ContextHandle ctx, const char* multiByteStr);
+//将Unicode字符转换为Ansi字符串
+QJS_API const char* UnicodeToAnsi(ContextHandle ctx, const wchar_t* wideByteRet);
+//将Unicode字符转换为UTF8字符串
+QJS_API const char* UnicodeToUtf8(ContextHandle ctx, const wchar_t* wideByteRet);
+//将UTF8字符转换为Unicode字符串
+QJS_API const wchar_t* Utf8ToUnicode(ContextHandle ctx, const char* utf8ByteStr);
 
 class QJS
 {
@@ -266,9 +275,12 @@ public:
 		SET_PROC(hDll, GetRuntimeUserData);
 		SET_PROC(hDll, NewContext);
 		SET_PROC(hDll, ResetContext);
-		SET_PROC(hDll, FreeContext); 
+		SET_PROC(hDll, FreeContext);
+		SET_PROC(hDll, AddFreeingContextCallback);
+		SET_PROC(hDll, RemoveFreeingContextCallback);
 		SET_PROC(hDll, SetContextUserData); 
 		SET_PROC(hDll, GetContextUserData);
+		SET_PROC(hDll, GetContextRuntime);
 		SET_PROC(hDll, GetGlobalObject);
 		SET_PROC(hDll, NewFunction);
 		SET_PROC(hDll, DefineGetterSetter);
@@ -337,7 +349,9 @@ public:
 		SET_PROC(hDll, JsValueIsDate); 
 		SET_PROC(hDll, JsonStringify); 
 		SET_PROC(hDll, JsonParse);
+		SET_PROC(hDll, EnqueueJob);
 		SET_PROC(hDll, ExecutePendingJob);
+		SET_PROC(hDll, GetContextByRaw);
 		SET_PROC(hDll, SetDebuggerMode); 
 		SET_PROC(hDll, SetDebuggerLineCallback); 
 		SET_PROC(hDll, GetDebuggerStackDepth); 
@@ -355,9 +369,12 @@ public:
 	DEF_PROC(GetRuntimeUserData);
 	DEF_PROC(NewContext);
 	DEF_PROC(ResetContext);
-	DEF_PROC(FreeContext); 
+	DEF_PROC(FreeContext);
+	DEF_PROC(AddFreeingContextCallback);
+	DEF_PROC(RemoveFreeingContextCallback);
 	DEF_PROC(SetContextUserData); 
 	DEF_PROC(GetContextUserData);
+	DEF_PROC(GetContextRuntime);
 	DEF_PROC(GetGlobalObject);
 	DEF_PROC(NewFunction);
 	DEF_PROC(DefineGetterSetter);
@@ -426,7 +443,9 @@ public:
 	DEF_PROC(JsValueIsDate); 
 	DEF_PROC(JsonStringify); 
 	DEF_PROC(JsonParse);
+	DEF_PROC(EnqueueJob);
 	DEF_PROC(ExecutePendingJob);
+	DEF_PROC(GetContextByRaw);
 	DEF_PROC(SetDebuggerMode);
 	DEF_PROC(SetDebuggerLineCallback); 
 	DEF_PROC(GetDebuggerStackDepth);

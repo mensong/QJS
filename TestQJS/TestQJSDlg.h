@@ -17,7 +17,7 @@ public:
 
 	void AppendResultText(const wchar_t* msg, bool newLine = true);
 	void AppendResultText(ContextHandle ctx, const ValueHandle& msg, bool newLine = true);
-	void AppendResultText(const char* msg, bool newLine = true);
+	void AppendResultText(ContextHandle ctx, const char* msg, bool newLine = true);
 
 	bool m_onDebugMode;
 	std::set<int> m_breakPoints;

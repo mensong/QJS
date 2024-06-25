@@ -41,7 +41,7 @@ ValueHandle _jprocess_cwd(
 	wchar_t dir[MAX_PATH] = { 0 };
 	::GetCurrentDirectoryW(MAX_PATH, dir);
 
-	std::string cwd = qjs.UnicodeToUtf8(dir);
+	std::string cwd = qjs.UnicodeToUtf8(ctx, dir);
 	return qjs.NewStringJsValue(ctx, cwd.c_str());
 }
 
@@ -102,7 +102,7 @@ static void init_process(ContextHandle ctx)
 	while (*lpszVariable)
 	{
 		//_tprintf(TEXT("%s\n"), lpszVariable);
-		std::string var = qjs.UnicodeToUtf8(lpszVariable);
+		std::string var = qjs.UnicodeToUtf8(ctx, lpszVariable);
 		size_t idx = var.find('=');
 		if (idx != std::string::npos)
 		{
@@ -128,7 +128,7 @@ static void init_process(ContextHandle ctx)
 	//ππ‘Ïprocess.exePath
 	wchar_t wexePath[MAX_PATH + 1] = {0};
 	::GetModuleFileNameW(NULL, wexePath, MAX_PATH);
-	std::string exePath = qjs.UnicodeToUtf8(wexePath);
+	std::string exePath = qjs.UnicodeToUtf8(ctx, wexePath);
 	ValueHandle jexePath = qjs.NewStringJsValue(ctx, exePath.c_str());
 	qjs.SetNamedJsValue(ctx, "exePath", jexePath, jprocess);
 
@@ -176,7 +176,7 @@ QJS_API ValueHandle alert(
 		const char* sz = qjs.JsValueToString(ctx, argv[0]);
 		if (sz)
 		{
-			msg = qjs.Utf8ToUnicode(sz);
+			msg = qjs.Utf8ToUnicode(ctx, sz);
 		}
 		qjs.FreeJsValueToStringBuffer(ctx, sz);
 	}
@@ -188,7 +188,7 @@ QJS_API ValueHandle alert(
 	{
 		const char* sz = qjs.JsValueToString(ctx, argv[1]);
 		if (sz)
-			title = qjs.Utf8ToUnicode(sz);
+			title = qjs.Utf8ToUnicode(ctx, sz);
 		qjs.FreeJsValueToStringBuffer(ctx, sz);
 	}
 
@@ -205,7 +205,7 @@ QJS_API ValueHandle print(
 	{
 		const char* sz = qjs.JsValueToString(ctx, argv[i]);
 		if (sz)
-			ss << qjs.Utf8ToUnicode(sz);
+			ss << qjs.Utf8ToUnicode(ctx, sz);
 		qjs.FreeJsValueToStringBuffer(ctx, sz);
 	}
 
@@ -234,7 +234,7 @@ QJS_API ValueHandle debug(
 		{
 			const char* sz = qjs.JsValueToString(ctx, argv[i]);
 			if (sz)
-				ss << qjs.Utf8ToUnicode(sz);
+				ss << qjs.Utf8ToUnicode(ctx, sz);
 			qjs.FreeJsValueToStringBuffer(ctx, sz);
 		}
 
@@ -286,7 +286,7 @@ std::wstring resolveAndUpdateFilePath(ContextHandle ctx, const std::wstring& fil
 		if (qjs.JsValueIsFunction(jaddPath))
 		{
 			std::wstring wdir = os_pathw::dirname(wpath);
-			std::string dir = qjs.UnicodeToUtf8(wdir.c_str());
+			std::string dir = qjs.UnicodeToUtf8(ctx, wdir.c_str());
 			ValueHandle param[] = { qjs.NewStringJsValue(ctx, dir.c_str()) };
 			qjs.CallJsFunction(ctx, jaddPath, param, sizeof(param) / sizeof(ValueHandle), qjs.TheJsNull());
 		}
@@ -310,7 +310,7 @@ std::wstring resolveAndUpdateFilePath(ContextHandle ctx, const std::wstring& fil
 	{
 		ValueHandle jitem = qjs.GetIndexedJsValue(ctx, i, jpaths);
 		std::string item = qjs.JsValueToStdString(ctx, jitem);
-		std::wstring path = qjs.Utf8ToUnicode(item.c_str());
+		std::wstring path = qjs.Utf8ToUnicode(ctx, item.c_str());
 		std::wstring filepath = os_pathw::join(path, filename);
 		if (IsFileExist(filepath.c_str()))
 			return filepath;
@@ -329,14 +329,14 @@ QJS_API ValueHandle require(
 	}
 
 	std::string filename = qjs.JsValueToStdString(ctx, argv[0]);
-	std::wstring wfilename = qjs.Utf8ToUnicode(filename.c_str());
+	std::wstring wfilename = qjs.Utf8ToUnicode(ctx, filename.c_str());
 	wfilename = resolveAndUpdateFilePath(ctx, wfilename);
 	if (wfilename == L"")
 	{
 		ValueHandle ex = qjs.NewStringJsValue(ctx, (filename + " not exist.").c_str());
 		return qjs.NewThrowJsValue(ctx, ex);
 	}
-	filename = qjs.UnicodeToAnsi(wfilename.c_str());
+	filename = qjs.UnicodeToAnsi(ctx, wfilename.c_str());
 
 	ValueHandle jexports = qjs.NewObjectJsValue(ctx);
 	if (!qjs.SetNamedJsValue(ctx, "exports", jexports, qjs.GetGlobalObject(ctx)))
@@ -368,14 +368,14 @@ QJS_API ValueHandle include(
 	}
 
 	std::string filename = qjs.JsValueToStdString(ctx, argv[0]);
-	std::wstring wfilename = qjs.Utf8ToUnicode(filename.c_str());
+	std::wstring wfilename = qjs.Utf8ToUnicode(ctx, filename.c_str());
 	wfilename = resolveAndUpdateFilePath(ctx, wfilename);
 	if (wfilename == L"")
 	{
 		ValueHandle ex = qjs.NewStringJsValue(ctx, (filename + " not exist.").c_str());
 		return qjs.NewThrowJsValue(ctx, ex);
 	}
-	filename = qjs.UnicodeToAnsi(wfilename.c_str());
+	filename = qjs.UnicodeToAnsi(ctx, wfilename.c_str());
 
 	ValueHandle jret = qjs.RunScriptFile(ctx, filename.c_str());
 
@@ -403,7 +403,7 @@ QJS_API bool AddPath(ContextHandle ctx, const wchar_t* dir)
 	ValueHandle jaddPath = qjs.RunScript(ctx, "process.addPath", qjs.TheJsNull(), "");
 	if (qjs.JsValueIsFunction(jaddPath))
 	{
-		std::string sdir = qjs.UnicodeToUtf8(dir);
+		std::string sdir = qjs.UnicodeToUtf8(ctx, dir);
 		ValueHandle param[] = { qjs.NewStringJsValue(ctx, sdir.c_str()) };
 		ValueHandle jret = qjs.CallJsFunction(ctx, jaddPath, param, sizeof(param) / sizeof(ValueHandle), qjs.TheJsNull());
 		if (qjs.JsValueIsBool(jret))
@@ -413,4 +413,33 @@ QJS_API bool AddPath(ContextHandle ctx, const wchar_t* dir)
 	}
 
 	return false;
+}
+
+void OnFreeingContextCallback(ContextHandle ctx)
+{
+
+}
+
+ValueHandle setTimeoutCallback(ContextHandle ctx, int argc, ValueHandle* argv)
+{
+	return qjs.TheJsException();
+}
+
+QJS_API ValueHandle setTimeout(
+	ContextHandle ctx, ValueHandle this_val, int argc, ValueHandle* argv, void* user_data)
+{
+	if (argc != 2)
+	{
+		ValueHandle ex = qjs.NewStringJsValue(ctx, "setTimeout(function, interval)");
+		return qjs.NewThrowJsValue(ctx, ex);
+	}
+
+	if (!qjs.EnqueueJob(ctx, setTimeoutCallback, argv, argc))
+	{
+		ValueHandle ex = qjs.NewStringJsValue(ctx, "setTimeout error");
+		return qjs.NewThrowJsValue(ctx, ex);
+	}
+
+	//qjs.GetContextUserData();
+	return qjs.TheJsException();
 }
