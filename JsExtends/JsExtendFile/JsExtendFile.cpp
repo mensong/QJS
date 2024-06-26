@@ -132,6 +132,41 @@ QJS_API ValueHandle readTextFile(
 		hasInputCharset = true;
 	}
 
+	auto funcConvert = [&](std::string& inouttxt)->bool {
+		if (!hasInputCharset)
+		{
+			char* inputCharset = NULL;
+			if (StringConvert::Ins().DetectCharset(&inputCharset, inouttxt.c_str(), inouttxt.size()))
+			{
+				sInputCharset = inputCharset;
+				std::string sDetectCharset = pystring::upper(pystring::replace(inputCharset, "-", ""));
+				if (sDetectCharset != "UTF8")
+				{
+					if (sDetectCharset.find("UTF") == std::string::npos)
+					{
+						sInputCharset = "GB18030";
+					}
+				}
+			}
+		}
+
+		if (sInputCharset != "")
+		{
+			char* outStr = NULL;
+			size_t outLen = 0;
+			StringConvert::Ins().ConvertCharset(&outStr, &outLen,
+				inouttxt.c_str(), inouttxt.size(), sInputCharset.c_str(), "UTF-8", true);
+			if (outStr)
+			{
+				inouttxt = outStr;
+				//std::wstring ws = qjs.Utf8ToUnicode(ctx, line.c_str());
+				StringConvert::Ins().FreeOutStr(outStr);
+				return true;
+			}
+		}
+		return false;
+	};
+
 	if (argc > 1)
 	{//每行返回
 		ValueHandle lineAction = argv[1];
@@ -146,37 +181,7 @@ QJS_API ValueHandle readTextFile(
 		int lineno = 0;
 		while (std::getline(inputFile, line))
 		{
-			if (!hasInputCharset)
-			{
-				char* inputCharset = NULL;
-				if (StringConvert::Ins().DetectCharset(&inputCharset, line.c_str(), line.size()))
-				{
-					sInputCharset = inputCharset;
-					std::string sDetectCharset = pystring::upper(pystring::replace(inputCharset, "-", ""));
-					if (sDetectCharset != "UTF8")
-					{
-						if (sDetectCharset.find("UTF") == std::string::npos)
-						{
-							sInputCharset = "GB18030";
-						}
-					}
-				}
-			}
-
-			if (sInputCharset != "")
-			{
-				char* outStr = NULL;
-				size_t outLen = 0;
-				StringConvert::Ins().ConvertCharset(&outStr, &outLen,
-					line.c_str(), line.size(), sInputCharset.c_str(), "UTF-8", true);
-				if (outStr)
-				{
-					line = outStr;
-					//std::wstring ws = qjs.Utf8ToUnicode(ctx, line.c_str());
-					StringConvert::Ins().FreeOutStr(outStr);
-				}
-			}
-						
+			funcConvert(line);
 
 			ValueHandle params[] = {
 				qjs.NewStringJsValue(ctx, line.c_str()),
@@ -203,23 +208,7 @@ QJS_API ValueHandle readTextFile(
 		inputFile.read(buffer, length);//读取
 
 		std::string sBuff = buffer;
-		char* inputCharset = NULL;
-		if (StringConvert::Ins().DetectCharset(&inputCharset, buffer, length))
-		{
-			std::string soutCharset = pystring::upper(pystring::replace(inputCharset, "-", ""));
-			if (soutCharset != "UTF8")
-			{
-				char* outStr = NULL;
-				size_t outLen = 0;
-				StringConvert::Ins().ConvertCharset(&outStr, &outLen,
-					buffer, length, inputCharset, "UTF-8", true);
-				if (outStr)
-				{
-					sBuff = outStr;
-					StringConvert::Ins().FreeOutStr(outStr);
-				}
-			}
-		}
+		funcConvert(sBuff);
 
 		delete[] buffer;
 		inputFile.close();
