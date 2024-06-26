@@ -45,7 +45,6 @@ struct QJSRuntime
 //QJSContext* == ContextHandle
 struct QJSContext
 {
-	bool temp;
 	JSContext* raw;
 	QJSRuntime* runtime;
 	std::vector<uint64_t> values;
@@ -71,7 +70,6 @@ struct QJSContext
 
 	QJSContext()
 	{
-		temp = false;
 		raw = NULL;
 		runtime = NULL;
 
@@ -90,21 +88,22 @@ struct QJSContext
 			JS_FreeValue(raw, (JSValue)values[i]);
 		}
 		values.clear();
-
-		if (!temp) 
+				
+		if (extendHandles)
 		{
-			if (extendHandles)
-			{
-				for (auto it = extendHandles->begin(); it != extendHandles->end(); ++it)
-					unloadExtend(it->first);
-				extendHandles->clear();
-				delete extendHandles;
-			}
-			if (extendFuncionsCache)
-				delete extendFuncionsCache;
-
-			JS_FreeContext(raw);
+			for (auto it = extendHandles->begin(); it != extendHandles->end(); ++it)
+				unloadExtend(it->first);
+			extendHandles->clear();
+			delete extendHandles;
+			extendHandles = NULL;
 		}
+		if (extendFuncionsCache)
+		{
+			delete extendFuncionsCache;
+			extendFuncionsCache = NULL;
+		}
+
+		JS_FreeContext(raw);
 
 		//清除runtime中context的引用
 		if (runtime)
@@ -203,17 +202,6 @@ struct QJSContext
 	}
 #pragma endregion
 
-	void MakeTempContext(QJSContext& outTemp)
-	{
-		outTemp.temp = true;
-		outTemp.raw = raw;
-		outTemp.runtime = runtime;
-		outTemp.values = values;
-		outTemp.extendHandles = extendHandles;
-		outTemp.extendFuncionsCache = extendFuncionsCache;
-
-		outTemp.runtime->contexts.insert(&outTemp);
-	}
 };
 
 QJSRuntime::~QJSRuntime()
@@ -537,9 +525,8 @@ static JSValue __NewFunctionCallHelper(JSContext* rawCtx, JSValue this_val, int 
 	{
 		if (itFinder->second.first)
 		{
-			QJSContext tempCtx;
-			thisCtx->MakeTempContext(tempCtx);
-			tempCtx.values.clear();//不使用源值
+			//push value
+			size_t pushdValueIdx = thisCtx->values.size();
 
 			ValueHandle* _innerArgv = NULL;
 			if (argc > 0)
@@ -550,18 +537,21 @@ static JSValue __NewFunctionCallHelper(JSContext* rawCtx, JSValue this_val, int 
 			}
 
 			ValueHandle ret = itFinder->second.first( 
-				&tempCtx, { rawCtx, this_val }, argc, (ValueHandle*)_innerArgv, itFinder->second.second);
+				(ContextHandle)thisCtx, {rawCtx, this_val}, argc, (ValueHandle*)_innerArgv, itFinder->second.second);
 
 			if (_innerArgv)
 				delete[] _innerArgv;
 
 			//这里的值是传给内部的，由内部自己释放，防止在下面被释放
-			JS_DupValue(rawCtx, _INNER_VAL(ret));//这次是为了应付tempCtx的释放
+			JS_DupValue(rawCtx, _INNER_VAL(ret));
 
-			////把值从tempCtx往thisCtx中转移
-			//JS_DupValue(rawCtx, _INNER_VAL(ret));//这次是为了应付thisCtx的释放
-			//ret.ctx = (ContextHandle)thisCtx;
-			//ADD_AUTO_FREE(ret);
+			//pop value
+			for (int i = thisCtx->values.size() - 1; i >= pushdValueIdx; i--)
+			{
+				JSValue jv = (JSValue)thisCtx->values.back();
+				JS_FreeValue(rawCtx, jv);
+				thisCtx->values.pop_back();
+			}
 
 			return _INNER_VAL(ret);
 		}
@@ -615,6 +605,26 @@ void FreeValueHandle(ValueHandle* value)
 
 	value->ctx = NULL;
 	value->value = NULL;
+}
+
+size_t PushRunScope(ContextHandle ctx)
+{
+	QJSContext* thisCtx = (QJSContext*)ctx;
+	return thisCtx->values.size();
+}
+
+size_t PopRunScope(ContextHandle ctx, size_t pushdValueIdx)
+{
+	QJSContext* thisCtx = (QJSContext*)ctx;
+	size_t curSize = thisCtx->values.size();
+	for (int i = curSize - 1; i >= pushdValueIdx; i--)
+	{
+		JSValue jv = (JSValue)thisCtx->values.back();
+		JS_FreeValue(thisCtx->raw, jv);
+		thisCtx->values.pop_back();
+	}
+
+	return curSize - pushdValueIdx;
 }
 
 bool DefineGetterSetter(ContextHandle ctx, ValueHandle parent, 
@@ -847,6 +857,7 @@ void FreeJsPointer(ContextHandle ctx, void* ptr)
 
 uint8_t* LoadFile(ContextHandle ctx, size_t* outLen, const char* filename)
 {
+	//QJSContext* thisCtx = (QJSContext*)ctx;
 	uint8_t* buf = js_load_file(_INNER_CTX(ctx), outLen, filename);
 	return buf;
 }
@@ -868,7 +879,7 @@ ValueHandle RunScript(ContextHandle ctx, const char* script, ValueHandle parent,
 ValueHandle RunScriptFile(ContextHandle ctx, const char* filename)
 {
 	size_t buf_len = 0;
-	uint8_t* buf = LoadFile(_INNER_CTX(ctx), &buf_len, filename);
+	uint8_t* buf = LoadFile(ctx, &buf_len, filename);
 	if (buf)
 	{
 		ValueHandle ret = RunScript(ctx, (const char*)buf, TheJsNull(), filename);
@@ -1269,19 +1280,26 @@ JSValue __EnqueueJobCallHelper(JSContext* ctx, int argc, JSValueConst* argv)
 	if (itFinder == thisCtx->__JobFunctions.end())
 		return JS_EXCEPTION;
 
-	QJSContext tmpCtx;
-	thisCtx->MakeTempContext(tmpCtx);
-	tmpCtx.values.clear();
+	//push value
+	size_t pushdValueIdx = thisCtx->values.size();
 
 	ValueHandle* _argv = NULL;
 	if (argc - 1 > 0)
 		_argv = new ValueHandle[argc - 1];
-	ValueHandle ret = itFinder->second((ContextHandle)&tmpCtx, argc - 1, _argv);
+	ValueHandle ret = itFinder->second((ContextHandle)thisCtx, argc - 1, _argv);
 	if (_argv)
 		delete[] _argv;
 
 	//这里的值是传给内部的，由内部自己释放，防止在下面被释放
-	JS_DupValue(ctx, _INNER_VAL(ret));//这次是为了应付tempCtx的释放
+	JS_DupValue(ctx, _INNER_VAL(ret));
+
+	//pop value
+	for (int i = thisCtx->values.size() - 1; i >= pushdValueIdx; i--)
+	{
+		JSValue jv = (JSValue)thisCtx->values.back();
+		JS_FreeValue(ctx, jv);
+		thisCtx->values.pop_back();
+	}
 
 	return _INNER_VAL(ret);
 }
@@ -1355,14 +1373,20 @@ JS_BOOL __SetDebuggerCheckLineNoCallbackHelper(JSContext* rawCtx, JSAtom file_na
 		{
 			if (itFinder->second.first)
 			{
-				//QJSContext thisCtx;
-				//thisCtx.context = rawCtx;
-				QJSContext tmpCtx;
 				QJSContext* thisCtx = (QJSContext*)JSContextToContextHandle(rawCtx);
-				thisCtx->MakeTempContext(tmpCtx);
-				tmpCtx.values.clear();
 
-				itFinder->second.first(&tmpCtx, line_no, pc, itFinder->second.second);
+				//push value
+				size_t pushdValueIdx = thisCtx->values.size();
+
+				itFinder->second.first(&rawCtx, line_no, pc, itFinder->second.second);
+
+				//pop value
+				for (int i = thisCtx->values.size() - 1; i >= pushdValueIdx; i--)
+				{
+					JSValue jv = (JSValue)thisCtx->values.back();
+					JS_FreeValue(rawCtx, jv);
+					thisCtx->values.pop_back();
+				}
 			}
 		}
 	} while (0);

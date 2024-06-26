@@ -420,11 +420,52 @@ void OnFreeingContextCallback(ContextHandle ctx)
 
 }
 
+//第一个参数为触发函数，第二个参数为时间间隔，单位：毫秒，第三个参数为当前时间
 ValueHandle setTimeoutCallback(ContextHandle ctx, int argc, ValueHandle* argv)
 {
-	return qjs.TheJsException();
+	if (argc != 3)
+	{
+		ValueHandle ex = qjs.NewStringJsValue(ctx, "setTimeout execute error");
+		return qjs.NewThrowJsValue(ctx, ex);
+	}
+
+	//检查是否已被取消
+	auto jcancel = qjs.GetNamedJsValue(ctx, "cancel", argv[2]);
+	if (qjs.JsValueToBool(ctx, jcancel, true))
+		return qjs.TheJsUndefined();
+
+	//如果start time未0则先不执行，继续计时
+	auto jstart = qjs.GetNamedJsValue(ctx, "start", argv[2]);
+	if (!qjs.JsValueIsInt(jstart))
+	{
+		ValueHandle ex = qjs.NewStringJsValue(ctx, "setTimeout execute error");
+		return qjs.NewThrowJsValue(ctx, ex);
+	}
+	int64_t start = qjs.JsValueToInt64(ctx, jstart, 0);
+	if (start == 0)
+	{
+		jstart = qjs.NewInt64JsValue(ctx, ::GetTickCount64());
+		qjs.SetNamedJsValue(ctx, "start", jstart, argv[2]);
+		qjs.EnqueueJob(ctx, setTimeoutCallback, argv, argc);
+		return qjs.TheJsUndefined();
+	}
+	
+	ValueHandle jInterval = argv[1];
+	int64_t interval = qjs.JsValueToInt64(ctx, jInterval, 0);
+	if (::GetTickCount64() - start >= interval)
+	{
+		ValueHandle jFunc = argv[0];
+		qjs.CallJsFunction(ctx, jFunc, NULL, 0, qjs.TheJsNull());
+	}
+
+	jstart = qjs.NewInt64JsValue(ctx, ::GetTickCount64());
+	qjs.SetNamedJsValue(ctx, "start", jstart, argv[2]);
+	qjs.EnqueueJob(ctx, setTimeoutCallback, argv, argc);
+
+	return qjs.TheJsUndefined();
 }
 
+//第一个参数为触发函数，第二个参数为时间间隔，单位：毫秒
 QJS_API ValueHandle setTimeout(
 	ContextHandle ctx, ValueHandle this_val, int argc, ValueHandle* argv, void* user_data)
 {
@@ -434,12 +475,30 @@ QJS_API ValueHandle setTimeout(
 		return qjs.NewThrowJsValue(ctx, ex);
 	}
 
-	if (!qjs.EnqueueJob(ctx, setTimeoutCallback, argv, argc))
+	//1.添加一个辅助参数，用于传递运行数据，例如：开始时间、取消对象等
+	int argc_new = argc + 1;
+	ValueHandle* argv_new = new ValueHandle[argc_new];
+	size_t i;
+	for (i = 0; i < argc; i++)
+	{
+		argv_new[i] = argv[i];
+	}
+
+	ValueHandle jsetTimeoutObj = qjs.NewObjectJsValue(ctx);
+	
+	ValueHandle jIsCanceled = qjs.NewBoolJsValue(ctx, false);
+	qjs.SetNamedJsValue(ctx, "cancel", jIsCanceled, jsetTimeoutObj);
+
+	ValueHandle jstartTime = qjs.NewInt64JsValue(ctx, ::GetTickCount64());
+	qjs.SetNamedJsValue(ctx, "start", jstartTime, jsetTimeoutObj);
+		
+	argv_new[i++] = jsetTimeoutObj;
+
+	if (!qjs.EnqueueJob(ctx, setTimeoutCallback, argv_new, argc_new))
 	{
 		ValueHandle ex = qjs.NewStringJsValue(ctx, "setTimeout error");
 		return qjs.NewThrowJsValue(ctx, ex);
 	}
 
-	//qjs.GetContextUserData();
-	return qjs.TheJsException();
+	return jsetTimeoutObj;
 }

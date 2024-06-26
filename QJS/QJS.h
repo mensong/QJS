@@ -159,9 +159,6 @@ typedef ValueHandle(*FN_JsFunctionCallback)(
 //创建一个JS函数
 QJS_API ValueHandle NewFunction(ContextHandle ctx, FN_JsFunctionCallback cb, int argc, void* user_data);
 
-//手工释放一个ValueHandle，一般不用
-QJS_API void FreeValueHandle(ValueHandle* value);
-
 //ValueHandle转string
 QJS_API const char* JsValueToString(ContextHandle ctx, ValueHandle value);
 //手动释放JsValueToString出来的字符串
@@ -245,6 +242,11 @@ QJS_API ValueHandle GetDebuggerLocalVariables(ContextHandle ctx, int stack_idx);
 QJS_API ValueHandle LoadExtend(ContextHandle ctx, const char* extendFile, ValueHandle parent);
 QJS_API void UnloadExtend(ContextHandle ctx, const char* extendFile);
 
+//手工释放一个ValueHandle，一般不用
+QJS_API void FreeValueHandle(ValueHandle* value);
+QJS_API size_t PushRunScope(ContextHandle ctx);
+QJS_API size_t PopRunScope(ContextHandle ctx, size_t pushdValueIdx);
+
 //将Ansi字符转换为Unicode字符串
 QJS_API const wchar_t* AnsiToUnicode(ContextHandle ctx, const char* multiByteStr);
 //将Unicode字符转换为Ansi字符串
@@ -320,7 +322,6 @@ public:
 		SET_PROC(hDll, NewArrayJsValue);
 		SET_PROC(hDll, NewThrowJsValue); 
 		SET_PROC(hDll, NewDateJsValue);
-		SET_PROC(hDll, FreeValueHandle);
 		SET_PROC(hDll, GetLength);
 		SET_PROC(hDll, JsValueToString);
 		SET_PROC(hDll, FreeJsValueToStringBuffer);
@@ -360,6 +361,9 @@ public:
 		SET_PROC(hDll, GetDebuggerLocalVariables);
 		SET_PROC(hDll, LoadExtend);
 		SET_PROC(hDll, UnloadExtend);
+		SET_PROC(hDll, FreeValueHandle);
+		SET_PROC(hDll, PushRunScope);
+		SET_PROC(hDll, PopRunScope);
 	}
 
 
@@ -414,7 +418,6 @@ public:
 	DEF_PROC(NewArrayJsValue);
 	DEF_PROC(NewThrowJsValue); 
 	DEF_PROC(NewDateJsValue);
-	DEF_PROC(FreeValueHandle);
 	DEF_PROC(GetLength);
 	DEF_PROC(JsValueToString);
 	DEF_PROC(FreeJsValueToStringBuffer);
@@ -454,6 +457,9 @@ public:
 	DEF_PROC(GetDebuggerLocalVariables);
 	DEF_PROC(LoadExtend);
 	DEF_PROC(UnloadExtend);
+	DEF_PROC(FreeValueHandle);
+	DEF_PROC(PushRunScope);
+	DEF_PROC(PopRunScope);
 
 	//ValueHandle转std::string
 	std::string JsValueToStdString(ContextHandle ctx, ValueHandle value, const std::string& defVal = "")
@@ -524,3 +530,23 @@ __declspec(selectany) std::mutex QJS::s_insMutex;
 #endif // MULTI_THREAD
 
 #define qjs QJS::Ins()
+
+//自动管理过程新建的ValueHandle，可选
+class QJSRunScope 
+{
+public:
+	QJSRunScope(ContextHandle& ctx)
+	{
+		_ctx = ctx;
+		_pushdValueIdx = QJS::Ins().PushRunScope(ctx);
+	}
+	~QJSRunScope()
+	{
+		QJS::Ins().PopRunScope(_ctx, _pushdValueIdx);
+	}
+private:
+	size_t _pushdValueIdx;
+	ContextHandle _ctx;
+};
+
+#define QJS_SCOPE(ctx) QJSRunScope __scope(ctx)

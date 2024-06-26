@@ -113,6 +113,8 @@ void myTest()
 	qjs.SetNamedJsValue(ctx, "print", printFunc, qjs.TheJsNull());
 
 	{
+		QJS_SCOPE(ctx);
+
 		ValueHandle arrNames = qjs.GetObjectPropertyKeys(ctx, qjs.GetGlobalObject(ctx), true, false);
 		int64_t len = qjs.GetLength(ctx, arrNames);
 		for (int i = 0; i < len; i++)
@@ -124,12 +126,16 @@ void myTest()
 	}
 
 	{
+		QJS_SCOPE(ctx);
+
 		auto argv = qjs.NewStringJsValue(ctx, "mensong,");
 		ValueHandle argvs[] = { argv, argv, argv };
 		auto ret1 = qjs.CallJsFunction(ctx, printFunc, argvs, 3, qjs.TheJsNull());
 	}
 
 	{
+		QJS_SCOPE(ctx);
+
 		ValueHandle o = qjs.NewIntJsValue(ctx, 123);
 		qjs.SetObjectUserData(o, (void*)123);
 		void* pu = qjs.GetObjectUserData(o);
@@ -137,6 +143,8 @@ void myTest()
 	}
 
 	{
+		QJS_SCOPE(ctx);
+
 		ValueHandle bv = qjs.NewBoolJsValue(ctx, true);
 		qjs.SetNamedJsValue(ctx, "bv", bv, qjs.TheJsNull());
 
@@ -155,6 +163,8 @@ void myTest()
 	}
 
 	{
+		QJS_SCOPE(ctx);
+
 		ValueHandle v = qjs.TheJsException(); qjs.FreeValueHandle(&v);
 		v = qjs.TheJsFalse(); qjs.FreeValueHandle(&v);
 		v = qjs.TheJsNull(); qjs.FreeValueHandle(&v);
@@ -173,6 +183,8 @@ void myTest()
 	}
 
 	{
+		QJS_SCOPE(ctx);
+
 		ValueHandle arr = qjs.NewArrayJsValue(ctx);
 		ValueHandle str = qjs.NewStringJsValue(ctx, "mensong");
 		qjs.SetIndexedJsValue(ctx, 10, str, arr);//设置id 10的元素为字符串mensong
@@ -243,12 +255,16 @@ void myTest()
 	}
 
 	{
+		QJS_SCOPE(ctx);
+
 		auto jint = qjs.NewIntJsValue(ctx, 65536);
 		auto intstr1 = qjs.JsValueToString(ctx, jint);
 		qjs.FreeJsValueToStringBuffer(ctx, intstr1);
 	}
 
 	{
+		QJS_SCOPE(ctx);
+
 		ValueHandle test_getter_setter = qjs.NewObjectJsValue(ctx);
 		qjs.SetNamedJsValue(ctx, "test_getter_setter", test_getter_setter, qjs.GetGlobalObject(ctx));
 		auto getter = qjs.NewFunction(ctx, JsGetter, 0, NULL);
@@ -267,6 +283,7 @@ void myTest()
 	}
 
 	{
+		QJS_SCOPE(ctx);
 		auto g1 = qjs.GetGlobalObject(ctx);
 		auto g2 = qjs.GetGlobalObject(ctx);
 		auto g3 = qjs.GetGlobalObject(ctx);
@@ -274,12 +291,16 @@ void myTest()
 	}
 
 	{
+		QJS_SCOPE(ctx);
+
 		auto date = qjs.NewDateJsValue(ctx, 1679044555000);
 		uint64_t ts = qjs.JsValueToTimestamp(ctx, date);
 		qjs.SetNamedJsValue(ctx, "mydate", date, qjs.TheJsNull());
 	}
 
 	{
+		QJS_SCOPE(ctx);
+
 		auto o = qjs.NewObjectJsValue(ctx);
 		auto prop = qjs.NewIntJsValue(ctx, 123);
 		qjs.SetNamedJsValue(ctx, "a", prop, o);
@@ -299,6 +320,8 @@ void myTest()
 	}
 
 	{
+		QJS_SCOPE(ctx);
+
 		auto arrLenTest = qjs.RunScript(ctx, "[{\"a\":123}, {\"a\":456}]", qjs.TheJsNull(), "");
 		auto arrTestLen = qjs.GetLength(ctx, arrLenTest);
 		auto v0 = qjs.GetIndexedJsValue(ctx, 0, arrLenTest);
@@ -307,6 +330,8 @@ void myTest()
 	}
 
 	{
+		QJS_SCOPE(ctx);
+
 		ValueHandle res = qjs.CompileScript(ctx, "var a=123;var b=456;alert(a+b)", "");
 		if (qjs.JsValueIsException(res))
 		{
@@ -334,6 +359,8 @@ void myTest()
 	}
 
 	{
+		QJS_SCOPE(ctx);
+
 		//from qjsc-test.c
 		const uint32_t qjsc_qjsc_test_size = 79;
 		const uint8_t qjsc_qjsc_test[79] = {
@@ -364,6 +391,8 @@ void myTest()
 	}
 
 	{
+		QJS_SCOPE(ctx);
+
 		ValueHandle normalJsObj = qjs.RunScript(ctx, "var a=123;a", qjs.GetGlobalObject(ctx), "");
 		size_t bytecodeLen = 0;
 		uint8_t* bytecode = qjs.JsValueToByteCode(ctx, normalJsObj, &bytecodeLen, false);
@@ -372,12 +401,16 @@ void myTest()
 	}
 
 	{
+		QJS_SCOPE(ctx);
+
 		auto testThrowFunc = qjs.NewFunction(ctx, JsTestThrow, 0, NULL);
 		qjs.SetNamedJsValue(ctx, "TestThrow", testThrowFunc, qjs.TheJsNull());
 		qjs.RunScript(ctx, "try{ TestThrow(); } catch (e){ print(e) }", qjs.TheJsNull(), "");
 	}
 
 	{
+		QJS_SCOPE(ctx);
+
 		auto jNull = qjs.TheJsNull();
 		auto jException = qjs.TheJsException();
 		auto jFalse = qjs.TheJsFalse();
@@ -392,12 +425,14 @@ void myTest()
 	}
 
 	{
+		QJS_SCOPE(ctx);
+
 		ValueHandle testMsg = qjs.NewStringJsValue(ctx, "mensong");
 		std::string s = qjs.JsValueToStdString(ctx, testMsg, "");
 	}
 
 	{
-		qjs.RunScriptFile(ctx, "test.js");
+		//qjs.RunScriptFile(ctx, "test.js");
 	}
 
 	qjs.FreeContext(ctx);
@@ -491,8 +526,8 @@ void pendingJobTest()
 
 	qjs.LoadExtend(ctx, "JsExtendBase.dll", qjs.GetGlobalObject(ctx));
 
-	ValueHandle argv[] = { qjs.NewStringJsValue(ctx, "123") };
-	qjs.EnqueueJob(ctx, setTimeoutCallback, argv, sizeof(argv)/sizeof(ValueHandle));
+	//ValueHandle argv[] = { qjs.NewStringJsValue(ctx, "123") };
+	//qjs.EnqueueJob(ctx, setTimeoutCallback, argv, sizeof(argv)/sizeof(ValueHandle));
 
 	ValueHandle result = qjs.RunScript(ctx, "setTimeout(function(){alert('setTimeout');},3000);", qjs.TheJsNull(), "");
 	if (qjs.JsValueIsException(result))
@@ -516,13 +551,13 @@ void pendingJobTest()
 
 int main()
 {
-	//baseTest();
-	//extendTest();
-	//myTest();
-	//baseExtendTest();
-	//regExtendTest();
+	baseTest();
+	extendTest();
+	myTest();
+	baseExtendTest();
+	regExtendTest();
 	
-	pendingJobTest();
+	//pendingJobTest();
 
 	return 0;
 }
