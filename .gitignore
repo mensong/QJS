@@ -21,3 +21,7 @@
 /JsExtends/JsExtendPath/x64
 /JsExtends/JsExtendReg/x64
 /JsExtends/JsExtendFile/x64
+/JsExtends/JsExtendBase/Win32
+/JsExtends/JsExtendFile/Win32
+/JsExtends/JsExtendPath/Win32
+/JsExtends/JsExtendReg/Win32

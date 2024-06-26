@@ -98,7 +98,7 @@ std::wstring resolveAndUpdateFilePath(ContextHandle ctx, const std::wstring& fil
 	return L"";
 }
 
-//readTextFile(filename, [function(){}]);
+//readTextFile(filename, [function(){}], [input charset]);
 QJS_API ValueHandle readTextFile(
 	ContextHandle ctx, ValueHandle this_val, int argc, ValueHandle* argv, void* user_data)
 {
@@ -124,6 +124,14 @@ QJS_API ValueHandle readTextFile(
 		return qjs.NewThrowJsValue(ctx, ex);
 	}
 
+	bool hasInputCharset = false;
+	std::string sInputCharset = "";
+	if (argc > 2)
+	{
+		sInputCharset = qjs.JsValueToStdString(ctx, argv[2], "");
+		hasInputCharset = true;
+	}
+
 	if (argc > 1)
 	{//每行返回
 		ValueHandle lineAction = argv[1];
@@ -138,6 +146,38 @@ QJS_API ValueHandle readTextFile(
 		int lineno = 0;
 		while (std::getline(inputFile, line))
 		{
+			if (!hasInputCharset)
+			{
+				char* inputCharset = NULL;
+				if (StringConvert::Ins().DetectCharset(&inputCharset, line.c_str(), line.size()))
+				{
+					sInputCharset = inputCharset;
+					std::string sDetectCharset = pystring::upper(pystring::replace(inputCharset, "-", ""));
+					if (sDetectCharset != "UTF8")
+					{
+						if (sDetectCharset.find("UTF") == std::string::npos)
+						{
+							sInputCharset = "GB18030";
+						}
+					}
+				}
+			}
+
+			if (sInputCharset != "")
+			{
+				char* outStr = NULL;
+				size_t outLen = 0;
+				StringConvert::Ins().ConvertCharset(&outStr, &outLen,
+					line.c_str(), line.size(), sInputCharset.c_str(), "UTF-8", true);
+				if (outStr)
+				{
+					line = outStr;
+					//std::wstring ws = qjs.Utf8ToUnicode(ctx, line.c_str());
+					StringConvert::Ins().FreeOutStr(outStr);
+				}
+			}
+						
+
 			ValueHandle params[] = {
 				qjs.NewStringJsValue(ctx, line.c_str()),
 				qjs.NewIntJsValue(ctx, lineno)};
@@ -161,9 +201,30 @@ QJS_API ValueHandle readTextFile(
 		char* buffer = new char[length + 1];
 		buffer[length] = '\0';
 		inputFile.read(buffer, length);//读取
-		ValueHandle ret = qjs.NewStringJsValue(ctx, buffer);
+
+		std::string sBuff = buffer;
+		char* inputCharset = NULL;
+		if (StringConvert::Ins().DetectCharset(&inputCharset, buffer, length))
+		{
+			std::string soutCharset = pystring::upper(pystring::replace(inputCharset, "-", ""));
+			if (soutCharset != "UTF8")
+			{
+				char* outStr = NULL;
+				size_t outLen = 0;
+				StringConvert::Ins().ConvertCharset(&outStr, &outLen,
+					buffer, length, inputCharset, "UTF-8", true);
+				if (outStr)
+				{
+					sBuff = outStr;
+					StringConvert::Ins().FreeOutStr(outStr);
+				}
+			}
+		}
+
 		delete[] buffer;
 		inputFile.close();
+
+		ValueHandle ret = qjs.NewStringJsValue(ctx, sBuff.c_str());
 		return ret;
 	}	
 	
@@ -196,14 +257,14 @@ QJS_API ValueHandle writeTextFile(
 	std::string outCharset;
 	if (argc > 2)
 	{
-		outCharset = qjs.JsValueToStdString(ctx, argv[2], "UTF8");
-
+		outCharset = qjs.JsValueToStdString(ctx, argv[2], "UTF-8");
+		outCharset = pystring::upper(pystring::replace(outCharset, "-", ""));
 		if (outCharset != "UTF8")
 		{
 			char* outText = NULL;
 			size_t outLen = 0;
 			bool b = StringConvert::Ins().ConvertCharset(&outText, &outLen, 
-				text.c_str(), text.size(), "UTF8", outCharset.c_str(), true);
+				text.c_str(), text.size(), "UTF-8", outCharset.c_str(), true);
 			if (!outText)
 			{
 				ValueHandle ex = qjs.NewStringJsValue(ctx, "output charset error");
