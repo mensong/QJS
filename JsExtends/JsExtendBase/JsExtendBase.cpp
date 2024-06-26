@@ -456,10 +456,11 @@ ValueHandle setTimeoutCallback(ContextHandle ctx, int argc, ValueHandle* argv)
 	{
 		ValueHandle jFunc = argv[0];
 		qjs.CallJsFunction(ctx, jFunc, NULL, 0, qjs.TheJsNull());
+
+		jstart = qjs.NewInt64JsValue(ctx, ::GetTickCount64());
+		qjs.SetNamedJsValue(ctx, "start", jstart, argv[2]);
 	}
 
-	jstart = qjs.NewInt64JsValue(ctx, ::GetTickCount64());
-	qjs.SetNamedJsValue(ctx, "start", jstart, argv[2]);
 	qjs.EnqueueJob(ctx, setTimeoutCallback, argv, argc);
 
 	return qjs.TheJsUndefined();
@@ -501,4 +502,26 @@ QJS_API ValueHandle setTimeout(
 	}
 
 	return jsetTimeoutObj;
+}
+
+
+QJS_API ValueHandle clearTimeout(
+	ContextHandle ctx, ValueHandle this_val, int argc, ValueHandle* argv, void* user_data)
+{
+	if (argc != 1)
+	{
+		ValueHandle ex = qjs.NewStringJsValue(ctx, "clearTimeout(object of setTimeout)");
+		return qjs.NewThrowJsValue(ctx, ex);
+	}
+
+	//检查是否已被取消
+	auto jcancel = qjs.GetNamedJsValue(ctx, "cancel", argv[0]);
+	if (!qjs.JsValueIsBool(jcancel))
+	{
+		ValueHandle ex = qjs.NewStringJsValue(ctx, "Invalid parameter");
+		return qjs.NewThrowJsValue(ctx, ex);
+	}
+	bool res = qjs.SetNamedJsValue(ctx, "cancel", qjs.NewBoolJsValue(ctx, true), argv[0]);
+
+	return qjs.NewBoolJsValue(ctx, res);
 }

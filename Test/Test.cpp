@@ -512,12 +512,6 @@ void regExtendTest()
 	qjs.FreeRuntime(rt);
 }
 
-ValueHandle setTimeoutCallback(ContextHandle ctx, int argc, ValueHandle* argv)
-{
-	return qjs.TheJsTrue();
-}
-
-
 
 void pendingJobTest()
 {
@@ -526,10 +520,9 @@ void pendingJobTest()
 
 	qjs.LoadExtend(ctx, "JsExtendBase.dll", qjs.GetGlobalObject(ctx));
 
-	//ValueHandle argv[] = { qjs.NewStringJsValue(ctx, "123") };
-	//qjs.EnqueueJob(ctx, setTimeoutCallback, argv, sizeof(argv)/sizeof(ValueHandle));
-
-	ValueHandle result = qjs.RunScript(ctx, "setTimeout(function(){alert('setTimeout');},3000);", qjs.TheJsNull(), "");
+	ValueHandle result = qjs.RunScript(ctx, 
+		"var n = 0;var t = setTimeout(function(){alert('setTimeout');++n;if (n>=10)clearTimeout(t);},1000);", 
+		qjs.TheJsNull(), "");
 	if (qjs.JsValueIsException(result))
 	{
 		ValueHandle exception = qjs.GetAndClearJsLastException(ctx);
@@ -551,13 +544,13 @@ void pendingJobTest()
 
 int main()
 {
-	baseTest();
-	extendTest();
-	myTest();
-	baseExtendTest();
-	regExtendTest();
+	//baseTest();
+	//extendTest();
+	//myTest();
+	//baseExtendTest();
+	//regExtendTest();
 	
-	//pendingJobTest();
+	pendingJobTest();
 
 	return 0;
 }

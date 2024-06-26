@@ -1283,12 +1283,17 @@ JSValue __EnqueueJobCallHelper(JSContext* ctx, int argc, JSValueConst* argv)
 	//push value
 	size_t pushdValueIdx = thisCtx->values.size();
 
-	ValueHandle* _argv = NULL;
-	if (argc - 1 > 0)
-		_argv = new ValueHandle[argc - 1];
-	ValueHandle ret = itFinder->second((ContextHandle)thisCtx, argc - 1, _argv);
-	if (_argv)
-		delete[] _argv;
+	int argc_real = argc - 1;
+	ValueHandle* argv_real = NULL;
+	if (argc_real > 0)
+		argv_real = new ValueHandle[argc_real];
+	for (int i = 1; i < argc; i++)
+	{
+		argv_real[i - 1] = _OUTER_VAL(thisCtx, argv[i]);
+	}
+	ValueHandle ret = itFinder->second((ContextHandle)thisCtx, argc_real, argv_real);
+	if (argv_real)
+		delete[] argv_real;
 
 	//这里的值是传给内部的，由内部自己释放，防止在下面被释放
 	JS_DupValue(ctx, _INNER_VAL(ret));
