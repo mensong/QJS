@@ -569,10 +569,10 @@ int main()
 	//baseTest();
 	//extendTest();
 	//myTest();
-	//baseExtendTest();
+	baseExtendTest();
 	//regExtendTest();	
 	//pendingJobTest();
-	fileExtendTest();
+	//fileExtendTest();
 
 	return 0;
 }

@@ -3,6 +3,7 @@ process.isDebug = true;
 
 debug(debugObject(process));
 debug(debugObject(process.env));
+debug(process.env.getEnv('temp'));
 
 var m = require("module.js");
 debug(debugObject(m));

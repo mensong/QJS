@@ -35,6 +35,27 @@ BOOL IsPathExist(const TCHAR* csPath)
 //	return 0 != GetFileAttributesEx(csPath, GetFileExInfoStandard, &attrs);
 //}
 
+ValueHandle _jprocess_env_getEnv(
+	ContextHandle ctx, ValueHandle this_val, int argc, ValueHandle* argv, void* user_data)
+{
+	if (argc != 1)
+		return qjs.TheJsUndefined();
+
+	std::string name = qjs.JsValueToStdString(ctx, argv[0], "");
+	if (name == "")
+		return qjs.TheJsUndefined();
+	std::wstring wname = qjs.Utf8ToUnicode(ctx, name.c_str());
+
+	wchar_t* wvalue = _wgetenv(wname.c_str());
+	if (wvalue)
+	{
+		std::string value = qjs.UnicodeToUtf8(ctx, wvalue);
+		return qjs.NewStringJsValue(ctx, value.c_str());
+	}
+
+	return qjs.TheJsUndefined();
+}
+
 ValueHandle _jprocess_cwd(
 	ContextHandle ctx, ValueHandle this_val, int argc, ValueHandle* argv, void* user_data)
 {
@@ -124,6 +145,10 @@ static void init_process(ContextHandle ctx)
 		lpszVariable += lstrlen(lpszVariable) + 1;   //移动指针
 	}
 	FreeEnvironmentStrings(lpvEnv);
+
+	//process.env.getEnv
+	auto jgetEnv = qjs.NewFunction(ctx, _jprocess_env_getEnv, 1, NULL);
+	qjs.SetNamedJsValue(ctx, "getEnv", jgetEnv, jenv);
 
 	//构造process.exePath
 	wchar_t wexePath[MAX_PATH + 1] = {0};
