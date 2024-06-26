@@ -50,6 +50,7 @@ struct QJSContext
 	QJSRuntime* runtime;
 	std::vector<uint64_t> values;
 
+	//这里的全部都要提取到一个对象中，并且使用指针引用;
 	std::map<int, void*> userData;
 
 	int __magicIdx;
@@ -465,11 +466,20 @@ void FreeContext(ContextHandle ctx)
 	if (!ctx)
 		return;
 
+	QJSContext* thisCtx = (QJSContext*)ctx;
+
+	//回调
+	for (auto it = thisCtx->onFreeingContextCallbacks.begin();
+		it != thisCtx->onFreeingContextCallbacks.end(); ++it)
+	{
+		if (*it)
+			(*it)(ctx);
+	}
+
 	ResetContext(ctx);
 	
 	//删除context内存
-	QJSContext* innerCtx = (QJSContext*)ctx;
-	delete innerCtx;
+	delete thisCtx;
 }
 
 void AddFreeingContextCallback(ContextHandle ctx, FN_OnFreeingContextCallback cb)
@@ -1345,8 +1355,8 @@ JS_BOOL __SetDebuggerCheckLineNoCallbackHelper(JSContext* rawCtx, JSAtom file_na
 		{
 			if (itFinder->second.first)
 			{
-				//QJSContext innerCtx;
-				//innerCtx.context = rawCtx;
+				//QJSContext thisCtx;
+				//thisCtx.context = rawCtx;
 				QJSContext tmpCtx;
 				QJSContext* thisCtx = (QJSContext*)JSContextToContextHandle(rawCtx);
 				thisCtx->MakeTempContext(tmpCtx);
