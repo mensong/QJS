@@ -542,15 +542,37 @@ void pendingJobTest()
 	qjs.FreeRuntime(rt);
 }
 
+void fileExtendTest()
+{
+	RuntimeHandle rt = qjs.NewRuntime();
+	ContextHandle ctx = qjs.NewContext(rt);
+
+	auto jfile = qjs.NewObjectJsValue(ctx);
+	qjs.SetNamedJsValue(ctx, "File", jfile, qjs.GetGlobalObject(ctx));
+	qjs.LoadExtend(ctx, "JsExtendFile.dll", jfile);
+
+	auto result = qjs.RunScriptFile(ctx, "fileExtendTest.js");
+	if (qjs.JsValueIsException(result))
+	{
+		ValueHandle exception = qjs.GetAndClearJsLastException(ctx);
+		const char* sz = qjs.JsValueToString(ctx, exception);
+		printf("运行错误:%s\n", sz);
+		qjs.FreeJsValueToStringBuffer(ctx, sz);
+	}
+
+	qjs.FreeContext(ctx);
+	qjs.FreeRuntime(rt);
+}
+
 int main()
 {
 	//baseTest();
 	//extendTest();
 	//myTest();
 	//baseExtendTest();
-	//regExtendTest();
-	
-	pendingJobTest();
+	//regExtendTest();	
+	//pendingJobTest();
+	fileExtendTest();
 
 	return 0;
 }
