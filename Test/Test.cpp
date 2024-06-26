@@ -521,7 +521,7 @@ void pendingJobTest()
 	qjs.LoadExtend(ctx, "JsExtendBase.dll", qjs.GetGlobalObject(ctx));
 
 	ValueHandle result = qjs.RunScript(ctx, 
-		"var n = 0;var t = setTimeout(function(){alert('setTimeout');++n;if (n>=10)clearTimeout(t);},1000);", 
+		"var n = 0;var t = setTimeout(function(){alert('setTimeout:'+n);++n;if (n>=3)clearTimeout(t);},1000);", 
 		qjs.TheJsNull(), "");
 	if (qjs.JsValueIsException(result))
 	{
