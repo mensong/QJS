@@ -8,7 +8,9 @@
 #include <fstream>
 #include <tchar.h>
 #include <vector>
+#include <map>
 #include "../StringConvert/StringConvert.h"
+#include "../JsExtendBase/JsExtendBase.h"
 
 // ≈–∂œŒƒº˛ «∑Ò¥Ê‘⁄
 BOOL IsFileExist(const TCHAR* csFile)
@@ -36,15 +38,43 @@ BOOL IsPathExist(const TCHAR* csPath)
 //	return 0 != GetFileAttributesEx(csPath, GetFileExInfoStandard, &attrs);
 //}
 
-
+ValueHandle g_jbase;
+int g_load_count = 0;
 
 QJS_API int _entry(ContextHandle ctx, int id)
 {
-	//º”‘ÿ“¿¿µ
+	++g_load_count;
 
-	qjs.LoadExtend(ctx, "JsExtendBase.dll", qjs.GetGlobalObject(ctx), NULL);
+	//º”‘ÿ“¿¿µ
+	if (!qjs.JsValueIsObject(g_jbase))
+	{
+		g_jbase = qjs.NewObjectJsValue(ctx);
+		int idBase = qjs.LoadExtend(ctx, "JsExtendBase.dll", g_jbase, (void*)id);
+
+		//File.dependents = [base]
+		ValueHandle jFile = qjs.GetExtendParentObject(ctx, id);
+		ValueHandle jdependents = qjs.NewArrayJsValue(ctx);
+		qjs.SetNamedJsValue(ctx, "dependents", jdependents, jFile);
+		qjs.SetIndexedJsValue(ctx, 0, g_jbase, jdependents);
+	}
 
 	return 0;//º”‘ÿ≤Âº˛
+}
+
+QJS_API void _completed(ContextHandle ctx, int id)
+{
+
+}
+
+QJS_API void _unload(ContextHandle ctx, int id)
+{
+	--g_load_count;
+
+	//–∂‘ÿ“¿¿µ
+	if (g_load_count == 0)
+	{
+		//
+	}
 }
 
 std::wstring resolveAndUpdateFilePath(ContextHandle ctx, const std::wstring& filename)
@@ -62,16 +92,10 @@ std::wstring resolveAndUpdateFilePath(ContextHandle ctx, const std::wstring& fil
 			::GetCurrentDirectoryW(MAX_PATH, dir);
 			wpath = os_pathw::join(dir, filename);
 		}
-
+				
 		//ÃÌº”≤È’“¬∑æ∂
-		ValueHandle jaddPath = qjs.RunScript(ctx, "process.addPath", qjs.TheJsNull(), "");
-		if (qjs.JsValueIsFunction(jaddPath))
-		{
-			std::wstring wdir = os_pathw::dirname(wpath);
-			std::string dir = qjs.UnicodeToUtf8(ctx, wdir.c_str());
-			ValueHandle param[] = { qjs.NewStringJsValue(ctx, dir.c_str()) };
-			qjs.CallJsFunction(ctx, jaddPath, param, sizeof(param) / sizeof(ValueHandle), qjs.TheJsNull());
-		}
+		std::wstring wdir = os_pathw::dirname(wpath);
+		JsExtendBase::Ins().AddPath(ctx, wdir.c_str(), g_jbase);
 
 		return wpath;
 	}
@@ -79,7 +103,7 @@ std::wstring resolveAndUpdateFilePath(ContextHandle ctx, const std::wstring& fil
 	if (filename.find(L':') != std::wstring::npos)
 		return L"";
 
-	ValueHandle jprocess = qjs.GetNamedJsValue(ctx, "process", qjs.GetGlobalObject(ctx));
+	ValueHandle jprocess = qjs.GetNamedJsValue(ctx, "process", g_jbase);
 	if (!qjs.JsValueIsObject(jprocess))
 		return L"";
 
@@ -274,9 +298,4 @@ QJS_API ValueHandle writeTextFile(
 	outputFile.close();
 
 	return qjs.NewInt64JsValue(ctx, pos);
-}
-
-QJS_API void _completed(ContextHandle ctx, int id)
-{
-	
 }

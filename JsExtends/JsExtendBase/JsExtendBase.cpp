@@ -72,7 +72,10 @@ ValueHandle _jprocess_addPath(
 	if (argc != 1)
 		return qjs.TheJsFalse();
 
-	ValueHandle jprocess = qjs.GetNamedJsValue(ctx, "process", qjs.GetGlobalObject(ctx));
+	if (qjs.JsValueIsUndefined(this_val))
+		this_val = qjs.GetGlobalObject(ctx);
+
+	ValueHandle jprocess = qjs.GetNamedJsValue(ctx, "process", this_val);
 	if (!qjs.JsValueIsObject(jprocess))
 		return qjs.TheJsFalse();
 	
@@ -99,14 +102,16 @@ ValueHandle _jprocess_addPath(
 	return qjs.TheJsTrue();
 }
 
-static void init_process(ContextHandle ctx)
+static void init_process(ContextHandle ctx, int id)
 {
+	ValueHandle parentObj = qjs.GetExtendParentObject(ctx, id);
+
 	//process全局变量
-	ValueHandle jprocess = qjs.GetNamedJsValue(ctx, "process", qjs.GetGlobalObject(ctx));
+	ValueHandle jprocess = qjs.GetNamedJsValue(ctx, "process", parentObj);
 	if (!qjs.JsValueIsObject(jprocess))
 	{
 		jprocess = qjs.NewObjectJsValue(ctx);
-		qjs.SetNamedJsValue(ctx, "process", jprocess, qjs.GetGlobalObject(ctx));
+		qjs.SetNamedJsValue(ctx, "process", jprocess, parentObj);
 	}
 
 	//构造process.env到系统的所有变量
@@ -187,7 +192,7 @@ static void init_process(ContextHandle ctx)
 
 QJS_API int _entry(ContextHandle ctx, int id)
 {
-	init_process(ctx);
+	init_process(ctx, id);
 
 	return 0;//加载插件
 }
@@ -249,7 +254,9 @@ ValueHandle _jprint(
 QJS_API ValueHandle debug(
 	ContextHandle ctx, ValueHandle this_val, int argc, ValueHandle* argv, void* user_data, int id)
 {
-	ValueHandle jprocess = qjs.GetNamedJsValue(ctx, "process", qjs.GetGlobalObject(ctx));
+	ValueHandle parentObj = qjs.GetExtendParentObject(ctx, id);
+
+	ValueHandle jprocess = qjs.GetNamedJsValue(ctx, "process", parentObj);
 	if (!qjs.JsValueIsObject(jprocess))
 		return qjs.TheJsUndefined();
 	
@@ -296,8 +303,10 @@ QJS_API ValueHandle debugObject(
 	return qjs.NewStringJsValue(ctx, json.c_str());
 }
 
-std::wstring resolveAndUpdateFilePath(ContextHandle ctx, const std::wstring& filename)
+std::wstring resolveAndUpdateFilePath(ContextHandle ctx, const std::wstring& filename, int id)
 {
+	ValueHandle parentObj = qjs.GetExtendParentObject(ctx, id);
+
 	if (IsFileExist(filename.c_str()))
 	{
 		std::wstring wpath;
@@ -313,40 +322,43 @@ std::wstring resolveAndUpdateFilePath(ContextHandle ctx, const std::wstring& fil
 		}
 
 		//添加查找路径
-		ValueHandle jaddPath = qjs.RunScript(ctx, "process.addPath", qjs.TheJsNull(), "");
+		ValueHandle jprocess = qjs.GetNamedJsValue(ctx, "process", parentObj);
+		ValueHandle jaddPath = qjs.GetNamedJsValue(ctx, "addPath", jprocess);
 		if (qjs.JsValueIsFunction(jaddPath))
 		{
 			std::wstring wdir = os_pathw::dirname(wpath);
 			std::string dir = qjs.UnicodeToUtf8(ctx, wdir.c_str());
 			ValueHandle param[] = { qjs.NewStringJsValue(ctx, dir.c_str()) };
-			qjs.CallJsFunction(ctx, jaddPath, param, sizeof(param) / sizeof(ValueHandle), qjs.TheJsNull());
+			qjs.CallJsFunction(ctx, jaddPath, param, sizeof(param) / sizeof(ValueHandle), parentObj);
 		}
 
 		return wpath;
 	}
-
-	if (filename.find(L':') != std::wstring::npos)
-		return L"";
-
-	ValueHandle jprocess = qjs.GetNamedJsValue(ctx, "process", qjs.GetGlobalObject(ctx));
-	if (!qjs.JsValueIsObject(jprocess))
-		return L"";
-
-	ValueHandle jpaths = qjs.GetNamedJsValue(ctx, "paths", jprocess);
-	if (!qjs.JsValueIsArray(jpaths))
-		return L"";
-
-	int64_t len = qjs.GetLength(ctx, jpaths);
-	for (int i = len - 1; i >= 0; --i)
+	else
 	{
-		ValueHandle jitem = qjs.GetIndexedJsValue(ctx, i, jpaths);
-		std::string item = qjs.JsValueToStdString(ctx, jitem);
-		std::wstring path = qjs.Utf8ToUnicode(ctx, item.c_str());
-		std::wstring filepath = os_pathw::join(path, filename);
-		if (IsFileExist(filepath.c_str()))
-			return filepath;
-	}
+		if (filename.find(L':') != std::wstring::npos)
+			return L"";
 
+		ValueHandle jprocess = qjs.GetNamedJsValue(ctx, "process", parentObj);
+		if (!qjs.JsValueIsObject(jprocess))
+			return L"";
+
+		ValueHandle jpaths = qjs.GetNamedJsValue(ctx, "paths", jprocess);
+		if (!qjs.JsValueIsArray(jpaths))
+			return L"";
+
+		int64_t len = qjs.GetLength(ctx, jpaths);
+		for (int i = len - 1; i >= 0; --i)
+		{
+			ValueHandle jitem = qjs.GetIndexedJsValue(ctx, i, jpaths);
+			std::string item = qjs.JsValueToStdString(ctx, jitem);
+			std::wstring path = qjs.Utf8ToUnicode(ctx, item.c_str());
+			std::wstring filepath = os_pathw::join(path, filename);
+			if (IsFileExist(filepath.c_str()))
+				return filepath;
+		}
+	}
+	
 	return L"";
 }
 
@@ -359,9 +371,11 @@ QJS_API ValueHandle require(
 		return qjs.NewThrowJsValue(ctx, ex);
 	}
 
+	ValueHandle parentObj = qjs.GetExtendParentObject(ctx, id);
+
 	std::string filename = qjs.JsValueToStdString(ctx, argv[0]);
 	std::wstring wfilename = qjs.Utf8ToUnicode(ctx, filename.c_str());
-	wfilename = resolveAndUpdateFilePath(ctx, wfilename);
+	wfilename = resolveAndUpdateFilePath(ctx, wfilename, id);
 	if (wfilename == L"")
 	{
 		ValueHandle ex = qjs.NewStringJsValue(ctx, (filename + " not exist.").c_str());
@@ -378,7 +392,7 @@ QJS_API ValueHandle require(
 		return qjs.TheJsUndefined();
 	qjs.SetNamedJsValue(ctx, "exports", jexports, jmodule);
 
-	ValueHandle jret = qjs.RunScriptFile(ctx, filename.c_str());
+	ValueHandle jret = qjs.RunScriptFile(ctx, filename.c_str(), qjs.GetGlobalObject(ctx));
 	if (qjs.JsValueIsException(jret))
 		return jret;
 
@@ -400,7 +414,7 @@ QJS_API ValueHandle include(
 
 	std::string filename = qjs.JsValueToStdString(ctx, argv[0]);
 	std::wstring wfilename = qjs.Utf8ToUnicode(ctx, filename.c_str());
-	wfilename = resolveAndUpdateFilePath(ctx, wfilename);
+	wfilename = resolveAndUpdateFilePath(ctx, wfilename, id);
 	if (wfilename == L"")
 	{
 		ValueHandle ex = qjs.NewStringJsValue(ctx, (filename + " not exist.").c_str());
@@ -408,35 +422,24 @@ QJS_API ValueHandle include(
 	}
 	filename = qjs.UnicodeToAnsi(ctx, wfilename.c_str());
 
-	ValueHandle jret = qjs.RunScriptFile(ctx, filename.c_str());
+	ValueHandle jret = qjs.RunScriptFile(ctx, filename.c_str(), this_val);
 
 	return jret;
 }
 
-QJS_API void _completed(ContextHandle ctx, int id)
+QJS_API bool AddPath(ContextHandle ctx, const wchar_t* dir, ValueHandle parent)
 {
-	//console
-	ValueHandle jconsole = qjs.GetNamedJsValue(ctx, "console", qjs.GetGlobalObject(ctx));
-	if (!qjs.JsValueIsObject(jconsole))
-	{
-		jconsole = qjs.NewObjectJsValue(ctx);
-		qjs.SetNamedJsValue(ctx, "console", jconsole, qjs.GetGlobalObject(ctx));
-	}
+	if (!qjs.JsValueIsObject(parent))
+		parent = qjs.GetGlobalObject(ctx);
 
-	//console.log
-	ValueHandle jprint = qjs.NewFunction(ctx, _jprint, 0, NULL);
-	qjs.SetNamedJsValue(ctx, "log", jprint, jconsole);
-}
-
-QJS_API bool AddPath(ContextHandle ctx, const wchar_t* dir)
-{
 	//全路径却存在时需要添加查找路径
-	ValueHandle jaddPath = qjs.RunScript(ctx, "process.addPath", qjs.TheJsNull(), "");
+	ValueHandle jprocess = qjs.GetNamedJsValue(ctx, "process", parent);
+	ValueHandle jaddPath = qjs.GetNamedJsValue(ctx, "addPath", jprocess);
 	if (qjs.JsValueIsFunction(jaddPath))
 	{
 		std::string sdir = qjs.UnicodeToUtf8(ctx, dir);
 		ValueHandle param[] = { qjs.NewStringJsValue(ctx, sdir.c_str()) };
-		ValueHandle jret = qjs.CallJsFunction(ctx, jaddPath, param, sizeof(param) / sizeof(ValueHandle), qjs.TheJsNull());
+		ValueHandle jret = qjs.CallJsFunction(ctx, jaddPath, param, sizeof(param) / sizeof(ValueHandle), parent);
 		if (qjs.JsValueIsBool(jret))
 		{
 			return qjs.JsValueToBool(ctx, jret, false);
@@ -555,4 +558,22 @@ QJS_API ValueHandle clearTimeout(
 	bool res = qjs.SetNamedJsValue(ctx, "cancel", qjs.NewBoolJsValue(ctx, true), argv[0]);
 
 	return qjs.NewBoolJsValue(ctx, res);
+}
+
+
+QJS_API void _completed(ContextHandle ctx, int id)
+{
+	ValueHandle parentObj = qjs.GetExtendParentObject(ctx, id);
+
+	//console
+	ValueHandle jconsole = qjs.GetNamedJsValue(ctx, "console", parentObj);
+	if (!qjs.JsValueIsObject(jconsole))
+	{
+		jconsole = qjs.NewObjectJsValue(ctx);
+		qjs.SetNamedJsValue(ctx, "console", jconsole, parentObj);
+	}
+
+	//console.log
+	ValueHandle jprint = qjs.NewFunction(ctx, _jprint, 0, NULL);
+	qjs.SetNamedJsValue(ctx, "log", jprint, jconsole);
 }

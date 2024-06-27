@@ -128,6 +128,8 @@ struct QJSContext
 		std::string filename;
 		int extendId;
 
+		ValueHandle parentObj;
+
 		//<funcion name, Function callback pointer>
 		std::map<std::string, FN_JsFunctionCallback> functions;
 
@@ -191,6 +193,7 @@ struct QJSContext
 	{
 		ExtendFunctionUserData* pUserData = new ExtendFunctionUserData();
 		pUserData->extendId = extendId;
+		//pUserData->parentObj = parentObj;
 		pUserData->nativeFunc = nativeFunc;
 		pUserData->nativeUserData = userData;
 		extendFunctionUserDatasHolder.push_back(pUserData);
@@ -261,7 +264,14 @@ QJSRuntime::~QJSRuntime()
 //#define _OUTER_CTX(ctx) (ContextHandle)(ctx)
 
 #define _INNER_VAL(val) (JSValue)(val).value
-#define _OUTER_VAL(ctx, val) { (ContextHandle)(ctx), (uint64_t)(val) }
+inline ValueHandle _OUTER_VAL(ContextHandle ctx, JSValue val)
+{
+	ValueHandle ret;
+	ret.ctx = ctx;
+	ret.value = val;
+	return ret;
+}
+//#define _OUTER_VAL(ctx, val) ValueHandle((ContextHandle)(ctx), (uint64_t)(val))
 
 /* default memory allocation functions with memory limitation */
 static inline size_t js_qjs_malloc_usable_size(void* ptr)
@@ -898,13 +908,13 @@ ValueHandle RunScript(ContextHandle ctx, const char* script, ValueHandle parent,
 	return ret;
 }
 
-ValueHandle RunScriptFile(ContextHandle ctx, const char* filename)
+ValueHandle RunScriptFile(ContextHandle ctx, const char* filename, ValueHandle parent)
 {
 	size_t buf_len = 0;
 	uint8_t* buf = LoadFile(ctx, &buf_len, filename);
 	if (buf)
 	{
-		ValueHandle ret = RunScript(ctx, (const char*)buf, TheJsNull(), filename);
+		ValueHandle ret = RunScript(ctx, (const char*)buf, parent, filename);
 		FreeJsPointer(ctx, buf);
 		return ret;
 	}
@@ -1563,15 +1573,31 @@ int LoadExtend(ContextHandle ctx, const char* extendFile, ValueHandle parent, vo
 	if (!GetExportNames(extendFile, function_list) || function_list.size() == 0)
 		return 0;
 
+	bool bDupGlobal = false;
+	if (!JsValueIsObject(parent))
+	{
+		parent = GetGlobalObject(ctx);
+		bDupGlobal = true;
+	}
+
 	QJSContext* _ctx = (QJSContext*)ctx;
 
 	int extendId = _ctx->loadExtend(extendFile);
 	if (extendId <= 0)
+	{
+		if (bDupGlobal)
+			FreeValueHandle(&parent);
 		return extendId;
+	}
 
 	QJSContext::ExtendInfo* pEI = _ctx->getExtendInfo(extendId);
 	if (!pEI)
+	{
+		if (bDupGlobal)
+			FreeValueHandle(&parent);
 		return 0;
+	}
+	pEI->parentObj = parent;
 
 	FN_entry _entry = (FN_entry)GetProcAddress(pEI->hDll, "_entry");
 	FN_completed _completed = (FN_completed)GetProcAddress(pEI->hDll, "_completed");
@@ -1581,12 +1607,12 @@ int LoadExtend(ContextHandle ctx, const char* extendFile, ValueHandle parent, vo
 		if (entryRes != 0)
 		{
 			_ctx->unloadExtend(extendId);
+
+			if (bDupGlobal)
+				FreeValueHandle(&parent);
 			return 0;
 		}
 	}
-
-	if (!JsValueIsObject(parent))
-		parent = GetGlobalObject(ctx);
 
 	for (size_t i = 0; i < function_list.size(); i++)
 	{
@@ -1614,8 +1640,35 @@ int LoadExtend(ContextHandle ctx, const char* extendFile, ValueHandle parent, vo
 
 void UnloadExtend(ContextHandle ctx, int extendId)
 {
-	QJSContext* _ctx = (QJSContext*)ctx;
-	_ctx->unloadExtend(extendId);
+	QJSContext* thisCtx = (QJSContext*)ctx;
+	thisCtx->unloadExtend(extendId);
+}
+
+HMODULE GetExtendHandle(ContextHandle ctx, int extendId)
+{
+	QJSContext* thisCtx = (QJSContext*)ctx;
+	QJSContext::ExtendInfo* pEI = thisCtx->getExtendInfo(extendId);
+	if (!pEI)
+		return NULL;
+	return pEI->hDll;
+}
+
+const char* GetExtendFile(ContextHandle ctx, int extendId)
+{
+	QJSContext* thisCtx = (QJSContext*)ctx;
+	QJSContext::ExtendInfo* pEI = thisCtx->getExtendInfo(extendId);
+	if (!pEI)
+		return NULL;
+	return pEI->filename.c_str();
+}
+
+ValueHandle GetExtendParentObject(ContextHandle ctx, int extendId)
+{
+	QJSContext* thisCtx = (QJSContext*)ctx;
+	QJSContext::ExtendInfo* pEI = thisCtx->getExtendInfo(extendId);
+	if (!pEI)
+		return TheJsUndefined();
+	return pEI->parentObj;
 }
 
 #pragma endregion

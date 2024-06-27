@@ -87,7 +87,7 @@ QJS_API uint8_t* LoadFile(ContextHandle ctx, size_t* outLen, const char* filenam
 //运行脚本
 QJS_API ValueHandle RunScript(ContextHandle ctx, const char* script, ValueHandle parent, const char* filename/*=""*/);
 //运行文件
-QJS_API ValueHandle RunScriptFile(ContextHandle ctx, const char* filename);
+QJS_API ValueHandle RunScriptFile(ContextHandle ctx, const char* filename, ValueHandle parent);
 //执行js中函数，没有参数时args=NULL并且argc=0
 QJS_API ValueHandle CallJsFunction(ContextHandle ctx, ValueHandle jsFunction, ValueHandle args[], int argc, ValueHandle parent);
 
@@ -241,6 +241,13 @@ QJS_API ValueHandle GetDebuggerLocalVariables(ContextHandle ctx, int stack_idx);
 // parent - 如果是JsObject，则把加载到的这个对象里面；否则新建一个对象以存储加载的内容。如果想要直接加载到全局，parent=qjs.GetGlobalObject(ctx)即可。
 // 返回插件ID
 QJS_API int LoadExtend(ContextHandle ctx, const char* extendFile, ValueHandle parent, void* userData = NULL);
+//获得扩展dll句柄
+QJS_API HMODULE GetExtendHandle(ContextHandle ctx, int extendId);
+//获得扩展文件名
+QJS_API const char* GetExtendFile(ContextHandle ctx, int extendId);
+//获得js父对象
+QJS_API ValueHandle GetExtendParentObject(ContextHandle ctx, int extendId);
+//卸载扩展
 QJS_API void UnloadExtend(ContextHandle ctx, int extendId);
 
 //手工释放一个ValueHandle，一般不用
@@ -361,6 +368,9 @@ public:
 		SET_PROC(hDll, GetDebuggerClosureVariables); 
 		SET_PROC(hDll, GetDebuggerLocalVariables);
 		SET_PROC(hDll, LoadExtend);
+		SET_PROC(hDll, GetExtendHandle);
+		SET_PROC(hDll, GetExtendFile);
+		SET_PROC(hDll, GetExtendParentObject);
 		SET_PROC(hDll, UnloadExtend);
 		SET_PROC(hDll, FreeValueHandle);
 		SET_PROC(hDll, PushRunScope);
@@ -457,6 +467,9 @@ public:
 	DEF_PROC(GetDebuggerClosureVariables); 
 	DEF_PROC(GetDebuggerLocalVariables);
 	DEF_PROC(LoadExtend);
+	DEF_PROC(GetExtendHandle);
+	DEF_PROC(GetExtendFile);
+	DEF_PROC(GetExtendParentObject);
 	DEF_PROC(UnloadExtend);
 	DEF_PROC(FreeValueHandle);
 	DEF_PROC(PushRunScope);

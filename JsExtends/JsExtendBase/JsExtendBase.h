@@ -7,7 +7,7 @@
 #include "QJS.h"
 
 
-QJS_API bool AddPath(ContextHandle ctx, const wchar_t* dir);
+QJS_API bool AddPath(ContextHandle ctx, const wchar_t* dir, ValueHandle parent);
 
 class JsExtendBase
 {
