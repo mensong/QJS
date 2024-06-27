@@ -5,12 +5,7 @@
 #include "../../QJS/Extend.h"
 #include "../pystring/pystring.h"
 
-QJS_API int _entry(ContextHandle ctx, int id)
-{
-	return 0;
-}
-
-QJS_API ValueHandle basename(
+QJS_API ValueHandle F_basename(
 	ContextHandle ctx, ValueHandle this_val,
 	int argc, ValueHandle* argv, void* user_data, int id)
 {
@@ -21,7 +16,7 @@ QJS_API ValueHandle basename(
 	return qjs.NewStringJsValue(ctx, dir.c_str());
 }
 
-QJS_API ValueHandle basename_no_ext(
+QJS_API ValueHandle F_basename_no_ext(
 	ContextHandle ctx, ValueHandle this_val,
 	int argc, ValueHandle* argv, void* user_data, int id)
 {
@@ -32,7 +27,7 @@ QJS_API ValueHandle basename_no_ext(
 	return qjs.NewStringJsValue(ctx, dir.c_str());
 }
 
-QJS_API ValueHandle extension(
+QJS_API ValueHandle F_extension(
 	ContextHandle ctx, ValueHandle this_val,
 	int argc, ValueHandle* argv, void* user_data, int id)
 {
@@ -43,7 +38,7 @@ QJS_API ValueHandle extension(
 	return qjs.NewStringJsValue(ctx, dir.c_str());
 }
 
-QJS_API ValueHandle dirname(
+QJS_API ValueHandle F_dirname(
 	ContextHandle ctx, ValueHandle this_val,
 	int argc, ValueHandle* argv, void* user_data, int id)
 {
@@ -54,7 +49,7 @@ QJS_API ValueHandle dirname(
 	return qjs.NewStringJsValue(ctx, dir.c_str());
 }
 
-QJS_API ValueHandle isabs(
+QJS_API ValueHandle F_isabs(
 	ContextHandle ctx, ValueHandle this_val,
 	int argc, ValueHandle* argv, void* user_data, int id)
 {
@@ -65,7 +60,7 @@ QJS_API ValueHandle isabs(
 	return qjs.NewBoolJsValue(ctx, b);
 }
 
-QJS_API ValueHandle abspath(
+QJS_API ValueHandle F_abspath(
 	ContextHandle ctx, ValueHandle this_val,
 	int argc, ValueHandle* argv, void* user_data, int id)
 {
@@ -77,7 +72,7 @@ QJS_API ValueHandle abspath(
 	return qjs.NewStringJsValue(ctx, res.c_str());
 }
 
-QJS_API ValueHandle join(
+QJS_API ValueHandle F_join(
 	ContextHandle ctx, ValueHandle this_val,
 	int argc, ValueHandle* argv, void* user_data, int id)
 {
@@ -89,7 +84,7 @@ QJS_API ValueHandle join(
 	return qjs.NewStringJsValue(ctx, res.c_str());
 }
 
-QJS_API ValueHandle normpath(
+QJS_API ValueHandle F_normpath(
 	ContextHandle ctx, ValueHandle this_val,
 	int argc, ValueHandle* argv, void* user_data, int id)
 {
@@ -100,7 +95,7 @@ QJS_API ValueHandle normpath(
 	return qjs.NewStringJsValue(ctx, res.c_str());
 }
 
-QJS_API ValueHandle equal_path(
+QJS_API ValueHandle F_equal_path(
 	ContextHandle ctx, ValueHandle this_val,
 	int argc, ValueHandle* argv, void* user_data, int id)
 {

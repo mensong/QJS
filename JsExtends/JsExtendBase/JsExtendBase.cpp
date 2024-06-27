@@ -190,14 +190,14 @@ static void init_process(ContextHandle ctx, int id)
 	qjs.SetNamedJsValue(ctx, "cwd", jprocess_cwd, jprocess);
 }
 
-QJS_API int _entry(ContextHandle ctx, int id)
+QJS_API int _entry(ContextHandle ctx, void* user_data, int id)
 {
 	init_process(ctx, id);
 
 	return 0;//加载插件
 }
 
-QJS_API ValueHandle alert(
+QJS_API ValueHandle F_alert(
 	ContextHandle ctx, ValueHandle this_val, int argc, ValueHandle* argv, void* user_data, int id)
 {
 	std::wstring msg;
@@ -227,7 +227,7 @@ QJS_API ValueHandle alert(
 	return qjs.TheJsUndefined();
 }
 
-QJS_API ValueHandle print(
+QJS_API ValueHandle F_print(
 	ContextHandle ctx, ValueHandle this_val, int argc, ValueHandle* argv, void* user_data, int id)
 {
 	std::wstringstream ss;
@@ -247,11 +247,11 @@ QJS_API ValueHandle print(
 ValueHandle _jprint(
 	ContextHandle ctx, ValueHandle this_val, int argc, ValueHandle* argv, void* user_data)
 {
-	return print(ctx, this_val, argc, argv, user_data, 0);
+	return F_print(ctx, this_val, argc, argv, user_data, 0);
 }
 
 //可设定process.isDebug=true/false;来控制开关debug
-QJS_API ValueHandle debug(
+QJS_API ValueHandle F_debug(
 	ContextHandle ctx, ValueHandle this_val, int argc, ValueHandle* argv, void* user_data, int id)
 {
 	ValueHandle parentObj = qjs.GetExtendParentObject(ctx, id);
@@ -282,7 +282,7 @@ QJS_API ValueHandle debug(
 	return qjs.TheJsUndefined();
 }
 
-QJS_API ValueHandle debugObject(
+QJS_API ValueHandle F_debugObject(
 	ContextHandle ctx, ValueHandle this_val, int argc, ValueHandle* argv, void* user_data, int id)
 {
 	if (argc < 1)
@@ -362,7 +362,7 @@ std::wstring resolveAndUpdateFilePath(ContextHandle ctx, const std::wstring& fil
 	return L"";
 }
 
-QJS_API ValueHandle require(
+QJS_API ValueHandle F_require(
 	ContextHandle ctx, ValueHandle this_val, int argc, ValueHandle* argv, void* user_data, int id)
 {
 	if (argc < 1)
@@ -403,7 +403,7 @@ QJS_API ValueHandle require(
 	return jexports;
 }
 
-QJS_API ValueHandle include(
+QJS_API ValueHandle F_include(
 	ContextHandle ctx, ValueHandle this_val, int argc, ValueHandle* argv, void* user_data, int id)
 {
 	if (argc < 1)
@@ -501,8 +501,8 @@ ValueHandle setTimeoutCallback(ContextHandle ctx, int argc, ValueHandle* argv)
 }
 
 //第一个参数为触发函数，第二个参数为时间间隔，单位：毫秒
-QJS_API ValueHandle setTimeout(
-	ContextHandle ctx, ValueHandle this_val, int argc, ValueHandle* argv, void* user_data)
+QJS_API ValueHandle F_setTimeout(
+	ContextHandle ctx, ValueHandle this_val, int argc, ValueHandle* argv, void* user_data, int id)
 {
 	if (argc != 2)
 	{
@@ -539,8 +539,8 @@ QJS_API ValueHandle setTimeout(
 }
 
 
-QJS_API ValueHandle clearTimeout(
-	ContextHandle ctx, ValueHandle this_val, int argc, ValueHandle* argv, void* user_data)
+QJS_API ValueHandle F_clearTimeout(
+	ContextHandle ctx, ValueHandle this_val, int argc, ValueHandle* argv, void* user_data, int id)
 {
 	if (argc != 1)
 	{
@@ -561,7 +561,7 @@ QJS_API ValueHandle clearTimeout(
 }
 
 
-QJS_API void _completed(ContextHandle ctx, int id)
+QJS_API void _completed(ContextHandle ctx, void* user_data, int id)
 {
 	ValueHandle parentObj = qjs.GetExtendParentObject(ctx, id);
 

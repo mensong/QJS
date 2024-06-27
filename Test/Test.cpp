@@ -6,6 +6,23 @@
 #include "..\JsExtends\JsExtendBase\JsExtendBase.h"
 #include <sstream>
 
+void printObject(ContextHandle ctx, ValueHandle obj)
+{
+	ValueHandle arrKeys = qjs.GetObjectPropertyKeys(ctx, obj, false, true);
+	int64_t len = qjs.GetLength(ctx, arrKeys);
+	printf("↓↓↓Object property↓↓↓\n");
+	for (int i = 0; i < len; i++)
+	{
+		ValueHandle jkey = qjs.GetIndexedJsValue(ctx, i, arrKeys);
+		std::string key = qjs.JsValueToStdString(ctx, jkey);
+		ValueHandle jval = qjs.GetNamedJsValue(ctx, key.c_str(), obj);
+		std::string val = qjs.JsValueToStdString(ctx, jval);
+		printf("%s : %s\n", key.c_str(), val.c_str());
+	}
+
+	printf("↑↑↑Object property↑↑↑\n");
+}
+
 void baseTest()
 {
 	RuntimeHandle rt = qjs.NewRuntime();
@@ -288,6 +305,11 @@ void myTest()
 		auto g2 = qjs.GetGlobalObject(ctx);
 		auto g3 = qjs.GetGlobalObject(ctx);
 		auto g4 = qjs.GetGlobalObject(ctx);
+
+		bool b = qjs.JsValueIsGlobalObject(ctx, g1);
+		b = qjs.JsValueIsGlobalObject(ctx, qjs.NewObjectJsValue(ctx));
+		b = qjs.JsValueIsGlobalObject(ctx, qjs.TheJsNull());
+		b = qjs.JsValueIsGlobalObject(ctx, qjs.TheJsUndefined());
 	}
 
 	{
@@ -451,7 +473,10 @@ void extendTest()
 	id1 = qjs.LoadExtend(ctx, "SampleExtend.dll", qjs.GetGlobalObject(ctx), NULL);
 	//qjs.UnloadExtend(ctx, id1);
 
-	ValueHandle result = qjs.RunScript(ctx, qjs.UnicodeToUtf8(ctx, L"Sample.testFoo1();\ntestFoo1();"), qjs.TheJsNull(), "");
+	//printObject(ctx, jSample);
+
+	ValueHandle result = qjs.RunScript(ctx, qjs.UnicodeToUtf8(ctx,
+		L"Sample.testFoo();\ntestFoo();Sample.a='123';var sa=Sample.a;a='456';a"), qjs.TheJsNull(), "");
 	if (!qjs.JsValueIsException(result))
 	{
 		const char* sz = qjs.JsValueToString(ctx, result);
@@ -582,12 +607,12 @@ void fileExtendTest()
 
 int main()
 {
-	//baseTest();
-	//extendTest();
-	//myTest();
-	//baseExtendTest();
-	//regExtendTest();	
-	//pendingJobTest();
+	baseTest();
+	extendTest();
+	myTest();
+	baseExtendTest();
+	regExtendTest();	
+	pendingJobTest();
 	fileExtendTest();
 
 	return 0;

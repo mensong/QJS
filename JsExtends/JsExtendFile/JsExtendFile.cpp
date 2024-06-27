@@ -41,7 +41,7 @@ BOOL IsPathExist(const TCHAR* csPath)
 ValueHandle g_jbase;
 int g_load_count = 0;
 
-QJS_API int _entry(ContextHandle ctx, int id)
+QJS_API int _entry(ContextHandle ctx, void* user_data, int id)
 {
 	++g_load_count;
 
@@ -61,12 +61,12 @@ QJS_API int _entry(ContextHandle ctx, int id)
 	return 0;//¼ÓÔØ²å¼þ
 }
 
-QJS_API void _completed(ContextHandle ctx, int id)
+QJS_API void _completed(ContextHandle ctx, void* user_data, int id)
 {
 
 }
 
-QJS_API void _unload(ContextHandle ctx, int id)
+QJS_API void _unload(ContextHandle ctx, void* user_data, int id)
 {
 	--g_load_count;
 
@@ -126,7 +126,7 @@ std::wstring resolveAndUpdateFilePath(ContextHandle ctx, const std::wstring& fil
 }
 
 //readTextFile(filename, [function(){}], [input charset]);
-QJS_API ValueHandle readTextFile(
+QJS_API ValueHandle F_readTextFile(
 	ContextHandle ctx, ValueHandle this_val, int argc, ValueHandle* argv, void* user_data, int id)
 {
 	if (argc == 0)
@@ -249,7 +249,7 @@ QJS_API ValueHandle readTextFile(
 }
 
 //writeTextFile(filename, text, [out charset]);
-QJS_API ValueHandle writeTextFile(
+QJS_API ValueHandle F_writeTextFile(
 	ContextHandle ctx, ValueHandle this_val, int argc, ValueHandle* argv, void* user_data, int id)
 {
 	if (argc < 2)

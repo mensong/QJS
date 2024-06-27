@@ -130,6 +130,8 @@ QJS_API ValueHandle TheJsFalse();
 QJS_API ValueHandle TheJsException();
 
 //设置geter seter
+// getter/setter是一个JsFunction。setter方法中argv[0]为设置进来的值
+//同一个变量名称，不能分别设置getter和setter，要一起调用DefineGetterSetter
 QJS_API bool DefineGetterSetter(ContextHandle ctx, ValueHandle parent, 
 	const char* propName, ValueHandle getter, ValueHandle setter);
 //int转ValueHandle
@@ -199,6 +201,7 @@ QJS_API bool JsValueIsException(ValueHandle value);
 QJS_API bool JsValueIsUndefined(ValueHandle value);
 QJS_API bool JsValueIsNull(ValueHandle value);
 QJS_API bool JsValueIsDate(ValueHandle value);
+QJS_API bool JsValueIsGlobalObject(ContextHandle ctx, ValueHandle value);
 
 //js value to string
 QJS_API ValueHandle JsonStringify(ContextHandle ctx, ValueHandle value);
@@ -351,7 +354,8 @@ public:
 		SET_PROC(hDll, JsValueIsArray);
 		SET_PROC(hDll, JsValueIsException);
 		SET_PROC(hDll, JsValueIsFunction); 
-		SET_PROC(hDll, JsValueToTimestamp);
+		SET_PROC(hDll, JsValueToTimestamp); 
+		SET_PROC(hDll, JsValueIsGlobalObject);
 		SET_PROC(hDll, GetAndClearJsLastException);
 		SET_PROC(hDll, JsValueIsUndefined);
 		SET_PROC(hDll, JsValueIsNull); 
@@ -451,6 +455,7 @@ public:
 	DEF_PROC(JsValueIsException);
 	DEF_PROC(JsValueIsFunction); 
 	DEF_PROC(JsValueToTimestamp);
+	DEF_PROC(JsValueIsGlobalObject);
 	DEF_PROC(GetAndClearJsLastException);
 	DEF_PROC(JsValueIsUndefined);
 	DEF_PROC(JsValueIsNull); 

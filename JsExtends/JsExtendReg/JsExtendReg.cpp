@@ -3,7 +3,7 @@
 #include "RegOperator.h"
 #include "../pystring/pystring.h"
 
-QJS_API int _entry(ContextHandle ctx, int id)
+QJS_API int _entry(ContextHandle ctx, void* user_data, int id)
 {
 	return 0;
 }
@@ -166,7 +166,7 @@ static void normalPath(std::string& sPath)
 }
 
 //createKey("HKEY_LOCAL_MACHINE\\SOFTWARE\\MySoftware", true);
-QJS_API ValueHandle createKey(
+QJS_API ValueHandle F_createKey(
 	ContextHandle ctx, ValueHandle this_val,
 	int argc, ValueHandle* argv, void* user_data, int id)
 {
@@ -201,7 +201,7 @@ QJS_API ValueHandle createKey(
 }
 
 //deleteKey("HKEY_LOCAL_MACHINE\\SOFTWARE\\MySoftware", true);
-QJS_API ValueHandle deleteKey(
+QJS_API ValueHandle F_deleteKey(
 	ContextHandle ctx, ValueHandle this_val,
 	int argc, ValueHandle* argv, void* user_data, int id)
 {
@@ -228,7 +228,7 @@ QJS_API ValueHandle deleteKey(
 }
 
 //deleteTree("HKEY_LOCAL_MACHINE\\SOFTWARE\\MySoftware", true);
-QJS_API ValueHandle deleteTree(
+QJS_API ValueHandle F_deleteTree(
 	ContextHandle ctx, ValueHandle this_val,
 	int argc, ValueHandle* argv, void* user_data, int id)
 {
@@ -255,7 +255,7 @@ QJS_API ValueHandle deleteTree(
 }
 
 //deleteValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\MySoftware", "KeyName", true);
-QJS_API ValueHandle deleteValue(
+QJS_API ValueHandle F_deleteValue(
 	ContextHandle ctx, ValueHandle this_val,
 	int argc, ValueHandle* argv, void* user_data, int id)
 {
@@ -281,7 +281,7 @@ QJS_API ValueHandle deleteValue(
 }
 
 //saveKey("HKEY_LOCAL_MACHINE\\SOFTWARE\\MySoftware", "D:\\1.reg", true);
-QJS_API ValueHandle saveKey(
+QJS_API ValueHandle F_saveKey(
 	ContextHandle ctx, ValueHandle this_val,
 	int argc, ValueHandle* argv, void* user_data, int id)
 {
@@ -307,7 +307,7 @@ QJS_API ValueHandle saveKey(
 }
 
 //RestoreKey("HKEY_LOCAL_MACHINE\\SOFTWARE\\MySoftware", "D:\\1.reg", true);
-QJS_API ValueHandle RestoreKey(
+QJS_API ValueHandle F_RestoreKey(
 	ContextHandle ctx, ValueHandle this_val,
 	int argc, ValueHandle* argv, void* user_data, int id)
 {
@@ -333,7 +333,7 @@ QJS_API ValueHandle RestoreKey(
 }
 
 //ReadStringValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\MySoftware", "valueKey", true);
-QJS_API ValueHandle ReadStringValue(
+QJS_API ValueHandle F_ReadStringValue(
 	ContextHandle ctx, ValueHandle this_val,
 	int argc, ValueHandle* argv, void* user_data, int id)
 {
@@ -365,7 +365,7 @@ QJS_API ValueHandle ReadStringValue(
 }
 
 //ReadDwordValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\MySoftware", "valueKey", true);
-QJS_API ValueHandle ReadDwordValue(
+QJS_API ValueHandle F_ReadDwordValue(
 	ContextHandle ctx, ValueHandle this_val,
 	int argc, ValueHandle* argv, void* user_data, int id)
 {
@@ -395,7 +395,7 @@ QJS_API ValueHandle ReadDwordValue(
 }
 
 //WriteStringValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\MySoftware", "valueKey", "value", true);
-QJS_API ValueHandle WriteStringValue(
+QJS_API ValueHandle F_WriteStringValue(
 	ContextHandle ctx, ValueHandle this_val,
 	int argc, ValueHandle* argv, void* user_data, int id)
 {
@@ -425,7 +425,7 @@ QJS_API ValueHandle WriteStringValue(
 }
 
 //WriteDwordValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\MySoftware", "valueKey", 123, true);
-QJS_API ValueHandle WriteDwordValue(
+QJS_API ValueHandle F_WriteDwordValue(
 	ContextHandle ctx, ValueHandle this_val,
 	int argc, ValueHandle* argv, void* user_data, int id)
 {
@@ -455,7 +455,7 @@ QJS_API ValueHandle WriteDwordValue(
 }
 
 //WriteExpandStringValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\MySoftware", "valueKey", "value", true);
-QJS_API ValueHandle WriteExpandStringValue(
+QJS_API ValueHandle F_WriteExpandStringValue(
 	ContextHandle ctx, ValueHandle this_val,
 	int argc, ValueHandle* argv, void* user_data, int id)
 {
@@ -485,7 +485,7 @@ QJS_API ValueHandle WriteExpandStringValue(
 }
 
 //EnumSubKeys("HKEY_LOCAL_MACHINE\\SOFTWARE\\MySoftware", true);
-QJS_API ValueHandle EnumSubKeys(
+QJS_API ValueHandle F_EnumSubKeys(
 	ContextHandle ctx, ValueHandle this_val,
 	int argc, ValueHandle* argv, void* user_data, int id)
 {
@@ -523,7 +523,7 @@ QJS_API ValueHandle EnumSubKeys(
 }
 
 //EnumValueNameKeys("HKEY_LOCAL_MACHINE\\SOFTWARE\\MySoftware", true);
-QJS_API ValueHandle EnumValueNameKeys(
+QJS_API ValueHandle F_EnumValueNameKeys(
 	ContextHandle ctx, ValueHandle this_val,
 	int argc, ValueHandle* argv, void* user_data, int id)
 {

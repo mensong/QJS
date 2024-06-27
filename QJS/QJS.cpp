@@ -111,14 +111,12 @@ struct QJSContext
 	struct ExtendFunctionUserData
 	{
 		int extendId;
-		FN_JsExtendFunction nativeFunc;
-		void* nativeUserData;
+		FN_JS_ExtendFunction nativeFunc;
 
 		ExtendFunctionUserData()
 		{
 			extendId = 0;
 			nativeFunc = NULL;
-			nativeUserData = NULL;
 		}
 	};
 	//插件信息
@@ -127,21 +125,24 @@ struct QJSContext
 		HMODULE hDll;
 		std::string filename;
 		int extendId;
-
+		void* userData;
 		ValueHandle parentObj;
 
-		//<funcion name, Function callback pointer>
-		std::map<std::string, FN_JsFunctionCallback> functions;
+		////<funcion name, Function callback pointer>
+		//std::map<std::string, FN_JsFunctionCallback> functions;
 
 		ExtendInfo()
 		{
 			hDll = NULL;
 			extendId = 0;
+			userData = NULL;
+			parentObj.ctx = NULL;
+			parentObj.value = NULL;
 		}
 	};
 	//<extend id, ExtendInfo pointer>
 	std::map<int, ExtendInfo*> extends;
-	//插件函数UserData缓存，用于最后释放
+	//插件函数UserData缓存，用于最后Context释放才释放
 	std::vector<ExtendFunctionUserData*> extendFunctionUserDatasHolder;
 
 	//返回值-插件ID。返回0失败，非0成功
@@ -188,14 +189,12 @@ struct QJSContext
 		return itFinder->second;
 	}
 
-	ExtendFunctionUserData* addExtendFunction(int extendId, const std::string& funcName, 
-		FN_JsExtendFunction nativeFunc, void* userData)
+	ExtendFunctionUserData* addExtendFunction(int extendId, FN_JS_ExtendFunction nativeFunc)
 	{
 		ExtendFunctionUserData* pUserData = new ExtendFunctionUserData();
 		pUserData->extendId = extendId;
 		//pUserData->parentObj = parentObj;
 		pUserData->nativeFunc = nativeFunc;
-		pUserData->nativeUserData = userData;
 		extendFunctionUserDatasHolder.push_back(pUserData);
 		return pUserData;
 	}
@@ -209,7 +208,7 @@ struct QJSContext
 		//卸载
 		FN_unload _unload = (FN_unload)::GetProcAddress(pEI->hDll, "_unload");
 		if (_unload)
-			_unload((ContextHandle)this, extendId);
+			_unload((ContextHandle)this, pEI->userData, extendId);
 				
 		::FreeLibrary(pEI->hDll);
 		extends.erase(extendId);
@@ -661,13 +660,7 @@ size_t PopRunScope(ContextHandle ctx, size_t pushdValueIdx)
 
 bool DefineGetterSetter(ContextHandle ctx, ValueHandle parent, 
 	const char* propName, ValueHandle getter, ValueHandle setter)
-{
-	JSValue globalObj = JS_GetGlobalObject(_INNER_CTX(ctx));
-	bool bIsGlobalObj = getValuePtr(parent) == getValuePtr(globalObj);
-	JS_FreeValue(_INNER_CTX(ctx), globalObj);
-	if (bIsGlobalObj)
-		return false;
-
+{	
 	int flags = JS_PROP_HAS_CONFIGURABLE | JS_PROP_HAS_ENUMERABLE;
 	if (JS_IsFunction(_INNER_CTX(ctx), _INNER_VAL(getter)))
 	{
@@ -1265,6 +1258,14 @@ bool JsValueIsDate(ValueHandle value)
 	return JS_IsDate(_INNER_CTX(value.ctx), _INNER_VAL(value), NULL) == TRUE;
 }
 
+bool JsValueIsGlobalObject(ContextHandle ctx, ValueHandle value)
+{
+	JSValue globalObj = JS_GetGlobalObject(_INNER_CTX(ctx));
+	bool bIsGlobalObj = getValuePtr(value) == getValuePtr(globalObj);
+	JS_FreeValue(_INNER_CTX(ctx), globalObj);
+	return bIsGlobalObj;
+}
+
 ValueHandle JsonStringify(ContextHandle ctx, ValueHandle value)
 {
 	JSValue jstr = JS_JSONStringify(_INNER_CTX(ctx), _INNER_VAL(value), JS_UNDEFINED, JS_UNDEFINED);
@@ -1552,7 +1553,8 @@ ValueHandle _extendCallHelper(
 		return TheJsUndefined();
 
 	QJSContext* thisCtx = (QJSContext*)ctx;
-	if (thisCtx->extends.find(pFuncUserData->extendId) == thisCtx->extends.end())
+	auto itFinder = thisCtx->extends.find(pFuncUserData->extendId);
+	if (itFinder == thisCtx->extends.end())
 	{
 		std::string err = "Extend#" + std::to_string(pFuncUserData->extendId) + " has be unloaded";
 		return NewThrowJsValue(ctx, NewStringJsValue(ctx, err.c_str()));
@@ -1564,7 +1566,7 @@ ValueHandle _extendCallHelper(
 	}
 
 	return pFuncUserData->nativeFunc(ctx, this_val, argc, argv, 
-		pFuncUserData->nativeUserData, pFuncUserData->extendId);
+		itFinder->second->userData, pFuncUserData->extendId);
 }
 
 int LoadExtend(ContextHandle ctx, const char* extendFile, ValueHandle parent, void* userData/*=NULL*/)
@@ -1598,12 +1600,13 @@ int LoadExtend(ContextHandle ctx, const char* extendFile, ValueHandle parent, vo
 		return 0;
 	}
 	pEI->parentObj = parent;
+	pEI->userData = userData;
 
 	FN_entry _entry = (FN_entry)GetProcAddress(pEI->hDll, "_entry");
 	FN_completed _completed = (FN_completed)GetProcAddress(pEI->hDll, "_completed");
 	if (_entry)
 	{
-		int entryRes = _entry(ctx, extendId);
+		int entryRes = _entry(ctx, userData, extendId);
 		if (entryRes != 0)
 		{
 			_ctx->unloadExtend(extendId);
@@ -1613,6 +1616,9 @@ int LoadExtend(ContextHandle ctx, const char* extendFile, ValueHandle parent, vo
 			return 0;
 		}
 	}
+
+	//存储getter和setter，因为同一个变量名称，不能分别设置getter和setter，要一起调用DefineGetterSetter
+	std::map<std::string, std::pair<ValueHandle, ValueHandle>> getter_setter;
 
 	for (size_t i = 0; i < function_list.size(); i++)
 	{
@@ -1625,15 +1631,66 @@ int LoadExtend(ContextHandle ctx, const char* extendFile, ValueHandle parent, vo
 		//
 		if (funcName != "_entry" && funcName != "_completed" && funcName != "_unload")
 		{
-			QJSContext::ExtendFunctionUserData* pFuncUserData = _ctx->addExtendFunction(
-				extendId, funcName, (FN_JsExtendFunction)func, userData);
-			ValueHandle jsFunc = NewFunction(ctx, _extendCallHelper, 0, pFuncUserData);
-			SetNamedJsValue(ctx, funcName.c_str(), jsFunc, parent);
+			if (funcName.length() > 2)
+			{
+				std::string exprtType = funcName.substr(0, 2);
+				std::string exprtName = funcName.substr(2);
+				if (exprtType == "F_")
+				{
+					//函数
+					QJSContext::ExtendFunctionUserData* pFuncUserData = _ctx->addExtendFunction(
+						extendId, (FN_JS_ExtendFunction)func);
+					ValueHandle jsFunc = NewFunction(ctx, _extendCallHelper, 0, pFuncUserData);
+					SetNamedJsValue(ctx, exprtName.c_str(), jsFunc, parent);
+				}
+				else if (exprtType == "G_")
+				{
+					//getter
+					QJSContext::ExtendFunctionUserData* pFuncUserData = _ctx->addExtendFunction(
+						extendId, (FN_JS_ExtendFunction)func);
+					ValueHandle jsFunc = NewFunction(ctx, _extendCallHelper, 0, pFuncUserData);
+					//DefineGetterSetter(ctx, parent, exprtName.c_str(), jsFunc, TheJsUndefined());
+					auto itFinder = getter_setter.find(exprtName.c_str());
+					if (itFinder == getter_setter.end())
+					{
+						getter_setter.insert(std::make_pair(exprtName.c_str(),
+							std::make_pair(jsFunc, TheJsUndefined())));
+					}
+					else
+					{
+						itFinder->second.first = jsFunc;
+					}
+				}
+				else if (exprtType == "S_")
+				{
+					//setter
+					QJSContext::ExtendFunctionUserData* pFuncUserData = _ctx->addExtendFunction(
+						extendId, (FN_JS_ExtendFunction)func);
+					ValueHandle jsFunc = NewFunction(ctx, _extendCallHelper, 0, pFuncUserData);
+					//DefineGetterSetter(ctx, parent, exprtName.c_str(), TheJsUndefined(), jsFunc);
+					auto itFinder = getter_setter.find(exprtName.c_str());
+					if (itFinder == getter_setter.end())
+					{
+						getter_setter.insert(std::make_pair(exprtName.c_str(),
+							std::make_pair(TheJsUndefined(), jsFunc)));
+					}
+					else
+					{
+						itFinder->second.second = jsFunc;
+					}
+				}
+			}
 		}
 	}
 
+	//合并定义getter/setter
+	for (auto it = getter_setter.begin(); it != getter_setter.end(); ++it)
+	{
+		DefineGetterSetter(ctx, parent, it->first.c_str(), it->second.first, it->second.second);
+	}
+
 	if (_completed)
-		_completed(ctx, extendId);
+		_completed(ctx, userData, extendId);
 
 	return extendId;
 }
