@@ -219,7 +219,7 @@ QJS_API ValueHandle GetAndClearJsLastException(ContextHandle ctx);
 //添加事件
 typedef ValueHandle(*FN_JsJobCallback)(ContextHandle ctx, int argc, ValueHandle* argv);
 QJS_API bool EnqueueJob(ContextHandle ctx, FN_JsJobCallback funcJob, ValueHandle args[], int argc);
-//处理事件
+//处理事件，一般可放在应用程序的消息循环timer里。例如申请一个1毫秒的timer，然后在timer里执行ExecutePendingJob
 // return < 0 if exception, 
 // return 0 if no job pending, 
 // return 1 if a job was executed successfully, the context of the job is stored in 'outCurCtx'
