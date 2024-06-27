@@ -104,7 +104,7 @@ void myTest()
 	RuntimeHandle rt = qjs.NewRuntime();
 	ContextHandle ctx = qjs.NewContext(rt);
 
-	qjs.LoadExtend(ctx, "JsExtendBase.dll", qjs.GetGlobalObject(ctx));
+	qjs.LoadExtend(ctx, "JsExtendBase.dll", qjs.GetGlobalObject(ctx), NULL);
 
 	ValueHandle alertFunc = qjs.NewFunction(ctx, JsAlert, 2, NULL);
 	 qjs.SetNamedJsValue(ctx, "alert", alertFunc, qjs.TheJsNull());
@@ -444,11 +444,14 @@ void extendTest()
 	RuntimeHandle rt = qjs.NewRuntime();
 	ContextHandle ctx = qjs.NewContext(rt);
 
-	ValueHandle ext1 = qjs.LoadExtend(ctx, "SampleExtend.dll", qjs.TheJsNull());
-	qjs.SetNamedJsValue(ctx, "Sample", ext1, qjs.TheJsNull());
-	//qjs.UnloadExtend(ctx, "SampleExtend.dll");
+	auto jSample = qjs.NewObjectJsValue(ctx);
+	qjs.SetNamedJsValue(ctx, "Sample", jSample, qjs.GetGlobalObject(ctx));
+	int id1 = qjs.LoadExtend(ctx, "SampleExtend.dll", jSample, NULL);
+	//qjs.UnloadExtend(ctx, id1);
+	id1 = qjs.LoadExtend(ctx, "SampleExtend.dll", qjs.GetGlobalObject(ctx), NULL);
+	//qjs.UnloadExtend(ctx, id1);
 
-	ValueHandle result = qjs.RunScript(ctx, qjs.UnicodeToUtf8(ctx, L"Sample.testFoo1();"), qjs.TheJsNull(), "");
+	ValueHandle result = qjs.RunScript(ctx, qjs.UnicodeToUtf8(ctx, L"Sample.testFoo1();\ntestFoo1();"), qjs.TheJsNull(), "");
 	if (!qjs.JsValueIsException(result))
 	{
 		const char* sz = qjs.JsValueToString(ctx, result);
@@ -472,7 +475,7 @@ void baseExtendTest()
 	RuntimeHandle rt = qjs.NewRuntime();
 	ContextHandle ctx = qjs.NewContext(rt);
 
-	qjs.LoadExtend(ctx, "JsExtendBase.dll", qjs.GetGlobalObject(ctx));
+	qjs.LoadExtend(ctx, "JsExtendBase.dll", qjs.GetGlobalObject(ctx), NULL);
 	JsExtendBase::Ins().AddPath(ctx, L"D:\\");
 	JsExtendBase::Ins().AddPath(ctx, L"D:\\");
 	JsExtendBase::Ins().AddPath(ctx, L"D:\\");
@@ -501,10 +504,11 @@ void regExtendTest()
 	RuntimeHandle rt = qjs.NewRuntime();
 	ContextHandle ctx = qjs.NewContext(rt);
 
-	qjs.LoadExtend(ctx, "JsExtendBase.dll", qjs.GetGlobalObject(ctx));
+	int idBase = qjs.LoadExtend(ctx, "JsExtendBase.dll", qjs.GetGlobalObject(ctx), NULL);
 
-	ValueHandle ext1 = qjs.LoadExtend(ctx, "JsExtendReg.dll", qjs.TheJsNull());
-	qjs.SetNamedJsValue(ctx, "Reg", ext1, qjs.TheJsNull());
+	auto jReg = qjs.NewObjectJsValue(ctx);
+	qjs.SetNamedJsValue(ctx, "Reg", jReg, qjs.GetGlobalObject(ctx));
+	int idReg = qjs.LoadExtend(ctx, "JsExtendReg.dll", jReg, NULL);
 
 	ValueHandle result = qjs.RunScriptFile(ctx, "regTest.js");
 
@@ -518,7 +522,7 @@ void pendingJobTest()
 	RuntimeHandle rt = qjs.NewRuntime();
 	ContextHandle ctx = qjs.NewContext(rt);
 
-	qjs.LoadExtend(ctx, "JsExtendBase.dll", qjs.GetGlobalObject(ctx));
+	qjs.LoadExtend(ctx, "JsExtendBase.dll", qjs.GetGlobalObject(ctx), NULL);
 
 	ValueHandle result = qjs.RunScript(ctx, 
 		"var n = 0;var t = setTimeout(function(){alert('setTimeout:'+n);++n;if (n>=3)clearTimeout(t);},1000);", 
@@ -549,7 +553,7 @@ void fileExtendTest()
 
 	auto jfile = qjs.NewObjectJsValue(ctx);
 	qjs.SetNamedJsValue(ctx, "File", jfile, qjs.GetGlobalObject(ctx));
-	qjs.LoadExtend(ctx, "JsExtendFile.dll", jfile);
+	qjs.LoadExtend(ctx, "JsExtendFile.dll", jfile, NULL);
 
 	auto result = qjs.RunScriptFile(ctx, "fileExtendTest.js");
 	if (qjs.JsValueIsException(result))
@@ -567,12 +571,12 @@ void fileExtendTest()
 int main()
 {
 	//baseTest();
-	//extendTest();
+	extendTest();
 	//myTest();
 	//baseExtendTest();
 	//regExtendTest();	
 	//pendingJobTest();
-	fileExtendTest();
+	//fileExtendTest();
 
 	return 0;
 }

@@ -5,14 +5,14 @@
 #include "../../QJS/Extend.h"
 #include "../pystring/pystring.h"
 
-QJS_API int _entry(ContextHandle ctx)
+QJS_API int _entry(ContextHandle ctx, int id)
 {
 	return 0;
 }
 
 QJS_API ValueHandle basename(
 	ContextHandle ctx, ValueHandle this_val,
-	int argc, ValueHandle* argv, void* user_data)
+	int argc, ValueHandle* argv, void* user_data, int id)
 {
 	if (argc < 1)
 		return qjs.TheJsUndefined();
@@ -23,7 +23,7 @@ QJS_API ValueHandle basename(
 
 QJS_API ValueHandle basename_no_ext(
 	ContextHandle ctx, ValueHandle this_val,
-	int argc, ValueHandle* argv, void* user_data)
+	int argc, ValueHandle* argv, void* user_data, int id)
 {
 	if (argc < 1)
 		return qjs.TheJsUndefined();
@@ -34,7 +34,7 @@ QJS_API ValueHandle basename_no_ext(
 
 QJS_API ValueHandle extension(
 	ContextHandle ctx, ValueHandle this_val,
-	int argc, ValueHandle* argv, void* user_data)
+	int argc, ValueHandle* argv, void* user_data, int id)
 {
 	if (argc < 1)
 		return qjs.TheJsUndefined();
@@ -45,7 +45,7 @@ QJS_API ValueHandle extension(
 
 QJS_API ValueHandle dirname(
 	ContextHandle ctx, ValueHandle this_val,
-	int argc, ValueHandle* argv, void* user_data)
+	int argc, ValueHandle* argv, void* user_data, int id)
 {
 	if (argc < 1)
 		return qjs.TheJsUndefined();
@@ -56,7 +56,7 @@ QJS_API ValueHandle dirname(
 
 QJS_API ValueHandle isabs(
 	ContextHandle ctx, ValueHandle this_val,
-	int argc, ValueHandle* argv, void* user_data)
+	int argc, ValueHandle* argv, void* user_data, int id)
 {
 	if (argc < 1)
 		return qjs.TheJsUndefined();
@@ -67,7 +67,7 @@ QJS_API ValueHandle isabs(
 
 QJS_API ValueHandle abspath(
 	ContextHandle ctx, ValueHandle this_val,
-	int argc, ValueHandle* argv, void* user_data)
+	int argc, ValueHandle* argv, void* user_data, int id)
 {
 	if (argc < 2)
 		return qjs.TheJsUndefined();
@@ -79,7 +79,7 @@ QJS_API ValueHandle abspath(
 
 QJS_API ValueHandle join(
 	ContextHandle ctx, ValueHandle this_val,
-	int argc, ValueHandle* argv, void* user_data)
+	int argc, ValueHandle* argv, void* user_data, int id)
 {
 	if (argc < 2)
 		return qjs.TheJsUndefined();
@@ -91,7 +91,7 @@ QJS_API ValueHandle join(
 
 QJS_API ValueHandle normpath(
 	ContextHandle ctx, ValueHandle this_val,
-	int argc, ValueHandle* argv, void* user_data)
+	int argc, ValueHandle* argv, void* user_data, int id)
 {
 	if (argc < 1)
 		return qjs.TheJsUndefined();
@@ -102,7 +102,7 @@ QJS_API ValueHandle normpath(
 
 QJS_API ValueHandle equal_path(
 	ContextHandle ctx, ValueHandle this_val,
-	int argc, ValueHandle* argv, void* user_data)
+	int argc, ValueHandle* argv, void* user_data, int id)
 {
 	if (argc < 2)
 		return qjs.TheJsUndefined();

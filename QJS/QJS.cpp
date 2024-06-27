@@ -73,9 +73,6 @@ struct QJSContext
 		raw = NULL;
 		runtime = NULL;
 
-		extendHandles = new std::map<std::string, HMODULE>();
-		extendFuncionsCache = new std::map<std::string, std::map<std::string, FN_JsFunctionCallback*>>;
-
 		__magicIdx = 0;
 		__JobFunctionIdx = 0;
 
@@ -88,20 +85,10 @@ struct QJSContext
 			JS_FreeValue(raw, (JSValue)values[i]);
 		}
 		values.clear();
-				
-		if (extendHandles)
-		{
-			for (auto it = extendHandles->begin(); it != extendHandles->end(); ++it)
-				unloadExtend(it->first);
-			extendHandles->clear();
-			delete extendHandles;
-			extendHandles = NULL;
-		}
-		if (extendFuncionsCache)
-		{
-			delete extendFuncionsCache;
-			extendFuncionsCache = NULL;
-		}
+		
+#pragma region Extend
+		clearExtends();
+#pragma endregion
 
 		JS_FreeContext(raw);
 
@@ -118,23 +105,46 @@ struct QJSContext
 	}
 
 #pragma region Extend
-	//<fileName, hDll>
-	std::map<std::string, HMODULE>* extendHandles;
-	//<fileName, <funcName, JS_Func>>
-	std::map<std::string, std::map<std::string, FN_JsFunctionCallback*>>* extendFuncionsCache;
 
-	//根据文件名获得hDll，如果没有加载则加载
-	HMODULE getOrAddExtend(const std::string& filename)
+	int extendIdx = 0;
+	//插件函数UserData
+	struct ExtendFunctionUserData
 	{
-		if (filename.empty())
-			return NULL;
+		int extendId;
+		FN_JsExtendFunction nativeFunc;
+		void* nativeUserData;
 
-		std::map<std::string, HMODULE>::iterator itFinder = extendHandles->find(filename.c_str());
-		if (itFinder != extendHandles->end())
+		ExtendFunctionUserData()
 		{
-			return itFinder->second;
+			extendId = 0;
+			nativeFunc = NULL;
+			nativeUserData = NULL;
 		}
+	};
+	//插件信息
+	struct ExtendInfo
+	{
+		HMODULE hDll;
+		std::string filename;
+		int extendId;
 
+		//<funcion name, Function callback pointer>
+		std::map<std::string, FN_JsFunctionCallback> functions;
+
+		ExtendInfo()
+		{
+			hDll = NULL;
+			extendId = 0;
+		}
+	};
+	//<extend id, ExtendInfo pointer>
+	std::map<int, ExtendInfo*> extends;
+	//插件函数UserData缓存，用于最后释放
+	std::vector<ExtendFunctionUserData*> extendFunctionUserDatasHolder;
+
+	//返回值-插件ID。返回0失败，非0成功
+	int loadExtend(const std::string& filename)
+	{
 		//设置dll搜索路径到扩展dll所在的目录
 		int i = (int)filename.size() - 1;
 		for (; i >= 0; --i)
@@ -153,52 +163,79 @@ struct QJSContext
 		if (i > 0)
 			::SetDllDirectoryA(NULL);
 
-		extendHandles->insert(std::make_pair(filename.c_str(), hDll));
+		if (!hDll)
+			return 0;
 
-		return hDll;
+		++extendIdx;//id递增
+
+		ExtendInfo* pEI = new ExtendInfo();
+		pEI->extendId = extendIdx;
+		pEI->hDll = hDll;
+		pEI->filename = filename;
+
+		extends.insert(std::make_pair(extendIdx, pEI));
+
+		return extendIdx;
 	}
 
-	//根据文件名卸载扩展dll
-	void unloadExtend(const std::string& filename)
+	ExtendInfo* getExtendInfo(int extendId)
 	{
-		std::map<std::string, HMODULE>::iterator itFinder = extendHandles->find(filename.c_str());
-		if (itFinder != extendHandles->end())
-		{
-			//卸载扩展时，只是把扩展的函数设置为NULL，不能直接delete(因为还有可能被调用)，delete在FreeContext里
-			auto itFunc = extendFuncionsCache->find(filename.c_str());
-			if (itFunc != extendFuncionsCache->end())
-			{
-				for (auto itFunc2 = itFunc->second.begin();
-					itFunc2 != itFunc->second.end(); ++itFunc2)
-				{
-					*(itFunc2->second) = NULL;
-				}
-			}
-
-			HMODULE hDll = itFinder->second;			
-			FreeLibrary(hDll);
-			extendHandles->erase(itFinder);
-		}
+		auto itFinder = extends.find(extendId);
+		if (itFinder == extends.end())
+			return NULL;
+		return itFinder->second;
 	}
 
-	//添加扩展函数
-	FN_JsFunctionCallback* addExtendFunction(const std::string& filename, 
-		const std::string& funcName, FN_JsFunctionCallback func)
+	ExtendFunctionUserData* addExtendFunction(int extendId, const std::string& funcName, 
+		FN_JsExtendFunction nativeFunc, void* userData)
 	{
-		FN_JsFunctionCallback* pFn = NULL;
-		auto itFinder = (*extendFuncionsCache)[filename.c_str()].find(funcName.c_str());
-		if (itFinder != (*extendFuncionsCache)[filename.c_str()].end())
+		ExtendFunctionUserData* pUserData = new ExtendFunctionUserData();
+		pUserData->extendId = extendId;
+		pUserData->nativeFunc = nativeFunc;
+		pUserData->nativeUserData = userData;
+		extendFunctionUserDatasHolder.push_back(pUserData);
+		return pUserData;
+	}
+
+	bool unloadExtend(int extendId)
+	{
+		ExtendInfo* pEI = getExtendInfo(extendId);
+		if (!pEI)
+			return false;
+
+		//卸载
+		FN_unload _unload = (FN_unload)::GetProcAddress(pEI->hDll, "_unload");
+		if (_unload)
+			_unload((ContextHandle)this, extendId);
+				
+		::FreeLibrary(pEI->hDll);
+		extends.erase(extendId);
+		delete pEI;
+		return true;
+	}
+
+	void clearExtends()
+	{
+		std::vector<int> extendIds;
+		for (auto it = extends.begin(); it != extends.end(); ++it)
 		{
-			*itFinder->second = func;
-			pFn = itFinder->second;
+			if (!it->second)
+				continue;
+			extendIds.push_back(it->second->extendId);
 		}
-		else
+		for (size_t i = 0; i < extendIds.size(); i++)
 		{
-			pFn = new FN_JsFunctionCallback;
-			*pFn = func;
-			(*extendFuncionsCache)[filename.c_str()].insert(std::make_pair(funcName.c_str(), pFn));
+			unloadExtend(extendIds[i]);
 		}
-		return pFn;
+		extends.clear();
+
+		for (size_t i = 0; i < extendFunctionUserDatasHolder.size(); i++)
+		{
+			ExtendFunctionUserData* p = extendFunctionUserDatasHolder[i];
+			if (p)
+				delete p;
+		}
+		extendFunctionUserDatasHolder.clear();
 	}
 #pragma endregion
 
@@ -430,22 +467,7 @@ void ResetContext(ContextHandle ctx)
 	innerCtx->values.clear();
 
 #pragma region Extend
-	for (std::map<std::string, HMODULE>::iterator it = innerCtx->extendHandles->begin();
-		it != innerCtx->extendHandles->end(); ++it)
-	{
-		FreeLibrary(it->second);
-	}
-	innerCtx->extendHandles->clear();
-		
-	for (auto it2 = innerCtx->extendFuncionsCache->begin(); 
-		it2 != innerCtx->extendFuncionsCache->end(); ++it2)
-	{
-		for (auto it3 = it2->second.begin(); it3 != it2->second.end(); ++it3)
-		{
-			delete it3->second;
-		}
-	}
-	innerCtx->extendFuncionsCache->clear();
+	innerCtx->clearExtends();
 #pragma endregion
 }
 
@@ -1437,6 +1459,7 @@ ValueHandle GetDebuggerLocalVariables(ContextHandle ctx, int stack_idx)
 }
 
 #pragma region Extend
+
 bool GetExportNames(const char* dllPath, std::vector<std::string>& outExportNames)
 {
 	HANDLE hFile, hFileMap;//文件句柄和内存映射文件句柄
@@ -1514,66 +1537,85 @@ bool GetExportNames(const char* dllPath, std::vector<std::string>& outExportName
 ValueHandle _extendCallHelper(
 	ContextHandle ctx, ValueHandle this_val, int argc, ValueHandle* argv, void* user_data)
 {
-	FN_JsFunctionCallback* pFn = (FN_JsFunctionCallback*)user_data;
-	if (!pFn || !(*pFn))
+	QJSContext::ExtendFunctionUserData* pFuncUserData = (QJSContext::ExtendFunctionUserData*)user_data;
+	if (!pFuncUserData)
 		return TheJsUndefined();
 
-	return (*pFn)(ctx, this_val, argc, argv, NULL);
+	QJSContext* thisCtx = (QJSContext*)ctx;
+	if (thisCtx->extends.find(pFuncUserData->extendId) == thisCtx->extends.end())
+	{
+		std::string err = "Extend#" + std::to_string(pFuncUserData->extendId) + " has be unloaded";
+		return NewThrowJsValue(ctx, NewStringJsValue(ctx, err.c_str()));
+	}
+
+	if (!pFuncUserData->nativeFunc)
+	{
+		return NewThrowJsValue(ctx, NewStringJsValue(ctx, "No native function"));
+	}
+
+	return pFuncUserData->nativeFunc(ctx, this_val, argc, argv, 
+		pFuncUserData->nativeUserData, pFuncUserData->extendId);
 }
 
-ValueHandle LoadExtend(ContextHandle ctx, const char* extendFile, ValueHandle parent)
+int LoadExtend(ContextHandle ctx, const char* extendFile, ValueHandle parent, void* userData/*=NULL*/)
 {
 	std::vector<std::string> function_list;
 	if (!GetExportNames(extendFile, function_list) || function_list.size() == 0)
-		return TheJsUndefined();
+		return 0;
 
 	QJSContext* _ctx = (QJSContext*)ctx;
-	HMODULE hDll = _ctx->getOrAddExtend(extendFile);
-	if (!hDll)
-		return TheJsUndefined();
+
+	int extendId = _ctx->loadExtend(extendFile);
+	if (extendId <= 0)
+		return extendId;
+
+	QJSContext::ExtendInfo* pEI = _ctx->getExtendInfo(extendId);
+	if (!pEI)
+		return 0;
+
+	FN_entry _entry = (FN_entry)GetProcAddress(pEI->hDll, "_entry");
+	FN_completed _completed = (FN_completed)GetProcAddress(pEI->hDll, "_completed");
+	if (_entry)
+	{
+		int entryRes = _entry(ctx, extendId);
+		if (entryRes != 0)
+		{
+			_ctx->unloadExtend(extendId);
+			return 0;
+		}
+	}
 
 	if (!JsValueIsObject(parent))
-		parent = NewObjectJsValue(ctx);
+		parent = GetGlobalObject(ctx);
+
 	for (size_t i = 0; i < function_list.size(); i++)
 	{
 		std::string funcName = function_list[i];
 
-		FARPROC func = ::GetProcAddress(hDll, funcName.c_str());
+		FARPROC func = ::GetProcAddress(pEI->hDll, funcName.c_str());
 		if (!func)
 			continue;
 
-		//入口
-		if (funcName == "_entry")
+		//
+		if (funcName != "_entry" && funcName != "_completed" && funcName != "_unload")
 		{
-			FN_entry entry = (FN_entry)func;
-			int entryRes = entry(ctx);
-			if (entryRes != 0)
-			{
-				_ctx->unloadExtend(extendFile);
-				return TheJsUndefined();
-			}
-		}
-		else if (funcName == "_completed")
-		{
-			FN_completed completed = (FN_completed)func;
-			completed(ctx);
-		}
-		else
-		{
-			FN_JsFunctionCallback* pFn = _ctx->addExtendFunction(
-				extendFile, funcName, (FN_JsFunctionCallback)func);//记录以管理释放
-			ValueHandle jsFunc = NewFunction(ctx, _extendCallHelper, 0, pFn);
+			QJSContext::ExtendFunctionUserData* pFuncUserData = _ctx->addExtendFunction(
+				extendId, funcName, (FN_JsExtendFunction)func, userData);
+			ValueHandle jsFunc = NewFunction(ctx, _extendCallHelper, 0, pFuncUserData);
 			SetNamedJsValue(ctx, funcName.c_str(), jsFunc, parent);
 		}
 	}
 
-	return parent;
+	if (_completed)
+		_completed(ctx, extendId);
+
+	return extendId;
 }
 
-void UnloadExtend(ContextHandle ctx, const char* extendFile)
+void UnloadExtend(ContextHandle ctx, int extendId)
 {
 	QJSContext* _ctx = (QJSContext*)ctx;
-	_ctx->unloadExtend(extendFile);
+	_ctx->unloadExtend(extendId);
 }
 
 #pragma endregion

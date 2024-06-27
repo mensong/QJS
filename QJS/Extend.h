@@ -2,16 +2,21 @@
 #define QJS_EXPORTS
 #include "QJS.h"
 
-//入口函数原型: QJS_API int _entry(ContextHandle ctx){}
+//入口函数原型: QJS_API int _entry(ContextHandle ctx, int id){}
 // return 错误码。返回非0则不加载插件
-typedef int (*FN_entry)(ContextHandle ctx);
-//加载完成函数原型: QJS_API void _completed(ContextHandle ctx){}
-typedef void (*FN_completed)(ContextHandle ctx);
+typedef int (*FN_entry)(ContextHandle ctx, int id);
+
+//加载完成函数原型: QJS_API void _completed(ContextHandle ctx, int id){}
+typedef void (*FN_completed)(ContextHandle ctx, int id);
+
+//卸载函数原型：QJS_API void _unload(ContextHandle ctx, int id){}
+typedef void (*FN_unload)(ContextHandle ctx, int id);
 
 //扩展函数原型
-typedef ValueHandle(*FN_JsFunction)(
+typedef ValueHandle(*FN_JsExtendFunction)(
 	ContextHandle ctx, ValueHandle this_val, 
-	int argc, ValueHandle* argv, void* user_data);
+	int argc, ValueHandle* argv, 
+	void* user_data, int id);
 
 /*
 创建扩展步骤：

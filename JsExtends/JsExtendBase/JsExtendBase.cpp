@@ -185,7 +185,7 @@ static void init_process(ContextHandle ctx)
 	qjs.SetNamedJsValue(ctx, "cwd", jprocess_cwd, jprocess);
 }
 
-QJS_API int _entry(ContextHandle ctx)
+QJS_API int _entry(ContextHandle ctx, int id)
 {
 	init_process(ctx);
 
@@ -193,7 +193,7 @@ QJS_API int _entry(ContextHandle ctx)
 }
 
 QJS_API ValueHandle alert(
-	ContextHandle ctx, ValueHandle this_val, int argc, ValueHandle* argv, void* user_data)
+	ContextHandle ctx, ValueHandle this_val, int argc, ValueHandle* argv, void* user_data, int id)
 {
 	std::wstring msg;
 	if (argc > 0)
@@ -223,7 +223,7 @@ QJS_API ValueHandle alert(
 }
 
 QJS_API ValueHandle print(
-	ContextHandle ctx, ValueHandle this_val, int argc, ValueHandle* argv, void* user_data)
+	ContextHandle ctx, ValueHandle this_val, int argc, ValueHandle* argv, void* user_data, int id)
 {
 	std::wstringstream ss;
 	for (int i = 0; i < argc; i++)
@@ -239,9 +239,15 @@ QJS_API ValueHandle print(
 	return qjs.TheJsUndefined();
 }
 
+ValueHandle _jprint(
+	ContextHandle ctx, ValueHandle this_val, int argc, ValueHandle* argv, void* user_data)
+{
+	return print(ctx, this_val, argc, argv, user_data, 0);
+}
+
 //可设定process.isDebug=true/false;来控制开关debug
 QJS_API ValueHandle debug(
-	ContextHandle ctx, ValueHandle this_val, int argc, ValueHandle* argv, void* user_data)
+	ContextHandle ctx, ValueHandle this_val, int argc, ValueHandle* argv, void* user_data, int id)
 {
 	ValueHandle jprocess = qjs.GetNamedJsValue(ctx, "process", qjs.GetGlobalObject(ctx));
 	if (!qjs.JsValueIsObject(jprocess))
@@ -270,7 +276,7 @@ QJS_API ValueHandle debug(
 }
 
 QJS_API ValueHandle debugObject(
-	ContextHandle ctx, ValueHandle this_val, int argc, ValueHandle* argv, void* user_data)
+	ContextHandle ctx, ValueHandle this_val, int argc, ValueHandle* argv, void* user_data, int id)
 {
 	if (argc < 1)
 		return qjs.NewStringJsValue(ctx, "");
@@ -345,7 +351,7 @@ std::wstring resolveAndUpdateFilePath(ContextHandle ctx, const std::wstring& fil
 }
 
 QJS_API ValueHandle require(
-	ContextHandle ctx, ValueHandle this_val, int argc, ValueHandle* argv, void* user_data)
+	ContextHandle ctx, ValueHandle this_val, int argc, ValueHandle* argv, void* user_data, int id)
 {
 	if (argc < 1)
 	{
@@ -384,7 +390,7 @@ QJS_API ValueHandle require(
 }
 
 QJS_API ValueHandle include(
-	ContextHandle ctx, ValueHandle this_val, int argc, ValueHandle* argv, void* user_data)
+	ContextHandle ctx, ValueHandle this_val, int argc, ValueHandle* argv, void* user_data, int id)
 {
 	if (argc < 1)
 	{
@@ -407,7 +413,7 @@ QJS_API ValueHandle include(
 	return jret;
 }
 
-QJS_API void _completed(ContextHandle ctx)
+QJS_API void _completed(ContextHandle ctx, int id)
 {
 	//console
 	ValueHandle jconsole = qjs.GetNamedJsValue(ctx, "console", qjs.GetGlobalObject(ctx));
@@ -418,7 +424,7 @@ QJS_API void _completed(ContextHandle ctx)
 	}
 
 	//console.log
-	ValueHandle jprint = qjs.NewFunction(ctx, print, 0, NULL);
+	ValueHandle jprint = qjs.NewFunction(ctx, _jprint, 0, NULL);
 	qjs.SetNamedJsValue(ctx, "log", jprint, jconsole);
 }
 

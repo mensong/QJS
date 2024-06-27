@@ -3,7 +3,7 @@
 #include "RegOperator.h"
 #include "../pystring/pystring.h"
 
-QJS_API int _entry(ContextHandle ctx)
+QJS_API int _entry(ContextHandle ctx, int id)
 {
 	return 0;
 }
@@ -168,7 +168,7 @@ static void normalPath(std::string& sPath)
 //createKey("HKEY_LOCAL_MACHINE\\SOFTWARE\\MySoftware", true);
 QJS_API ValueHandle createKey(
 	ContextHandle ctx, ValueHandle this_val,
-	int argc, ValueHandle* argv, void* user_data)
+	int argc, ValueHandle* argv, void* user_data, int id)
 {
 	if (argc < 1)
 		return qjs.TheJsFalse();
@@ -203,7 +203,7 @@ QJS_API ValueHandle createKey(
 //deleteKey("HKEY_LOCAL_MACHINE\\SOFTWARE\\MySoftware", true);
 QJS_API ValueHandle deleteKey(
 	ContextHandle ctx, ValueHandle this_val,
-	int argc, ValueHandle* argv, void* user_data)
+	int argc, ValueHandle* argv, void* user_data, int id)
 {
 	if (argc < 1)
 		return qjs.TheJsFalse();
@@ -230,7 +230,7 @@ QJS_API ValueHandle deleteKey(
 //deleteTree("HKEY_LOCAL_MACHINE\\SOFTWARE\\MySoftware", true);
 QJS_API ValueHandle deleteTree(
 	ContextHandle ctx, ValueHandle this_val,
-	int argc, ValueHandle* argv, void* user_data)
+	int argc, ValueHandle* argv, void* user_data, int id)
 {
 	if (argc < 1)
 		return qjs.TheJsFalse();
@@ -257,7 +257,7 @@ QJS_API ValueHandle deleteTree(
 //deleteValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\MySoftware", "KeyName", true);
 QJS_API ValueHandle deleteValue(
 	ContextHandle ctx, ValueHandle this_val,
-	int argc, ValueHandle* argv, void* user_data)
+	int argc, ValueHandle* argv, void* user_data, int id)
 {
 	if (argc < 2)
 		return qjs.TheJsFalse();
@@ -283,7 +283,7 @@ QJS_API ValueHandle deleteValue(
 //saveKey("HKEY_LOCAL_MACHINE\\SOFTWARE\\MySoftware", "D:\\1.reg", true);
 QJS_API ValueHandle saveKey(
 	ContextHandle ctx, ValueHandle this_val,
-	int argc, ValueHandle* argv, void* user_data)
+	int argc, ValueHandle* argv, void* user_data, int id)
 {
 	if (argc < 2)
 		return qjs.TheJsFalse();
@@ -309,7 +309,7 @@ QJS_API ValueHandle saveKey(
 //RestoreKey("HKEY_LOCAL_MACHINE\\SOFTWARE\\MySoftware", "D:\\1.reg", true);
 QJS_API ValueHandle RestoreKey(
 	ContextHandle ctx, ValueHandle this_val,
-	int argc, ValueHandle* argv, void* user_data)
+	int argc, ValueHandle* argv, void* user_data, int id)
 {
 	if (argc < 2)
 		return qjs.TheJsFalse();
@@ -335,7 +335,7 @@ QJS_API ValueHandle RestoreKey(
 //ReadStringValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\MySoftware", "valueKey", true);
 QJS_API ValueHandle ReadStringValue(
 	ContextHandle ctx, ValueHandle this_val,
-	int argc, ValueHandle* argv, void* user_data)
+	int argc, ValueHandle* argv, void* user_data, int id)
 {
 	if (argc < 2)
 		return qjs.TheJsUndefined();
@@ -367,7 +367,7 @@ QJS_API ValueHandle ReadStringValue(
 //ReadDwordValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\MySoftware", "valueKey", true);
 QJS_API ValueHandle ReadDwordValue(
 	ContextHandle ctx, ValueHandle this_val,
-	int argc, ValueHandle* argv, void* user_data)
+	int argc, ValueHandle* argv, void* user_data, int id)
 {
 	if (argc < 2)
 		return qjs.TheJsUndefined();
@@ -397,7 +397,7 @@ QJS_API ValueHandle ReadDwordValue(
 //WriteStringValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\MySoftware", "valueKey", "value", true);
 QJS_API ValueHandle WriteStringValue(
 	ContextHandle ctx, ValueHandle this_val,
-	int argc, ValueHandle* argv, void* user_data)
+	int argc, ValueHandle* argv, void* user_data, int id)
 {
 	if (argc < 3)
 		return qjs.TheJsFalse();
@@ -427,7 +427,7 @@ QJS_API ValueHandle WriteStringValue(
 //WriteDwordValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\MySoftware", "valueKey", 123, true);
 QJS_API ValueHandle WriteDwordValue(
 	ContextHandle ctx, ValueHandle this_val,
-	int argc, ValueHandle* argv, void* user_data)
+	int argc, ValueHandle* argv, void* user_data, int id)
 {
 	if (argc < 3)
 		return qjs.TheJsFalse();
@@ -457,7 +457,7 @@ QJS_API ValueHandle WriteDwordValue(
 //WriteExpandStringValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\MySoftware", "valueKey", "value", true);
 QJS_API ValueHandle WriteExpandStringValue(
 	ContextHandle ctx, ValueHandle this_val,
-	int argc, ValueHandle* argv, void* user_data)
+	int argc, ValueHandle* argv, void* user_data, int id)
 {
 	if (argc < 3)
 		return qjs.TheJsFalse();
@@ -487,7 +487,7 @@ QJS_API ValueHandle WriteExpandStringValue(
 //EnumSubKeys("HKEY_LOCAL_MACHINE\\SOFTWARE\\MySoftware", true);
 QJS_API ValueHandle EnumSubKeys(
 	ContextHandle ctx, ValueHandle this_val,
-	int argc, ValueHandle* argv, void* user_data)
+	int argc, ValueHandle* argv, void* user_data, int id)
 {
 	if (argc < 1)
 		return qjs.TheJsUndefined();
@@ -525,7 +525,7 @@ QJS_API ValueHandle EnumSubKeys(
 //EnumValueNameKeys("HKEY_LOCAL_MACHINE\\SOFTWARE\\MySoftware", true);
 QJS_API ValueHandle EnumValueNameKeys(
 	ContextHandle ctx, ValueHandle this_val,
-	int argc, ValueHandle* argv, void* user_data)
+	int argc, ValueHandle* argv, void* user_data, int id)
 {
 	if (argc < 1)
 		return qjs.TheJsUndefined();

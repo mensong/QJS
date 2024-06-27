@@ -413,22 +413,23 @@ void CTestQJSDlg::OnBnClickedButton1()
 	}
 
 
-	ValueHandle alertFunc = qjs.NewFunction(ctx, JsAlert, 2, this);
-	bool b = qjs.SetNamedJsValue(ctx, "alert", alertFunc, qjs.TheJsNull());
+	//ValueHandle alertFunc = qjs.NewFunction(ctx, JsAlert, 2, this);
+	//bool b = qjs.SetNamedJsValue(ctx, "alert", alertFunc, qjs.TheJsNull());
 
-	ValueHandle printFunc = qjs.NewFunction(ctx, JsPrint, -1, this);
-	b = qjs.SetNamedJsValue(ctx, "print", printFunc, qjs.TheJsNull());
+	//ValueHandle printFunc = qjs.NewFunction(ctx, JsPrint, -1, this);
+	//b = qjs.SetNamedJsValue(ctx, "print", printFunc, qjs.TheJsNull());
 
-	auto WScript = qjs.NewObjectJsValue(ctx);
-	qjs.SetNamedJsValue(ctx, "WScript", WScript, qjs.TheJsNull());
-	qjs.SetNamedJsValue(ctx, "Echo", printFunc, WScript);
+	//auto WScript = qjs.NewObjectJsValue(ctx);
+	//qjs.SetNamedJsValue(ctx, "WScript", WScript, qjs.TheJsNull());
+	//qjs.SetNamedJsValue(ctx, "Echo", printFunc, WScript);
 
-	auto console = qjs.NewObjectJsValue(ctx);
-	qjs.SetNamedJsValue(ctx, "console", console, qjs.TheJsNull());
-	qjs.SetNamedJsValue(ctx, "log", printFunc, console);
+	//auto console = qjs.NewObjectJsValue(ctx);
+	//qjs.SetNamedJsValue(ctx, "console", console, qjs.TheJsNull());
+	//qjs.SetNamedJsValue(ctx, "log", printFunc, console);
 
-	b = qjs.SetNamedJsValue(ctx, "telemetryLog", printFunc, qjs.TheJsNull());
+	//b = qjs.SetNamedJsValue(ctx, "telemetryLog", printFunc, qjs.TheJsNull());
 
+	qjs.LoadExtend(ctx, "JsExtendBase.dll", qjs.GetGlobalObject(ctx), NULL);
 
 	CString script;
 	m_editScript.GetWindowText(script);

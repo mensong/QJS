@@ -36,10 +36,13 @@ BOOL IsPathExist(const TCHAR* csPath)
 //	return 0 != GetFileAttributesEx(csPath, GetFileExInfoStandard, &attrs);
 //}
 
-QJS_API int _entry(ContextHandle ctx)
+
+
+QJS_API int _entry(ContextHandle ctx, int id)
 {
 	//º”‘ÿ“¿¿µ
-	qjs.LoadExtend(ctx, "JsExtendBase.dll", qjs.GetGlobalObject(ctx));
+
+	qjs.LoadExtend(ctx, "JsExtendBase.dll", qjs.GetGlobalObject(ctx), NULL);
 
 	return 0;//º”‘ÿ≤Âº˛
 }
@@ -100,7 +103,7 @@ std::wstring resolveAndUpdateFilePath(ContextHandle ctx, const std::wstring& fil
 
 //readTextFile(filename, [function(){}], [input charset]);
 QJS_API ValueHandle readTextFile(
-	ContextHandle ctx, ValueHandle this_val, int argc, ValueHandle* argv, void* user_data)
+	ContextHandle ctx, ValueHandle this_val, int argc, ValueHandle* argv, void* user_data, int id)
 {
 	if (argc == 0)
 	{
@@ -223,7 +226,7 @@ QJS_API ValueHandle readTextFile(
 
 //writeTextFile(filename, text, [out charset]);
 QJS_API ValueHandle writeTextFile(
-	ContextHandle ctx, ValueHandle this_val, int argc, ValueHandle* argv, void* user_data)
+	ContextHandle ctx, ValueHandle this_val, int argc, ValueHandle* argv, void* user_data, int id)
 {
 	if (argc < 2)
 	{
@@ -273,7 +276,7 @@ QJS_API ValueHandle writeTextFile(
 	return qjs.NewInt64JsValue(ctx, pos);
 }
 
-QJS_API void _completed(ContextHandle ctx)
+QJS_API void _completed(ContextHandle ctx, int id)
 {
 	
 }
