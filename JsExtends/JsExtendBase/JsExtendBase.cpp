@@ -72,6 +72,8 @@ ValueHandle _jprocess_addPath(
 	if (argc != 1)
 		return qjs.TheJsFalse();
 
+	QJS_SCOPE(ctx);
+	
 	if (qjs.JsValueIsUndefined(this_val))
 		this_val = qjs.GetGlobalObject(ctx);
 
@@ -104,6 +106,8 @@ ValueHandle _jprocess_addPath(
 
 static void init_process(ContextHandle ctx, int id)
 {
+	QJS_SCOPE(ctx);
+
 	ValueHandle parentObj = qjs.GetExtendParentObject(ctx, id);
 
 	//process全局变量
@@ -429,6 +433,8 @@ QJS_API ValueHandle F_include(
 
 QJS_API bool AddPath(ContextHandle ctx, const wchar_t* dir, ValueHandle parent)
 {
+	QJS_SCOPE(ctx);
+
 	if (!qjs.JsValueIsObject(parent))
 		parent = qjs.GetGlobalObject(ctx);
 
