@@ -216,15 +216,22 @@ QJS_API ValueHandle JsonParse(ContextHandle ctx, const char* json);
 //The actual exception object is stored in the JSContext and can be retrieved with GetException()
 QJS_API ValueHandle GetAndClearJsLastException(ContextHandle ctx);
 
-//添加事件
+//添加后台任务
 typedef ValueHandle(*FN_JsJobCallback)(ContextHandle ctx, int argc, ValueHandle* argv);
 QJS_API bool EnqueueJob(ContextHandle ctx, FN_JsJobCallback funcJob, ValueHandle args[], int argc);
-//处理事件，一般可放在应用程序的消息循环timer里。例如申请一个1毫秒的timer，然后在timer里执行ExecutePendingJob
+//处理一个后台任务，并把处理过的任务从任务列表里剔除
+// 一般可放在应用程序的消息循环timer里。例如申请一个1毫秒的timer，然后在timer里执行ExecutePendingJob
 // return < 0 if exception, 
 // return 0 if no job pending, 
 // return 1 if a job was executed successfully, the context of the job is stored in 'outCurCtx'
 QJS_API int ExecutePendingJob(RuntimeHandle runtime, void** outRawCtx);
 QJS_API ContextHandle GetContextByRaw(RuntimeHandle runtime, void* rawCtx);
+//等待并执行后台任务
+//  等待执行回调。curCtx - 当前执行到的Context。
+//  返回true继续等待执行下一个任务直到执行完所有任务才结束等待；返回false则直接结束等待
+typedef bool (*FN_WaitForExecutingJobsCallback)(void* rawCurCtx, int resExecutePendingJob);
+QJS_API int WaitForExecutingJobs(RuntimeHandle runtime, 
+	DWORD loopIntervalMS, FN_WaitForExecutingJobsCallback cb, void* user_data);
 
 //开启调试模式
 QJS_API void SetDebuggerMode(ContextHandle ctx, bool onoff);
@@ -364,7 +371,8 @@ public:
 		SET_PROC(hDll, JsonParse);
 		SET_PROC(hDll, EnqueueJob);
 		SET_PROC(hDll, ExecutePendingJob);
-		SET_PROC(hDll, GetContextByRaw);
+		SET_PROC(hDll, GetContextByRaw); 
+		SET_PROC(hDll, WaitForExecutingJobs);
 		SET_PROC(hDll, SetDebuggerMode); 
 		SET_PROC(hDll, SetDebuggerLineCallback); 
 		SET_PROC(hDll, GetDebuggerStackDepth); 
@@ -464,7 +472,8 @@ public:
 	DEF_PROC(JsonParse);
 	DEF_PROC(EnqueueJob);
 	DEF_PROC(ExecutePendingJob);
-	DEF_PROC(GetContextByRaw);
+	DEF_PROC(GetContextByRaw); 
+	DEF_PROC(WaitForExecutingJobs);
 	DEF_PROC(SetDebuggerMode);
 	DEF_PROC(SetDebuggerLineCallback); 
 	DEF_PROC(GetDebuggerStackDepth);

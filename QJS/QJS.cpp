@@ -30,7 +30,7 @@ struct QJSRuntime;
 struct QJSRuntime
 {
 	JSRuntime* raw;
-	std::set<QJSContext*> contexts;
+	std::vector<QJSContext*> contexts;
 	
 	std::map<int, void*> userData;
 
@@ -95,7 +95,9 @@ struct QJSContext
 		//清除runtime中context的引用
 		if (runtime)
 		{
-			runtime->contexts.erase(this);
+			auto itFinder = std::find(runtime->contexts.begin(), runtime->contexts.end(), this);
+			if (itFinder != runtime->contexts.end())
+				runtime->contexts.erase(itFinder);
 		}
 	}
 
@@ -245,9 +247,9 @@ struct QJSContext
 
 QJSRuntime::~QJSRuntime()
 {
-	for (auto it = contexts.begin(); it != contexts.end(); ++it)
+	for (size_t i = 0; i < contexts.size(); ++i)
 	{
-		delete *it;
+		delete contexts[i];
 	}
 	contexts.clear();
 }
@@ -1382,15 +1384,42 @@ int ExecutePendingJob(RuntimeHandle runtime, void** outRawCtx)
 ContextHandle GetContextByRaw(RuntimeHandle runtime, void* rawCtx)
 {
 	auto& contexts = ((QJSRuntime*)runtime)->contexts;
-	for (auto it = contexts.begin(); it != contexts.end(); ++it)
+	for (size_t i = 0; i < contexts.size(); ++i)
 	{
-		if ((*it)->raw == rawCtx)
+		auto context = contexts[i];
+		if (context->raw == rawCtx)
 		{
-			return (*it);
+			return context;
 		}
 	}
 
 	return NULL;
+}
+
+int WaitForExecutingJobs(RuntimeHandle runtime, DWORD loopIntervalMS, FN_WaitForExecutingJobsCallback cb, void* user_data)
+{
+	JSContext* ctx;
+	int err;
+
+	/* execute the pending jobs */
+	for (;;) 
+	{
+		err = JS_ExecutePendingJob(_INNER_RT(runtime), &ctx);
+
+		if (cb)
+		{
+			//callback返回false则退出循环
+			if (!cb(ctx, err))
+				break;
+		}
+
+		if (err == 0)//没有了后台任务
+			break;
+
+		Sleep(loopIntervalMS);
+	}
+
+	return 0;
 }
 
 void SetDebuggerMode(ContextHandle ctx, bool onoff)

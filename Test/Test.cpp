@@ -543,13 +543,7 @@ void pendingJobTest()
 		qjs.FreeJsValueToStringBuffer(ctx, sz);
 	}
 
-	while (1)
-	{
-		void* rawCtx = NULL;
-		if (qjs.ExecutePendingJob(rt, &rawCtx) < 1)
-			break;
-		Sleep(10);
-	}
+	qjs.WaitForExecutingJobs(rt, 10, NULL, NULL);
 
 	qjs.FreeContext(ctx);
 	qjs.FreeRuntime(rt);
@@ -584,10 +578,10 @@ int main()
 	//baseTest();
 	//extendTest();
 	//myTest();
-	baseExtendTest();
+	//baseExtendTest();
 	//regExtendTest();
 	//fileExtendTest();
-	//pendingJobTest();
+	pendingJobTest();
 
 	return 0;
 }
