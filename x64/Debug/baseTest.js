@@ -10,4 +10,8 @@ debug(debugObject(m));
 
 include("incTest.js");
 
-console.log("我","是","console.log");
+//console.log("我","是","console.log");
+
+alert(inputBox("inputBox测试", "标题", "内容"));
+
+alert(input);

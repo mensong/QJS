@@ -30,6 +30,9 @@
     <ClInclude Include="JsExtendBase.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="InputBoxW.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dllmain.cpp">
@@ -45,6 +48,9 @@
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="..\pystring\pywstring.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="InputBoxW.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>

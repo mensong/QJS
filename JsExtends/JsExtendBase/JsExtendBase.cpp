@@ -8,6 +8,7 @@
 #include <tchar.h>
 #include <vector>
 #include "JsExtendBase.h"
+#include "InputBoxW.h"
 
 // 判断文件是否存在
 BOOL IsFileExist(const TCHAR* csFile)
@@ -305,6 +306,45 @@ QJS_API ValueHandle F_debugObject(
 	}
 
 	return qjs.NewStringJsValue(ctx, json.c_str());
+}
+
+QJS_API ValueHandle F_inputBox(
+	ContextHandle ctx, ValueHandle this_val, int argc, ValueHandle* argv, void* user_data, int id)
+{
+	std::wstring tip = L"请输入：";
+	if (argc > 0)
+	{
+		std::string stip = qjs.JsValueToStdString(ctx, argv[0], "");
+		tip = qjs.Utf8ToUnicode(ctx, stip.c_str());
+	}
+
+	std::wstring title = L"QJS";
+	if (argc > 1)
+	{
+		std::string stitle = qjs.JsValueToStdString(ctx, argv[1], "");
+		title = qjs.Utf8ToUnicode(ctx, stitle.c_str());
+	}
+
+	std::wstring defText;
+	if (argc > 2)
+	{
+		std::string sdefText = qjs.JsValueToStdString(ctx, argv[2], "");
+		defText = qjs.Utf8ToUnicode(ctx, sdefText.c_str());
+	}
+
+	std::wstring textInput = _InputBoxW(tip.c_str(), title.c_str(), defText.c_str());
+	std::string utext = qjs.UnicodeToUtf8(ctx, textInput.c_str());
+
+	return qjs.NewStringJsValue(ctx, utext.c_str());
+}
+
+QJS_API ValueHandle G_input(
+	ContextHandle ctx, ValueHandle this_val, int argc, ValueHandle* argv, void* user_data, int id)
+{
+	std::wstring textInput = _InputBoxW(L"input", L"QJS");
+	std::string utext = qjs.UnicodeToUtf8(ctx, textInput.c_str());
+
+	return qjs.NewStringJsValue(ctx, utext.c_str());
 }
 
 std::wstring resolveAndUpdateFilePath(ContextHandle ctx, const std::wstring& filename, int id)

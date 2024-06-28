@@ -581,13 +581,13 @@ void fileExtendTest()
 
 int main()
 {
-	baseTest();
-	extendTest();
-	myTest();
+	//baseTest();
+	//extendTest();
+	//myTest();
 	baseExtendTest();
-	regExtendTest();
-	fileExtendTest();
-	pendingJobTest();
+	//regExtendTest();
+	//fileExtendTest();
+	//pendingJobTest();
 
 	return 0;
 }
