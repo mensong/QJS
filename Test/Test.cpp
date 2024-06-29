@@ -524,6 +524,10 @@ void regExtendTest()
 	qjs.FreeRuntime(rt);
 }
 
+bool WaitForExecutingJobsCallback(void* rawCurCtx, int resExecutePendingJob, void* user_data)
+{
+	return true;
+}
 
 void pendingJobTest()
 {
@@ -543,7 +547,7 @@ void pendingJobTest()
 		qjs.FreeJsValueToStringBuffer(ctx, sz);
 	}
 
-	qjs.WaitForExecutingJobs(rt, 10, NULL, NULL);
+	qjs.WaitForExecutingJobs(rt, 10, WaitForExecutingJobsCallback, NULL);
 
 	qjs.FreeContext(ctx);
 	qjs.FreeRuntime(rt);

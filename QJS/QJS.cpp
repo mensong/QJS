@@ -1396,7 +1396,8 @@ ContextHandle GetContextByRaw(RuntimeHandle runtime, void* rawCtx)
 	return NULL;
 }
 
-int WaitForExecutingJobs(RuntimeHandle runtime, DWORD loopIntervalMS, FN_WaitForExecutingJobsCallback cb, void* user_data)
+int WaitForExecutingJobs(RuntimeHandle runtime, DWORD loopIntervalMS, 
+	FN_WaitForExecutingJobsCallback cb, void* user_data)
 {
 	JSContext* ctx;
 	int err;
@@ -1409,7 +1410,7 @@ int WaitForExecutingJobs(RuntimeHandle runtime, DWORD loopIntervalMS, FN_WaitFor
 		if (cb)
 		{
 			//callback返回false则退出循环
-			if (!cb(ctx, err))
+			if (!cb(ctx, err, user_data))
 				break;
 		}
 

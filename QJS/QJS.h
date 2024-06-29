@@ -229,7 +229,7 @@ QJS_API ContextHandle GetContextByRaw(RuntimeHandle runtime, void* rawCtx);
 //等待并执行后台任务
 //  等待执行回调。curCtx - 当前执行到的Context。
 //  返回true继续等待执行下一个任务直到执行完所有任务才结束等待；返回false则直接结束等待
-typedef bool (*FN_WaitForExecutingJobsCallback)(void* rawCurCtx, int resExecutePendingJob);
+typedef bool (*FN_WaitForExecutingJobsCallback)(void* rawCurCtx, int resExecutePendingJob, void* user_data);
 QJS_API int WaitForExecutingJobs(RuntimeHandle runtime, 
 	DWORD loopIntervalMS, FN_WaitForExecutingJobsCallback cb, void* user_data);
 
