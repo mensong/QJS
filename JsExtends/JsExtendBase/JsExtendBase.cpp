@@ -697,6 +697,21 @@ QJS_API ValueHandle F_clearInterval(
 	return qjs.NewBoolJsValue(ctx, res);
 }
 
+QJS_API ValueHandle F_sleep(
+	ContextHandle ctx, ValueHandle this_val, int argc, ValueHandle* argv, void* user_data, int id)
+{
+	if (argc != 1)
+	{
+		ValueHandle ex = qjs.NewStringJsValue(ctx, "sleep(sleep time ms)");
+		return qjs.NewThrowJsValue(ctx, ex);
+	}
+
+	int64_t sleepTimeMS = qjs.JsValueToInt64(ctx, argv[0], 0);
+	Sleep(sleepTimeMS);
+
+	return qjs.TheJsUndefined();
+}
+
 QJS_API void _completed(ContextHandle ctx, void* user_data, int id)
 {
 	ValueHandle parentObj = qjs.GetExtendParentObject(ctx, id);
