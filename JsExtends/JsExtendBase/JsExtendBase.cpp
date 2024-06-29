@@ -500,22 +500,26 @@ void OnFreeingContextCallback(ContextHandle ctx)
 
 }
 
-//第一个参数为触发函数，第二个参数为时间间隔，单位：毫秒，第三个参数为当前时间
-ValueHandle setTimeoutCallback(ContextHandle ctx, int argc, ValueHandle* argv)
+//第一个参数为触发函数；第二个参数为时间间隔单位：毫秒；第三个参数为设置参数；从第四个参数起为action参数
+ValueHandle setTimeoutOrIntervalCallback(ContextHandle ctx, int argc, ValueHandle* argv)
 {
-	if (argc != 3)
+	if (argc < 3)
 	{
 		ValueHandle ex = qjs.NewStringJsValue(ctx, "setTimeout execute error");
 		return qjs.NewThrowJsValue(ctx, ex);
 	}
 
+	ValueHandle setting = argv[0];
+	ValueHandle action = argv[1];
+	ValueHandle delayMS = argv[2];
+
 	//检查是否已被取消
-	auto jcancel = qjs.GetNamedJsValue(ctx, "cancel", argv[2]);
+	auto jcancel = qjs.GetNamedJsValue(ctx, "cancel", setting);
 	if (qjs.JsValueToBool(ctx, jcancel, true))
 		return qjs.TheJsUndefined();
 
 	//如果start time未0则先不执行，继续计时
-	auto jstart = qjs.GetNamedJsValue(ctx, "start", argv[2]);
+	auto jstart = qjs.GetNamedJsValue(ctx, "start", setting);
 	if (!qjs.JsValueIsInt(jstart))
 	{
 		ValueHandle ex = qjs.NewStringJsValue(ctx, "setTimeout execute error");
@@ -525,63 +529,88 @@ ValueHandle setTimeoutCallback(ContextHandle ctx, int argc, ValueHandle* argv)
 	if (start == 0)
 	{
 		jstart = qjs.NewInt64JsValue(ctx, ::GetTickCount64());
-		qjs.SetNamedJsValue(ctx, "start", jstart, argv[2]);
-		qjs.EnqueueJob(ctx, setTimeoutCallback, argv, argc);
+		qjs.SetNamedJsValue(ctx, "start", jstart, setting);
+		qjs.EnqueueJob(ctx, setTimeoutOrIntervalCallback, argv, argc);
 		return qjs.TheJsUndefined();
 	}
 	
-	ValueHandle jInterval = argv[1];
-	int64_t interval = qjs.JsValueToInt64(ctx, jInterval, 0);
+	int64_t interval = qjs.JsValueToInt64(ctx, delayMS, 0);
 	if (::GetTickCount64() - start >= interval)
-	{
-		ValueHandle jFunc = argv[0];
-		qjs.CallJsFunction(ctx, jFunc, NULL, 0, qjs.TheJsNull());
+	{//够时间执行
+
+		bool bInterval = false;
+		auto jonce = qjs.GetNamedJsValue(ctx, "once", setting);
+		if (!qjs.JsValueToBool(ctx, jonce, false))
+			bInterval = true;
+
+		ValueHandle* actionParam = NULL;
+		if (argc > 3)
+		{
+			actionParam = new ValueHandle[argc - 3];
+			for (int i = 3; i < argc; i++)
+			{
+				actionParam[i - 3] = argv[i];
+			}
+		}
+
+		qjs.CallJsFunction(ctx, action, actionParam, argc - 3, qjs.TheJsNull());
+
+		if (actionParam)
+		{
+			delete[] actionParam;
+		}
+
+		if (!bInterval)
+			return qjs.TheJsUndefined();
 
 		jstart = qjs.NewInt64JsValue(ctx, ::GetTickCount64());
-		qjs.SetNamedJsValue(ctx, "start", jstart, argv[2]);
+		qjs.SetNamedJsValue(ctx, "start", jstart, setting);
 	}
 
-	qjs.EnqueueJob(ctx, setTimeoutCallback, argv, argc);
+	qjs.EnqueueJob(ctx, setTimeoutOrIntervalCallback, argv, argc);
 
 	return qjs.TheJsUndefined();
 }
 
-//第一个参数为触发函数，第二个参数为时间间隔，单位：毫秒
+//setTimeout(action, delayMS, param1, param2,...)
 QJS_API ValueHandle F_setTimeout(
 	ContextHandle ctx, ValueHandle this_val, int argc, ValueHandle* argv, void* user_data, int id)
 {
-	if (argc != 2)
+	if (argc < 2)
 	{
-		ValueHandle ex = qjs.NewStringJsValue(ctx, "setTimeout(function, interval)");
+		ValueHandle ex = qjs.NewStringJsValue(ctx, "setTimeout(function, interval, action params...)");
 		return qjs.NewThrowJsValue(ctx, ex);
 	}
 
-	//1.添加一个辅助参数，用于传递运行数据，例如：开始时间、取消对象等
+	//1.添加一个辅助参数，用于传递运行数据，例如：开始时间、取消对象、是否只执行一次等
 	int argc_new = argc + 1;
 	ValueHandle* argv_new = new ValueHandle[argc_new];
-	size_t i;
-	for (i = 0; i < argc; i++)
+
+	ValueHandle jsetting = qjs.NewObjectJsValue(ctx);
+	ValueHandle jIsCanceled = qjs.NewBoolJsValue(ctx, false);
+	qjs.SetNamedJsValue(ctx, "cancel", jIsCanceled, jsetting);
+	ValueHandle jstartTime = qjs.NewInt64JsValue(ctx, ::GetTickCount64());
+	qjs.SetNamedJsValue(ctx, "start", jstartTime, jsetting);
+	ValueHandle jonce = qjs.NewBoolJsValue(ctx, true);//true只执行一次
+	qjs.SetNamedJsValue(ctx, "once", jonce, jsetting);
+	argv_new[0] = jsetting;
+
+	for (size_t i = 0; i < argc; i++)
 	{
-		argv_new[i] = argv[i];
+		argv_new[i + 1] = argv[i];
 	}
 
-	ValueHandle jsetTimeoutObj = qjs.NewObjectJsValue(ctx);
-	
-	ValueHandle jIsCanceled = qjs.NewBoolJsValue(ctx, false);
-	qjs.SetNamedJsValue(ctx, "cancel", jIsCanceled, jsetTimeoutObj);
+	bool res = qjs.EnqueueJob(ctx, setTimeoutOrIntervalCallback, argv_new, argc_new);
 
-	ValueHandle jstartTime = qjs.NewInt64JsValue(ctx, ::GetTickCount64());
-	qjs.SetNamedJsValue(ctx, "start", jstartTime, jsetTimeoutObj);
-		
-	argv_new[i++] = jsetTimeoutObj;
+	delete[] argv_new;
 
-	if (!qjs.EnqueueJob(ctx, setTimeoutCallback, argv_new, argc_new))
+	if (!res)
 	{
 		ValueHandle ex = qjs.NewStringJsValue(ctx, "setTimeout error");
 		return qjs.NewThrowJsValue(ctx, ex);
 	}
 
-	return jsetTimeoutObj;
+	return jsetting;
 }
 
 
@@ -606,6 +635,67 @@ QJS_API ValueHandle F_clearTimeout(
 	return qjs.NewBoolJsValue(ctx, res);
 }
 
+//setInterval(action, intervalMS, param1, param2,...)
+QJS_API ValueHandle F_setInterval(
+	ContextHandle ctx, ValueHandle this_val, int argc, ValueHandle* argv, void* user_data, int id)
+{
+	if (argc < 2)
+	{
+		ValueHandle ex = qjs.NewStringJsValue(ctx, "setInterval(function, interval, action params...)");
+		return qjs.NewThrowJsValue(ctx, ex);
+	}
+
+	//1.添加一个辅助参数，用于传递运行数据，例如：开始时间、取消对象、是否只执行一次等
+	int argc_new = argc + 1;
+	ValueHandle* argv_new = new ValueHandle[argc_new];
+
+	ValueHandle jsetting = qjs.NewObjectJsValue(ctx);
+	ValueHandle jIsCanceled = qjs.NewBoolJsValue(ctx, false);
+	qjs.SetNamedJsValue(ctx, "cancel", jIsCanceled, jsetting);
+	ValueHandle jstartTime = qjs.NewInt64JsValue(ctx, ::GetTickCount64());
+	qjs.SetNamedJsValue(ctx, "start", jstartTime, jsetting);
+	ValueHandle jonce = qjs.NewBoolJsValue(ctx, false);//false一直执行
+	qjs.SetNamedJsValue(ctx, "once", jonce, jsetting);
+	argv_new[0] = jsetting;
+
+	for (size_t i = 0; i < argc; i++)
+	{
+		argv_new[i + 1] = argv[i];
+	}
+
+	bool res = qjs.EnqueueJob(ctx, setTimeoutOrIntervalCallback, argv_new, argc_new);
+
+	delete[] argv_new;
+
+	if (!res)
+	{
+		ValueHandle ex = qjs.NewStringJsValue(ctx, "setInterval error");
+		return qjs.NewThrowJsValue(ctx, ex);
+	}
+
+	return jsetting;
+}
+
+QJS_API ValueHandle F_clearInterval(
+	ContextHandle ctx, ValueHandle this_val, int argc, ValueHandle* argv, void* user_data, int id)
+{
+	if (argc != 1)
+	{
+		ValueHandle ex = qjs.NewStringJsValue(ctx, "clearInterval(object of setInterval)");
+		return qjs.NewThrowJsValue(ctx, ex);
+	}
+
+	//检查是否已被取消
+	auto jcancel = qjs.GetNamedJsValue(ctx, "cancel", argv[0]);
+	if (!qjs.JsValueIsBool(jcancel))
+	{
+		ValueHandle ex = qjs.NewStringJsValue(ctx, "Invalid parameter");
+		return qjs.NewThrowJsValue(ctx, ex);
+	}
+	bool res = qjs.SetNamedJsValue(ctx, "cancel", qjs.NewBoolJsValue(ctx, true), argv[0]);
+
+	return qjs.NewBoolJsValue(ctx, res);
+}
 
 QJS_API void _completed(ContextHandle ctx, void* user_data, int id)
 {
