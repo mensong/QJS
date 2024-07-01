@@ -15,3 +15,7 @@ include("incTest.js");
 alert(inputBox("inputBox测试", "标题", "内容"));
 
 alert(input);
+
+const st = Date.now();
+sleep(2000);
+alert("sleeped:" + (Date.now() - st));

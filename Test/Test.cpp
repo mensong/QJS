@@ -49,48 +49,21 @@ void baseTest()
 	qjs.FreeRuntime(rt);
 }
 
-ValueHandle JsAlert(ContextHandle ctx, ValueHandle this_val, int argc, ValueHandle* argv, void* user_data)
+ValueHandle JsMsg(ContextHandle ctx, ValueHandle this_val, int argc, ValueHandle* argv, void* user_data)
 {
 	std::string msg;
-	if (argc > 0)
-	{
-		const char* sz = qjs.JsValueToString(ctx, argv[0]);
-		if (sz)
-			msg = sz;
-		qjs.FreeJsValueToStringBuffer(ctx, sz);
-	}
-
-	std::string title;
-	if (argc < 2 || qjs.JsValueIsUndefined(argv[1]))
-		title = "QJS";
-	else
+	for (int i = 0; i < argc; i++)
 	{
 		const char* sz = qjs.JsValueToString(ctx, argv[1]);
 		if (sz)
-			title = sz;
+			msg += sz;
 		qjs.FreeJsValueToStringBuffer(ctx, sz);
 	}
 
-	MessageBoxA(NULL, msg.c_str(), title.c_str(), 0);
+	MessageBoxA(NULL, msg.c_str(), "msg", 0);
 
 	auto item = qjs.NewStringJsValue(ctx, msg.c_str());
 	return item;
-}
-
-ValueHandle JsPrint(ContextHandle ctx, ValueHandle this_val, int argc, ValueHandle* argv, void* user_data)
-{
-	std::stringstream ss;
-	for (int i = 0; i < argc; i++)
-	{
-		const char* sz = qjs.JsValueToString(ctx, argv[i]);
-		if (sz)
-			ss << sz;
-		qjs.FreeJsValueToStringBuffer(ctx, sz);
-	}
-
-	wprintf(L"%s", qjs.Utf8ToUnicode(ctx, ss.str().c_str()));
-
-	return qjs.NewStringJsValue(ctx, ss.str().c_str());
 }
 
 std::string s_str = "test_getter_setter_value";
@@ -125,11 +98,8 @@ void myTest()
 
 	qjs.LoadExtend(ctx, "JsExtendBase.dll", qjs.GetGlobalObject(ctx), NULL);
 
-	ValueHandle alertFunc = qjs.NewFunction(ctx, JsAlert, 2, NULL);
-	 qjs.SetNamedJsValue(ctx, "alert", alertFunc, qjs.TheJsNull());
-
-	ValueHandle printFunc = qjs.NewFunction(ctx, JsPrint, -1, NULL);
-	qjs.SetNamedJsValue(ctx, "print", printFunc, qjs.TheJsNull());
+	ValueHandle jmsg = qjs.NewFunction(ctx, JsMsg, 0, NULL);
+	 qjs.SetNamedJsValue(ctx, "msg", jmsg, qjs.TheJsNull());
 
 	{
 		QJS_SCOPE(ctx);
@@ -141,7 +111,7 @@ void myTest()
 
 		auto argv = qjs.NewStringJsValue(ctx, "mensong,");
 		ValueHandle argvs[] = { argv, argv, argv };
-		auto ret1 = qjs.CallJsFunction(ctx, printFunc, argvs, 3, qjs.TheJsNull());
+		auto ret1 = qjs.CallJsFunction(ctx, jmsg, argvs, 3, qjs.TheJsNull());
 	}
 
 	{
@@ -178,7 +148,7 @@ void myTest()
 		v = qjs.NewBoolJsValue(ctx, false); qjs.FreeValueHandle(&v);
 		v = qjs.NewDateJsValue(ctx, 1718849344); qjs.FreeValueHandle(&v);
 		v = qjs.NewDoubleJsValue(ctx, 123.0); qjs.FreeValueHandle(&v);
-		v = qjs.NewFunction(ctx, JsPrint, 0, NULL); qjs.FreeValueHandle(&v);
+		v = qjs.NewFunction(ctx, JsMsg, 0, NULL); qjs.FreeValueHandle(&v);
 		v = qjs.NewInt64JsValue(ctx, 123); qjs.FreeValueHandle(&v);
 		v = qjs.NewIntJsValue(ctx, 123); qjs.FreeValueHandle(&v);
 		v = qjs.NewObjectJsValue(ctx); qjs.FreeValueHandle(&v);
@@ -486,7 +456,7 @@ void baseExtendTest()
 	qjs.LoadExtend(ctx, "JsExtendBase.dll", jparent, NULL);
 	JsExtendBase::Ins().AddPath(ctx, L"D:\\", jparent);
 
-	printObject(ctx, jparent);
+	//printObject(ctx, jparent);
 
 	ValueHandle result = qjs.RunScriptFile(ctx, "baseTest.js", qjs.TheJsNull());
 	if (qjs.JsValueIsException(result))
@@ -583,11 +553,11 @@ int main()
 {
 	//baseTest();
 	//extendTest();
-	//myTest();
+	myTest();
 	//baseExtendTest();
 	//regExtendTest();
 	//fileExtendTest();
-	pendingJobTest();
+	//pendingJobTest();
 
 	return 0;
 }
