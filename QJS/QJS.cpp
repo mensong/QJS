@@ -649,15 +649,15 @@ size_t PushRunScope(ContextHandle ctx)
 size_t PopRunScope(ContextHandle ctx, size_t pushdValueIdx)
 {
 	QJSContext* thisCtx = (QJSContext*)ctx;
-	size_t curSize = thisCtx->values.size();
-	for (int i = curSize - 1; i >= pushdValueIdx; i--)
+	int64_t curSize = (int64_t)thisCtx->values.size();
+	for (int64_t i = curSize - 1; i >= (int64_t)pushdValueIdx; i--)
 	{
 		JSValue jv = (JSValue)thisCtx->values.back();
 		JS_FreeValue(thisCtx->raw, jv);
 		thisCtx->values.pop_back();
 	}
 
-	return curSize - pushdValueIdx;
+	return curSize - (int64_t)pushdValueIdx;
 }
 
 bool DefineGetterSetter(ContextHandle ctx, ValueHandle parent, 

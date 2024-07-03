@@ -549,15 +549,44 @@ void fileExtendTest()
 	qjs.FreeRuntime(rt);
 }
 
+void totalScopeTest()
+{
+	auto m_rt = qjs.NewRuntime();
+	auto m_ctx = qjs.NewContext(m_rt);
+
+	QJS_SCOPE(m_ctx);
+
+	//加载base插件
+	std::string baseExtend = "JsExtendBase.dll";
+	qjs.LoadExtend(m_ctx, baseExtend.c_str(), qjs.GetGlobalObject(m_ctx), NULL);
+	//加载Path插件
+	std::string pathExtend = "JsExtendPath.dll";
+	ValueHandle jpath = qjs.NewObjectJsValue(m_ctx);
+	qjs.SetNamedJsValue(m_ctx, "Path", jpath, qjs.TheJsNull());
+	qjs.LoadExtend(m_ctx, pathExtend.c_str(), jpath, NULL);
+
+	ValueHandle jmsg = qjs.NewFunction(m_ctx, JsMsg, 0, NULL);
+	qjs.SetNamedJsValue(m_ctx, "msg", jmsg, qjs.TheJsNull());
+
+//#ifdef _DEBUG
+	qjs.RunScript(m_ctx, "process.isDebug=true;", qjs.TheJsNull(), "");
+//#endif // DEBUG
+
+	qjs.FreeContext(m_ctx);
+	qjs.FreeRuntime(m_rt);
+}
+
 int main()
 {
 	//baseTest();
 	//extendTest();
-	myTest();
+	//myTest();
 	//baseExtendTest();
 	//regExtendTest();
 	//fileExtendTest();
 	//pendingJobTest();
+
+	totalScopeTest();
 
 	return 0;
 }
