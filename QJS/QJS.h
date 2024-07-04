@@ -260,9 +260,11 @@ QJS_API ValueHandle GetExtendParentObject(ContextHandle ctx, int extendId);
 //卸载扩展
 QJS_API void UnloadExtend(ContextHandle ctx, int extendId);
 
-//手工释放一个ValueHandle，一般不用
+//手工释放一个ValueHandle，一般不用。在PushRunScope与PopRunScope范围内（QJSRunScope）不能使用
 QJS_API void FreeValueHandle(ValueHandle* value);
+//push一个范围
 QJS_API size_t PushRunScope(ContextHandle ctx);
+//pop一个范围
 QJS_API size_t PopRunScope(ContextHandle ctx, size_t pushdValueIdx);
 
 //将Ansi字符转换为Unicode字符串
