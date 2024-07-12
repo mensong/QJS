@@ -155,6 +155,20 @@ QJS_API ValueHandle NewThrowJsValue(ContextHandle ctx, ValueHandle throwWhat);
 //日期转ValueHandle
 QJS_API ValueHandle NewDateJsValue(ContextHandle ctx, uint64_t ms_since_1970);
 
+//创建一个ArrayBuffer
+QJS_API ValueHandle NewArrayBufferJsValue(ContextHandle ctx, const uint8_t* buf, size_t bufLen);
+//释放一个ArrayBuffer
+QJS_API void DetachArrayBufferJsValue(ContextHandle ctx, ValueHandle* arrBuf);
+//获得ArrayBuffer的指针
+QJS_API uint8_t* GetArrayBufferPtr(ContextHandle ctx, ValueHandle arrBuf, size_t* outBufLen);
+//根据TypedArrayBuffer获得对应的ArrayBuffer
+QJS_API ValueHandle GetArrayBufferByTypedArrayBuffer(ContextHandle ctx, ValueHandle typedArrBuf,
+	size_t* out_byte_offset,
+	size_t* out_byte_length,
+	size_t* out_bytes_per_element);
+//填充一个ArrayBuffer
+QJS_API bool FillArrayBuffer(ContextHandle ctx, ValueHandle arrBuf, uint8_t fill);
+
 //自定义js函数原型
 typedef ValueHandle(*FN_JsFunctionCallback)(
 	ContextHandle ctx, ValueHandle this_val, int argc, ValueHandle* argv, void* user_data);
@@ -340,6 +354,11 @@ public:
 		SET_PROC(hDll, NewArrayJsValue);
 		SET_PROC(hDll, NewThrowJsValue); 
 		SET_PROC(hDll, NewDateJsValue);
+		SET_PROC(hDll, NewArrayBufferJsValue);
+		SET_PROC(hDll, DetachArrayBufferJsValue);
+		SET_PROC(hDll, GetArrayBufferPtr);
+		SET_PROC(hDll, GetArrayBufferByTypedArrayBuffer);
+		SET_PROC(hDll, FillArrayBuffer);
 		SET_PROC(hDll, GetLength);
 		SET_PROC(hDll, JsValueToString);
 		SET_PROC(hDll, FreeJsValueToStringBuffer);
@@ -441,6 +460,11 @@ public:
 	DEF_PROC(NewArrayJsValue);
 	DEF_PROC(NewThrowJsValue); 
 	DEF_PROC(NewDateJsValue);
+	DEF_PROC(NewArrayBufferJsValue);
+	DEF_PROC(DetachArrayBufferJsValue);
+	DEF_PROC(GetArrayBufferPtr);
+	DEF_PROC(GetArrayBufferByTypedArrayBuffer);
+	DEF_PROC(FillArrayBuffer);
 	DEF_PROC(GetLength);
 	DEF_PROC(JsValueToString);
 	DEF_PROC(FreeJsValueToStringBuffer);
@@ -501,7 +525,7 @@ public:
 	}
 
 public:
-	static QJS& Ins() 
+	inline static QJS& Ins() 
 	{
 #ifdef MULTI_THREAD
 		std::lock_guard<std::mutex> _locker(s_insMutex);

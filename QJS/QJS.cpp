@@ -1017,6 +1017,58 @@ ValueHandle NewArrayJsValue(ContextHandle ctx)
 	return ret;
 }
 
+ValueHandle NewArrayBufferJsValue(ContextHandle ctx, const uint8_t* buf, size_t bufLen)
+{
+	bool bNew = false;
+	if (!buf && bufLen > 0)
+	{
+		buf = new uint8_t[bufLen];
+		bNew = true;
+	}
+	JSValue jv = JS_NewArrayBufferCopy(_INNER_CTX(ctx), buf, bufLen);
+
+	if (bNew)
+	{
+		delete[] buf;
+	}
+
+	ValueHandle ret = _OUTER_VAL(ctx, jv);
+	ADD_AUTO_FREE(ret);
+	return ret;
+}
+
+void DetachArrayBufferJsValue(ContextHandle ctx, ValueHandle* arrBuf)
+{
+	JS_DetachArrayBuffer(_INNER_CTX(ctx), _INNER_VAL(*arrBuf));
+	arrBuf->ctx = NULL;
+	arrBuf->value = NULL;
+}
+
+uint8_t* GetArrayBufferPtr(ContextHandle ctx, ValueHandle arrBuf, size_t* outBufLen)
+{
+	return JS_GetArrayBuffer(_INNER_CTX(ctx), outBufLen, _INNER_VAL(arrBuf));
+}
+
+ValueHandle GetArrayBufferByTypedArrayBuffer(ContextHandle ctx, ValueHandle typedArrBuf,
+	size_t* out_byte_offset, size_t* out_byte_length, size_t* out_bytes_per_element)
+{
+	JSValue jv = JS_GetTypedArrayBuffer(_INNER_CTX(ctx), _INNER_VAL(typedArrBuf),
+		out_byte_offset, out_byte_length, out_bytes_per_element);
+	ValueHandle ret = _OUTER_VAL(ctx, jv);
+	ADD_AUTO_FREE(ret);
+	return ret;
+}
+
+bool FillArrayBuffer(ContextHandle ctx, ValueHandle arrBuf, uint8_t fill)
+{
+	size_t bufLen = 0;
+	uint8_t* buf = GetArrayBufferPtr(ctx, arrBuf, &bufLen);
+	if (!buf)
+		return false;
+	memset(buf, fill, bufLen);
+	return true;
+}
+
 ValueHandle NewThrowJsValue(ContextHandle ctx, ValueHandle throwWhat)
 {
 	JSValue v = JS_DupValue(_INNER_CTX(ctx), _INNER_VAL(throwWhat));//JS_Throw will free the second param, so do it

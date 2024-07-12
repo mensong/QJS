@@ -576,6 +576,37 @@ void totalScopeTest()
 	qjs.FreeRuntime(m_rt);
 }
 
+void testArrayBuffer()
+{
+	auto rt = qjs.NewRuntime();
+	auto ctx = qjs.NewContext(rt);
+
+	//加载base插件
+	std::string baseExtend = "JsExtendBase.dll";
+	qjs.LoadExtend(ctx, baseExtend.c_str(), qjs.GetGlobalObject(ctx), NULL);
+	
+	uint8_t buf[10] = { 9,8,7,6,5,4,3,2,1,0 };
+	auto jArrBuf = qjs.NewArrayBufferJsValue(ctx, buf, sizeof(buf)/sizeof(uint8_t));
+
+	qjs.FillArrayBuffer(ctx, jArrBuf, 0xf);
+
+	//更改ArrayBuffer
+	size_t bufLen = 0;
+	uint8_t * buf2 = qjs.GetArrayBufferPtr(ctx, jArrBuf, &bufLen);
+	for (size_t i = 0; i < bufLen - 1; i++)
+		buf2[i] = 1;
+	buf2[bufLen - 1] = 0;
+
+	//重新读出
+	buf2 = qjs.GetArrayBufferPtr(ctx, jArrBuf, &bufLen);
+
+
+	qjs.DetachArrayBufferJsValue(ctx, &jArrBuf);
+
+	qjs.FreeContext(ctx);
+	qjs.FreeRuntime(rt);
+}
+
 int main()
 {
 	//baseTest();
@@ -586,7 +617,9 @@ int main()
 	//fileExtendTest();
 	//pendingJobTest();
 
-	totalScopeTest();
+	//totalScopeTest();
+
+	testArrayBuffer();
 
 	return 0;
 }
