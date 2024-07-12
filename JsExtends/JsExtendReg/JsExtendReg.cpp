@@ -306,8 +306,8 @@ QJS_API ValueHandle F_saveKey(
 	return qjs.TheJsFalse();
 }
 
-//RestoreKey("HKEY_LOCAL_MACHINE\\SOFTWARE\\MySoftware", "D:\\1.reg", true);
-QJS_API ValueHandle F_RestoreKey(
+//restoreKey("HKEY_LOCAL_MACHINE\\SOFTWARE\\MySoftware", "D:\\1.reg", true);
+QJS_API ValueHandle F_restoreKey(
 	ContextHandle ctx, ValueHandle this_val,
 	int argc, ValueHandle* argv, void* user_data, int id)
 {
@@ -332,8 +332,8 @@ QJS_API ValueHandle F_RestoreKey(
 	return qjs.TheJsFalse();
 }
 
-//ReadStringValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\MySoftware", "valueKey", true);
-QJS_API ValueHandle F_ReadStringValue(
+//readStringValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\MySoftware", "valueKey", true);
+QJS_API ValueHandle F_readStringValue(
 	ContextHandle ctx, ValueHandle this_val,
 	int argc, ValueHandle* argv, void* user_data, int id)
 {
@@ -364,8 +364,8 @@ QJS_API ValueHandle F_ReadStringValue(
 	return qjs.TheJsUndefined();
 }
 
-//ReadDwordValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\MySoftware", "valueKey", true);
-QJS_API ValueHandle F_ReadDwordValue(
+//readDwordValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\MySoftware", "valueKey", true);
+QJS_API ValueHandle F_readDwordValue(
 	ContextHandle ctx, ValueHandle this_val,
 	int argc, ValueHandle* argv, void* user_data, int id)
 {
@@ -394,8 +394,8 @@ QJS_API ValueHandle F_ReadDwordValue(
 	return qjs.TheJsUndefined();
 }
 
-//WriteStringValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\MySoftware", "valueKey", "value", true);
-QJS_API ValueHandle F_WriteStringValue(
+//writeStringValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\MySoftware", "valueKey", "value", true);
+QJS_API ValueHandle F_writeStringValue(
 	ContextHandle ctx, ValueHandle this_val,
 	int argc, ValueHandle* argv, void* user_data, int id)
 {
@@ -424,8 +424,8 @@ QJS_API ValueHandle F_WriteStringValue(
 	return qjs.TheJsFalse();
 }
 
-//WriteDwordValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\MySoftware", "valueKey", 123, true);
-QJS_API ValueHandle F_WriteDwordValue(
+//writeDwordValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\MySoftware", "valueKey", 123, true);
+QJS_API ValueHandle F_writeDwordValue(
 	ContextHandle ctx, ValueHandle this_val,
 	int argc, ValueHandle* argv, void* user_data, int id)
 {
@@ -454,8 +454,8 @@ QJS_API ValueHandle F_WriteDwordValue(
 	return qjs.TheJsFalse();
 }
 
-//WriteExpandStringValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\MySoftware", "valueKey", "value", true);
-QJS_API ValueHandle F_WriteExpandStringValue(
+//writeExpandStringValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\MySoftware", "valueKey", "value", true);
+QJS_API ValueHandle F_writeExpandStringValue(
 	ContextHandle ctx, ValueHandle this_val,
 	int argc, ValueHandle* argv, void* user_data, int id)
 {
@@ -484,8 +484,8 @@ QJS_API ValueHandle F_WriteExpandStringValue(
 	return qjs.TheJsFalse();
 }
 
-//EnumSubKeys("HKEY_LOCAL_MACHINE\\SOFTWARE\\MySoftware", true);
-QJS_API ValueHandle F_EnumSubKeys(
+//enumSubKeys("HKEY_LOCAL_MACHINE\\SOFTWARE\\MySoftware", true);
+QJS_API ValueHandle F_enumSubKeys(
 	ContextHandle ctx, ValueHandle this_val,
 	int argc, ValueHandle* argv, void* user_data, int id)
 {
@@ -522,8 +522,8 @@ QJS_API ValueHandle F_EnumSubKeys(
 	return qjs.TheJsUndefined();
 }
 
-//EnumValueNameKeys("HKEY_LOCAL_MACHINE\\SOFTWARE\\MySoftware", true);
-QJS_API ValueHandle F_EnumValueNameKeys(
+//enumValueNameKeys("HKEY_LOCAL_MACHINE\\SOFTWARE\\MySoftware", true);
+QJS_API ValueHandle F_enumValueNameKeys(
 	ContextHandle ctx, ValueHandle this_val,
 	int argc, ValueHandle* argv, void* user_data, int id)
 {
