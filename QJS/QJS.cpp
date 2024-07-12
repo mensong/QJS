@@ -60,6 +60,9 @@ struct QJSContext
 		int, /*__EnqueueJobCallHelper argv第一个参数的值代表函数标识*/
 		FN_JsJobCallback> __JobFunctions;
 
+	//ArrayBuffer的释放回调
+	std::map<uint8_t*, FN_BufferOnceFree> __arrayBufferFreeFunctions;
+
 	std::wstring Ret_AnsiToUnicode;
 	std::string Ret_UnicodeToAnsi;
 	std::string Ret_UnicodeToUtf8;
@@ -396,6 +399,11 @@ ContextHandle JSContextToContextHandle(JSContext* ctx)
 {
 	QJSContext* qjsCtx = (QJSContext*)JS_GetContextOpaque(ctx);
 	return (ContextHandle)qjsCtx;
+}
+
+inline QJSContext* ContextHandleToQJSContext(ContextHandle ctx)
+{
+	return (QJSContext*)ctx;
 }
 
 RuntimeHandle NewRuntime()
@@ -1025,14 +1033,46 @@ ValueHandle NewArrayJsValue(ContextHandle ctx)
 	return ret;
 }
 
-ValueHandle NewArrayBufferJsValue(ContextHandle ctx, const uint8_t* buf, size_t bufLen)
+void __NewArrayBufferJsValue_Helper(JSRuntime* rt, void* opaque, void* ptr)
+{
+	if (!opaque)
+		return;
+	ContextHandle ctx = (ContextHandle)opaque;
+	QJSContext* thisCtx = ContextHandleToQJSContext(ctx);
+	auto itFinder = thisCtx->__arrayBufferFreeFunctions.find((uint8_t*)ptr);
+	if (itFinder == thisCtx->__arrayBufferFreeFunctions.end())
+		return;
+	itFinder->second(ctx, (uint8_t*)ptr);
+	thisCtx->__arrayBufferFreeFunctions.erase(itFinder);//释放完即可清除，确保执行一次
+}
+
+ValueHandle NewArrayBufferJsValue(ContextHandle ctx, uint8_t* buf, size_t bufLen, 
+	FN_BufferOnceFree freeFunc/* = NULL*/)
+{
+	if (freeFunc)
+	{
+		QJSContext* thisCtx = (QJSContext*)ctx;
+		thisCtx->__arrayBufferFreeFunctions[buf] = freeFunc;
+	}
+
+	JSFreeArrayBufferDataFunc* _innerFreeFunc = (freeFunc ? __NewArrayBufferJsValue_Helper : NULL);
+	// SharedArrayBuffer are never detached 
+	JSValue jv = JS_NewArrayBuffer(_INNER_CTX(ctx), buf, bufLen, _innerFreeFunc, ctx, false);
+	ValueHandle ret = _OUTER_VAL(ctx, jv);
+	ADD_AUTO_FREE(ret);
+	return ret;
+}
+
+QJS_API ValueHandle NewArrayBufferJsValueCopy(ContextHandle ctx, const uint8_t* buf, size_t bufLen)
 {
 	bool bNew = false;
 	if (!buf && bufLen > 0)
 	{
 		buf = new uint8_t[bufLen];
+		memset((void*)buf, 0, bufLen);
 		bNew = true;
 	}
+	// SharedArrayBuffer are never detached 
 	JSValue jv = JS_NewArrayBufferCopy(_INNER_CTX(ctx), buf, bufLen);
 
 	if (bNew)

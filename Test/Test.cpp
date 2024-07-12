@@ -578,6 +578,11 @@ void totalScopeTest()
 	qjs.FreeRuntime(m_rt);
 }
 
+void arrayBufferOnceFree(ContextHandle ctx, uint8_t* buf)
+{
+	delete[]  buf;
+}
+
 void testArrayBuffer()
 {
 	auto rt = qjs.NewRuntime();
@@ -587,23 +592,58 @@ void testArrayBuffer()
 	std::string baseExtend = "JsExtendBase.dll";
 	qjs.LoadExtend(ctx, baseExtend.c_str(), qjs.GetGlobalObject(ctx), NULL);
 	
-	uint8_t buf[10] = { 9,8,7,6,5,4,3,2,1,0 };
-	auto jArrBuf = qjs.NewArrayBufferJsValue(ctx, buf, sizeof(buf)/sizeof(uint8_t));
+	{
+		uint8_t buf[10] = { 9,8,7,6,5,4,3,2,1,0 };
+		auto jArrBuf = qjs.NewArrayBufferJsValue(ctx, buf, sizeof(buf) / sizeof(uint8_t), NULL);
 
-	qjs.FillArrayBuffer(ctx, jArrBuf, 0xf);
+		qjs.FillArrayBuffer(ctx, jArrBuf, 0xf);
 
-	//更改ArrayBuffer
-	size_t bufLen = 0;
-	uint8_t * buf2 = qjs.GetArrayBufferPtr(ctx, jArrBuf, &bufLen);
-	for (size_t i = 0; i < bufLen - 1; i++)
-		buf2[i] = 'A';
-	buf2[bufLen - 1] = 0;
+		//更改ArrayBuffer
+		size_t bufLen = 0;
+		uint8_t* buf2 = qjs.GetArrayBufferPtr(ctx, jArrBuf, &bufLen);
+		for (size_t i = 0; i < bufLen - 1; i++)
+			buf2[i] = 'A';
+		buf2[bufLen - 1] = 0;
 
-	//重新读出
-	buf2 = qjs.GetArrayBufferPtr(ctx, jArrBuf, &bufLen);
-	printf("%s\n", buf2);
+		//重新读出
+		buf2 = qjs.GetArrayBufferPtr(ctx, jArrBuf, &bufLen);
+		printf("%s\n", buf2);
 
-	qjs.DetachArrayBufferJsValue(ctx, &jArrBuf);
+		qjs.DetachArrayBufferJsValue(ctx, &jArrBuf);
+
+		buf2 = qjs.GetArrayBufferPtr(ctx, jArrBuf, &bufLen);//will return NULL
+	}
+
+	{
+		uint8_t* buf = new uint8_t[10]{ 9,8,7,6,5,4,3,2,1,0 };
+		auto jArrBuf = qjs.NewArrayBufferJsValue(ctx, buf, 10, NULL/*自己在最后释放*/);
+
+		qjs.FillArrayBuffer(ctx, jArrBuf, 0xf);
+
+		//更改ArrayBuffer
+		size_t bufLen = 0;
+		uint8_t* buf2 = qjs.GetArrayBufferPtr(ctx, jArrBuf, &bufLen);
+		for (size_t i = 0; i < bufLen - 1; i++)
+			buf2[i] = 'A';
+		buf2[bufLen - 1] = 0;
+
+		//重新读出
+		buf2 = qjs.GetArrayBufferPtr(ctx, jArrBuf, &bufLen);
+		printf("%s\n", buf2);
+
+		qjs.DetachArrayBufferJsValue(ctx, &jArrBuf);
+
+		buf2 = qjs.GetArrayBufferPtr(ctx, jArrBuf, &bufLen);//will return NULL
+
+		delete[] buf;//需要自己释放
+	}
+
+	{
+		uint8_t* buf = new uint8_t[10]{ 9,8,7,6,5,4,3,2,1,0 };
+		auto jArrBuf = qjs.NewArrayBufferJsValue(ctx, buf, 10, arrayBufferOnceFree);
+		auto jArrBuf2 = qjs.NewArrayBufferJsValue(ctx, buf, 10, arrayBufferOnceFree);
+		auto jArrBuf3 = qjs.NewArrayBufferJsValue(ctx, buf, 10, arrayBufferOnceFree);
+	}
 
 	qjs.FreeContext(ctx);
 	qjs.FreeRuntime(rt);
@@ -613,7 +653,7 @@ int main()
 {
 	//baseTest();
 	//extendTest();
-	myTest();
+	//myTest();
 	//baseExtendTest();
 	//regExtendTest();
 	//fileExtendTest();
@@ -621,7 +661,7 @@ int main()
 
 	//totalScopeTest();
 
-	//testArrayBuffer();
+	testArrayBuffer();
 
 	return 0;
 }

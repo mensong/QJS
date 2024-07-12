@@ -156,8 +156,11 @@ QJS_API ValueHandle NewThrowJsValue(ContextHandle ctx, ValueHandle throwWhat);
 //日期转ValueHandle
 QJS_API ValueHandle NewDateJsValue(ContextHandle ctx, uint64_t ms_since_1970);
 
-//创建一个ArrayBuffer
-QJS_API ValueHandle NewArrayBufferJsValue(ContextHandle ctx, const uint8_t* buf, size_t bufLen);
+typedef void(*FN_BufferOnceFree)(ContextHandle ctx, uint8_t* buf);
+//创建一个ArrayBuffer - ZeroCopy
+QJS_API ValueHandle NewArrayBufferJsValue(ContextHandle ctx, uint8_t* buf, size_t bufLen, FN_BufferOnceFree freeFunc/* = NULL*/);
+//创建一个ArrayBuffer - Copy
+QJS_API ValueHandle NewArrayBufferJsValueCopy(ContextHandle ctx, const uint8_t* buf, size_t bufLen);
 //释放一个ArrayBuffer
 QJS_API void DetachArrayBufferJsValue(ContextHandle ctx, ValueHandle* arrBuf);
 //获得ArrayBuffer的指针
@@ -360,7 +363,8 @@ public:
 		SET_PROC(hDll, NewArrayJsValue);
 		SET_PROC(hDll, NewThrowJsValue); 
 		SET_PROC(hDll, NewDateJsValue);
-		SET_PROC(hDll, NewArrayBufferJsValue);
+		SET_PROC(hDll, NewArrayBufferJsValue); 
+		SET_PROC(hDll, NewArrayBufferJsValueCopy);
 		SET_PROC(hDll, DetachArrayBufferJsValue);
 		SET_PROC(hDll, GetArrayBufferPtr);
 		SET_PROC(hDll, GetArrayBufferByTypedArrayBuffer);
@@ -468,7 +472,8 @@ public:
 	DEF_PROC(NewArrayJsValue);
 	DEF_PROC(NewThrowJsValue); 
 	DEF_PROC(NewDateJsValue);
-	DEF_PROC(NewArrayBufferJsValue);
+	DEF_PROC(NewArrayBufferJsValue); 
+	DEF_PROC(NewArrayBufferJsValueCopy);
 	DEF_PROC(DetachArrayBufferJsValue);
 	DEF_PROC(GetArrayBufferPtr);
 	DEF_PROC(GetArrayBufferByTypedArrayBuffer);
