@@ -640,9 +640,17 @@ void testArrayBuffer()
 
 	{
 		uint8_t* buf = new uint8_t[10]{ 9,8,7,6,5,4,3,2,1,0 };
+		uint8_t* buf2 = new uint8_t[10]{ 9,8,7,6,5,4,3,2,1,0 };
 		auto jArrBuf = qjs.NewArrayBufferJsValue(ctx, buf, 10, arrayBufferOnceFree);
 		auto jArrBuf2 = qjs.NewArrayBufferJsValue(ctx, buf, 10, arrayBufferOnceFree);
-		auto jArrBuf3 = qjs.NewArrayBufferJsValue(ctx, buf, 10, arrayBufferOnceFree);
+		auto jArrBuf3 = qjs.NewArrayBufferJsValue(ctx, buf2, 10, arrayBufferOnceFree);
+		auto jArrBuf4 = qjs.NewArrayBufferJsValue(ctx, buf2, 10, arrayBufferOnceFree);
+
+		//以下非必要
+		qjs.DetachArrayBufferJsValue(ctx, &jArrBuf);
+		qjs.DetachArrayBufferJsValue(ctx, &jArrBuf2);
+		qjs.DetachArrayBufferJsValue(ctx, &jArrBuf3);
+		qjs.DetachArrayBufferJsValue(ctx, &jArrBuf4);
 	}
 
 	qjs.FreeContext(ctx);
