@@ -594,12 +594,12 @@ void testArrayBuffer()
 	size_t bufLen = 0;
 	uint8_t * buf2 = qjs.GetArrayBufferPtr(ctx, jArrBuf, &bufLen);
 	for (size_t i = 0; i < bufLen - 1; i++)
-		buf2[i] = 1;
+		buf2[i] = 'A';
 	buf2[bufLen - 1] = 0;
 
 	//重新读出
 	buf2 = qjs.GetArrayBufferPtr(ctx, jArrBuf, &bufLen);
-
+	printf("%s\n", buf2);
 
 	qjs.DetachArrayBufferJsValue(ctx, &jArrBuf);
 
