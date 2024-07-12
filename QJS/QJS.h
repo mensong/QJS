@@ -137,6 +137,7 @@ QJS_API bool DefineGetterSetter(ContextHandle ctx, ValueHandle parent,
 //intתValueHandle
 QJS_API ValueHandle NewIntJsValue(ContextHandle ctx, int intValue);
 QJS_API ValueHandle NewInt64JsValue(ContextHandle ctx, int64_t intValue);
+QJS_API ValueHandle NewUInt64JsValue(ContextHandle ctx, uint64_t intValue);
 //doubleתValueHandle
 QJS_API ValueHandle NewDoubleJsValue(ContextHandle ctx, double doubleValue);
 //stringתValueHandle
@@ -183,6 +184,8 @@ QJS_API void FreeJsValueToStringBuffer(ContextHandle ctx, const char* buff);
 QJS_API int JsValueToInt(ContextHandle ctx, ValueHandle value, int defVal/* = 0*/);
 //ValueHandleתint64
 QJS_API int64_t JsValueToInt64(ContextHandle ctx, ValueHandle value, int64_t defVal/* = 0*/);
+//ValueHandleתUINT64
+QJS_API uint64_t JsValueToUInt64(ContextHandle ctx, ValueHandle value, uint64_t defVal/* = 0*/);
 //ValueHandleתdouble
 QJS_API double JsValueToDouble(ContextHandle ctx, ValueHandle value, double defVal/* = 0.0*/);
 //ValueHandleתbool
@@ -346,7 +349,8 @@ public:
 		SET_PROC(hDll, TheJsFalse);
 		SET_PROC(hDll, TheJsException);
 		SET_PROC(hDll, NewIntJsValue);
-		SET_PROC(hDll, NewInt64JsValue);
+		SET_PROC(hDll, NewInt64JsValue); 
+		SET_PROC(hDll, NewUInt64JsValue);
 		SET_PROC(hDll, NewDoubleJsValue);
 		SET_PROC(hDll, NewStringJsValue);
 		SET_PROC(hDll, NewBoolJsValue);
@@ -365,7 +369,8 @@ public:
 		SET_PROC(hDll, JsValueToString);
 		SET_PROC(hDll, FreeJsValueToStringBuffer);
 		SET_PROC(hDll, JsValueToInt);
-		SET_PROC(hDll, JsValueToInt64);
+		SET_PROC(hDll, JsValueToInt64); 
+		SET_PROC(hDll, JsValueToUInt64);
 		SET_PROC(hDll, JsValueToDouble);
 		SET_PROC(hDll, JsValueToBool);
 		SET_PROC(hDll, GetValueType);
@@ -452,7 +457,8 @@ public:
 	DEF_PROC(TheJsFalse);
 	DEF_PROC(TheJsException);
 	DEF_PROC(NewIntJsValue);
-	DEF_PROC(NewInt64JsValue);
+	DEF_PROC(NewInt64JsValue); 
+	DEF_PROC(NewUInt64JsValue);
 	DEF_PROC(NewDoubleJsValue);
 	DEF_PROC(NewStringJsValue);
 	DEF_PROC(NewBoolJsValue);
@@ -471,7 +477,8 @@ public:
 	DEF_PROC(JsValueToString);
 	DEF_PROC(FreeJsValueToStringBuffer);
 	DEF_PROC(JsValueToInt);
-	DEF_PROC(JsValueToInt64);
+	DEF_PROC(JsValueToInt64); 
+	DEF_PROC(JsValueToUInt64);
 	DEF_PROC(JsValueToDouble);
 	DEF_PROC(JsValueToBool);
 	DEF_PROC(GetValueType);

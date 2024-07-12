@@ -977,6 +977,14 @@ ValueHandle NewInt64JsValue(ContextHandle ctx, int64_t intValue)
 	return ret;
 }
 
+ValueHandle NewUInt64JsValue(ContextHandle ctx, uint64_t intValue)
+{
+	JSValue res = JS_NewBigUint64(_INNER_CTX(ctx), intValue);
+	ValueHandle ret = _OUTER_VAL(ctx, res);
+	ADD_AUTO_FREE(ret);
+	return ret;
+}
+
 ValueHandle NewDoubleJsValue(ContextHandle ctx, double doubleValue)
 {
 	JSValue res = JS_NewFloat64(_INNER_CTX(ctx), doubleValue);
@@ -1169,6 +1177,11 @@ int64_t JsValueToInt64(ContextHandle ctx, ValueHandle value, int64_t defVal = 0)
 	if (res >= 0)
 		return e;
 	return defVal;
+}
+
+uint64_t JsValueToUInt64(ContextHandle ctx, ValueHandle value, uint64_t defVal)
+{
+	return (uint64_t)JsValueToInt64(ctx, value, (int64_t)defVal);
 }
 
 double JsValueToDouble(ContextHandle ctx, ValueHandle value, double defVal = 0.0)

@@ -404,7 +404,9 @@ void myTest()
 	}
 
 	{
-		//qjs.RunScriptFile(ctx, "test.js");
+		QJS_SCOPE(ctx);
+		auto jv = qjs.NewUInt64JsValue(ctx, 123456789);
+		uint64_t j64 = qjs.JsValueToUInt64(ctx, jv, 0);
 	}
 
 	qjs.FreeContext(ctx);
@@ -611,7 +613,7 @@ int main()
 {
 	//baseTest();
 	//extendTest();
-	//myTest();
+	myTest();
 	//baseExtendTest();
 	//regExtendTest();
 	//fileExtendTest();
@@ -619,7 +621,7 @@ int main()
 
 	//totalScopeTest();
 
-	testArrayBuffer();
+	//testArrayBuffer();
 
 	return 0;
 }
