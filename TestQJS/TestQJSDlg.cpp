@@ -107,6 +107,8 @@ BOOL CTestQJSDlg::OnInitDialog()
 	m_scale.SetAnchor(IDC_EDIT3, CCtrlScale::AnchorLeftToWinLeft | CCtrlScale::AnchorRightToWinRight);
 	m_scale.Init(GetSafeHwnd());
 
+	m_editScript.SetWindowText(_T("var a = \"hello world\";\r\nalert(a);"));
+
 	return TRUE;  // 除非将焦点设置到控件，否则返回 TRUE
 }
 
@@ -276,10 +278,11 @@ void CTestQJSDlg::DebuggerLineCallback(ContextHandle ctx, uint32_t line_no, cons
 		_this->m_lastBreak = true;
 		_this->m_singleStepExecution = false;
 		_this->m_debugNext = false;
+
+		MSG msg;
 		while (!_this->m_debugNext)
 		{
-			MSG msg;
-			while (::PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
+			if (::PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
 			{
 #pragma region 执行临时脚本
 				if (msg.message == WM_KEYDOWN && msg.wParam == VK_RETURN)
@@ -315,7 +318,7 @@ void CTestQJSDlg::DebuggerLineCallback(ContextHandle ctx, uint32_t line_no, cons
 				}
 #pragma endregion
 
-				if (msg.message == WM_CLOSE)
+				if (msg.message == WM_CLOSE || msg.message == WM_QUIT)
 				{
 					_this->m_debugNext = true;
 					_this->m_onDebugMode = false;

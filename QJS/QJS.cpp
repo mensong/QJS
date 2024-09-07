@@ -259,7 +259,12 @@ QJSRuntime::~QJSRuntime()
 
 
 
-#define ADD_AUTO_FREE(v) if ((v).ctx && (v).value)((QJSContext*)(v).ctx)->addValue((v).value)
+//#define ADD_AUTO_FREE(v) if ((v).ctx && (v).value)((QJSContext*)(v).ctx)->addValue((v).value)
+inline void ADD_AUTO_FREE(ValueHandle v)
+{
+	if (v.ctx && v.value)
+		((QJSContext*)v.ctx)->addValue(v.value);
+}
 
 #define _INNER_RT(rt) (JSRuntime*)(((QJSRuntime*)(rt))->raw)
 //#define _OUTER_RT(rt) (RuntimeHandle)(rt)
@@ -1551,7 +1556,7 @@ JS_BOOL __SetDebuggerCheckLineNoCallbackHelper(JSContext* rawCtx, JSAtom file_na
 				//push value
 				size_t pushdValueIdx = thisCtx->values.size();
 
-				itFinder->second.first(&rawCtx, line_no, pc, itFinder->second.second);
+				itFinder->second.first(thisCtx, line_no, pc, itFinder->second.second);
 
 				//pop value
 				for (int i = thisCtx->values.size() - 1; i >= pushdValueIdx; i--)
