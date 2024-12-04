@@ -269,7 +269,7 @@ QJS_API ValueHandle GetDebuggerLocalVariables(ContextHandle ctx, int stack_idx);
 
 //加载扩展
 // parent - 如果是JsObject，则把加载到的这个对象里面；否则新建一个对象以存储加载的内容。如果想要直接加载到全局，parent=qjs.GetGlobalObject(ctx)即可。
-// 返回插件ID
+// 返回插件ID:extendId
 QJS_API int LoadExtend(ContextHandle ctx, const char* extendFile, ValueHandle parent, void* userData/* = NULL*/);
 //获得扩展dll句柄
 QJS_API HMODULE GetExtendHandle(ContextHandle ctx, int extendId);

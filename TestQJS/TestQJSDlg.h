@@ -68,4 +68,5 @@ public:
 	afx_msg void OnBnClickedBtnLoadFromFile();
 	afx_msg void OnBnClickedButton5();
 	afx_msg void OnBnClickedBtnClearSrc();
+	afx_msg void OnBnClickedBtnLoadExtend();
 };

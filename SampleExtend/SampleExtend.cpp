@@ -3,6 +3,8 @@
 #include <map>
 #include "../QJS/Extend.h"
 
+//id 为 LoadExtend 后所分配的ID
+
 std::map<int, std::string> aData;
 
 QJS_API int _entry(ContextHandle ctx, void* user_data, int id)
@@ -15,17 +17,7 @@ QJS_API int _entry(ContextHandle ctx, void* user_data, int id)
 QJS_API ValueHandle F_testFoo(
 	ContextHandle ctx, ValueHandle this_val, int argc, ValueHandle* argv, void* user_data, int id)
 {
-	//ValueType t = qjs.GetValueType(this_val);
-	//auto arrNames = qjs.GetObjectPropertyKeys(ctx, this_val, false, true);
-	//int64_t len = qjs.GetLength(ctx, arrNames);
-	//for (int i = 0; i < len; i++)
-	//{
-	//	auto jname = qjs.GetIndexedJsValue(ctx, i, arrNames);
-	//	std::string name = qjs.JsValueToStdString(ctx, jname);
-	//	printf("Property name:%s\n", name.c_str());
-	//}
-
-	MessageBoxA(NULL, "testFoo", "SampleExtend", 0);
+	MessageBoxA(NULL, "testFoo()", "SampleExtend", 0);
 	return qjs.TheJsUndefined();
 }
 

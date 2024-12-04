@@ -19,6 +19,7 @@
 #define IDC_BUTTON5                     1011
 #define IDC_BTN_CLEAR_SRC               1012
 #define IDC_STATIC_DEBUG                1013
+#define IDC_BTN_LOAD_EXTEND             1014
 
 // Next default values for new objects
 // 

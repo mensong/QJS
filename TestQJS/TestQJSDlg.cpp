@@ -74,6 +74,7 @@ BEGIN_MESSAGE_MAP(CTestQJSDlg, CDialogEx)
 	ON_BN_CLICKED(IDC_BTN_LOAD_FROM_FILE, &CTestQJSDlg::OnBnClickedBtnLoadFromFile)
 	ON_BN_CLICKED(IDC_BUTTON5, &CTestQJSDlg::OnBnClickedButton5)
 	ON_BN_CLICKED(IDC_BTN_CLEAR_SRC, &CTestQJSDlg::OnBnClickedBtnClearSrc)
+	ON_BN_CLICKED(IDC_BTN_LOAD_EXTEND, &CTestQJSDlg::OnBnClickedBtnLoadExtend)
 END_MESSAGE_MAP()
 
 
@@ -559,4 +560,10 @@ void CTestQJSDlg::OnBnClickedBtnClearSrc()
 {
 	m_editScript.SetWindowText(_T(""));
 	m_curFilename = "";
+}
+
+
+void CTestQJSDlg::OnBnClickedBtnLoadExtend()
+{
+	
 }
