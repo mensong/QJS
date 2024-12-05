@@ -418,14 +418,26 @@ void extendTest()
 	RuntimeHandle rt = qjs.NewRuntime();
 	ContextHandle ctx = qjs.NewContext(rt);
 
+	//加载SampleExtend.dll插件到Sample对象
 	auto jSample = qjs.NewObjectJsValue(ctx);
 	qjs.SetNamedJsValue(ctx, "Sample", jSample, qjs.GetGlobalObject(ctx));
 	int id1 = qjs.LoadExtend(ctx, "SampleExtend.dll", jSample, NULL);
 	//qjs.UnloadExtend(ctx, id1);
+
+	////加载SampleExtend.dll插件到Global对象
 	id1 = qjs.LoadExtend(ctx, "SampleExtend.dll", qjs.GetGlobalObject(ctx), NULL);
 	//qjs.UnloadExtend(ctx, id1);
 
 	//printObject(ctx, jSample);
+
+	int len = 0;
+	const int* extIds = qjs.GetExtendList(ctx, &len);
+	for (int i = 0; i < len; i++)
+	{
+		int extId = extIds[i];
+		const char* sExtFile = qjs.GetExtendFile(ctx, extId);
+		printf("已加载的插件:%s\n", sExtFile);
+	}
 
 	ValueHandle result = qjs.RunScript(ctx, qjs.UnicodeToUtf8(ctx,
 		L"Sample.testFoo();\ntestFoo();Sample.a='123';var sa=Sample.a;a='456';a"), qjs.TheJsNull(), "");
@@ -659,15 +671,15 @@ void testArrayBuffer()
 
 int main()
 {
-	//baseTest();
-	//extendTest();
-	//myTest();
-	//baseExtendTest();
-	//regExtendTest();
-	//fileExtendTest();
-	//pendingJobTest();
+	baseTest();
+	extendTest();
+	myTest();
+	baseExtendTest();
+	regExtendTest();
+	fileExtendTest();
+	pendingJobTest();
 
-	//totalScopeTest();
+	totalScopeTest();
 
 	testArrayBuffer();
 

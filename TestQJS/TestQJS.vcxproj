@@ -191,8 +191,11 @@
     </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="CDlgExtendsList.h" />
+    <ClInclude Include="CItemFile.h" />
     <ClInclude Include="CtrlScale.h" />
     <ClInclude Include="framework.h" />
+    <ClInclude Include="ListCtrlCustom.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="targetver.h" />
@@ -200,12 +203,15 @@
     <ClInclude Include="TestQJSDlg.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="CDlgExtendsList.cpp" />
+    <ClCompile Include="CItemFile.cpp" />
     <ClCompile Include="CtrlScale.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="ListCtrlCustom.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>

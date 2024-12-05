@@ -1696,7 +1696,7 @@ ValueHandle _extendCallHelper(
 	auto itFinder = thisCtx->extends.find(pFuncUserData->extendId);
 	if (itFinder == thisCtx->extends.end())
 	{
-		std::string err = "Extend#" + std::to_string(pFuncUserData->extendId) + " has be unloaded";
+		std::string err = "Extend #" + std::to_string(pFuncUserData->extendId) + " has be unloaded";
 		return NewThrowJsValue(ctx, NewStringJsValue(ctx, err.c_str()));
 	}
 
@@ -1833,6 +1833,24 @@ int LoadExtend(ContextHandle ctx, const char* extendFile, ValueHandle parent, vo
 		_completed(ctx, userData, extendId);
 
 	return extendId;
+}
+
+const int* GetExtendList(ContextHandle ctx, int* outLen)
+{
+	static std::vector<int> s_textendIds;
+	s_textendIds.clear();
+	*outLen = 0;
+
+	QJSContext* thisCtx = (QJSContext*)ctx;
+	for (auto it = thisCtx->extends.begin(); it != thisCtx->extends.end(); ++it)
+	{
+		s_textendIds.push_back(it->first);
+	}
+
+	*outLen = (int)s_textendIds.size();
+	if (*outLen)
+		return &s_textendIds[0];
+	return NULL;
 }
 
 void UnloadExtend(ContextHandle ctx, int extendId)

@@ -7,6 +7,7 @@
 #include <string>
 #include "../QJS/QJS.h"
 #include "CtrlScale.h"
+#include "CDlgExtendsList.h"
 
 // CTestQJSDlg 对话框
 class CTestQJSDlg : public CDialogEx
@@ -27,11 +28,11 @@ public:
 	static void DebuggerLineCallback(ContextHandle ctx, uint32_t line_no, const uint8_t* pc, void* user_data);
 
 	std::string m_curFilename;
+	
+	std::vector<CDlgExtendsList::ExtInfo> m_extends;
 
 // 对话框数据
-#ifdef AFX_DESIGN_TIME
 	enum { IDD = IDD_TESTQJS_DIALOG };
-#endif
 
 	protected:
 	virtual void DoDataExchange(CDataExchange* pDX);	// DDX/DDV 支持

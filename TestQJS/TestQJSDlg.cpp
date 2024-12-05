@@ -12,6 +12,7 @@
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #endif
+#include "CDlgExtendsList.h"
 
 
 // CTestQJSDlg 对话框
@@ -107,6 +108,11 @@ BOOL CTestQJSDlg::OnInitDialog()
 	m_scale.SetAnchor(IDC_EDIT_BREAKPOITS, CCtrlScale::AnchorLeftToWinLeft);
 	m_scale.SetAnchor(IDC_EDIT3, CCtrlScale::AnchorLeftToWinLeft | CCtrlScale::AnchorRightToWinRight);
 	m_scale.Init(GetSafeHwnd());
+
+	CDlgExtendsList::ExtInfo baseExt;
+	baseExt.parentName = "";//放在globalobject里
+	baseExt.extFilePath = "JsExtendBase.dll";
+	m_extends.push_back(baseExt);
 
 	m_editScript.SetWindowText(_T("var a = \"hello world\";\r\nalert(a);"));
 
@@ -432,8 +438,25 @@ void CTestQJSDlg::OnBnClickedButton1()
 	//qjs.SetNamedJsValue(ctx, "log", printFunc, console);
 
 	//b = qjs.SetNamedJsValue(ctx, "telemetryLog", printFunc, qjs.TheJsNull());
+	
+	//加载插件
+	for (size_t i = 0; i < m_extends.size(); i++)
+	{
+		ValueHandle parent;
+		if (!m_extends[i].parentName.IsEmpty())
+		{
+			parent = qjs.NewObjectJsValue(ctx);
+			std::string sName = qjs.UnicodeToUtf8(ctx, m_extends[i].parentName.GetString());
+			qjs.SetNamedJsValue(ctx, sName.c_str(), parent, qjs.GetGlobalObject(ctx));
+		}
+		else
+		{
+			parent = qjs.GetGlobalObject(ctx);
+		}
 
-	qjs.LoadExtend(ctx, "JsExtendBase.dll", qjs.GetGlobalObject(ctx), NULL);
+		std::string file = CW2A(m_extends[i].extFilePath);
+		qjs.LoadExtend(ctx, file.c_str(), parent, NULL);
+	}
 
 	CString script;
 	m_editScript.GetWindowText(script);
@@ -565,5 +588,10 @@ void CTestQJSDlg::OnBnClickedBtnClearSrc()
 
 void CTestQJSDlg::OnBnClickedBtnLoadExtend()
 {
-	
+	CDlgExtendsList dlgExtendList;
+	dlgExtendList.m_extents = m_extends;
+	if (dlgExtendList.DoModal() == IDOK)
+	{
+		m_extends = dlgExtendList.m_extents;
+	}
 }
