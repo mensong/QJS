@@ -15,6 +15,56 @@
 #include "CDlgExtendsList.h"
 
 
+
+std::string ReadText(const char* path)
+{
+	FILE* f = NULL;
+	long sz;
+
+	if (!path)
+	{
+		return "";
+	}
+
+	std::string sRet;
+
+	if (fopen_s(&f, path, "rb") != 0)
+	{
+		return "";
+	}
+
+	do
+	{
+		if (fseek(f, 0, SEEK_END) < 0)
+		{
+			break;
+		}
+
+		sz = ftell(f);
+		if (sz < 0)
+		{
+			break;
+		}
+
+		if (fseek(f, 0, SEEK_SET) < 0)
+		{
+			break;
+		}
+
+		sRet.resize((size_t)sz + 1, '\0');
+
+		if ((size_t)fread(const_cast<char*>(sRet.c_str()), 1, (size_t)sz, f) != (size_t)sz)
+		{
+			sRet = "";
+			break;
+		}
+	} while (0);
+
+	fclose(f);
+
+	return sRet;
+}
+
 // CTestQJSDlg 对话框
 
 
@@ -571,21 +621,19 @@ void CTestQJSDlg::OnBnClickedBtnLoadFromFile()
 	if (fdlg.DoModal() == IDOK)
 	{
 		CString strFileName = fdlg.GetPathName();
-		CStdioFile file;
-		if (file.Open(strFileName, CFile::modeRead)) // 打开文件
-		{
-			CString strContent;
-			CString strTemp;
-			while (file.ReadString(strTemp)) // 逐行读取文件内容
-			{
-				strContent += strTemp + _T("\r\n"); // 拼接文件内容
-			}
-			file.Close(); // 关闭文件
 
-			m_editScript.SetWindowText(strContent); // 将文件内容显示到文本编辑框中
+		std::string strContent = ReadText(CW2A(strFileName));
 
-			m_curFilename = UnicodeToAnsi(strFileName.GetString());
-		}
+		RuntimeHandle rt = qjs.NewRuntime();
+		ContextHandle ctx = qjs.NewContext(rt);
+
+		CString sContent = qjs.Utf8ToUnicode(ctx, strContent.c_str());
+		m_editScript.SetWindowText(sContent); // 将文件内容显示到文本编辑框中
+
+		qjs.FreeContext(ctx);
+		qjs.FreeRuntime(rt);
+
+		m_curFilename = UnicodeToAnsi(strFileName.GetString());
 	}
 }
 
