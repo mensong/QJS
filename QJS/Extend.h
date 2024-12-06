@@ -31,7 +31,8 @@ typedef ValueHandle(*FN_JS_ExtendFunction)(ContextHandle ctx, ValueHandle this_v
 2.包含Extend.h
 3.实现并导出入口函数_entry（可选）
 4.实现并导出加载完成函数_completed（可选）
-5.实现并导出扩展函数
-6.使用LoadExtend加载即可
+5.实现并导出卸载函数_unload（可选）
+6.实现并导出扩展函数
+7.使用LoadExtend加载即可
 */
 
