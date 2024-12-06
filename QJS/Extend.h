@@ -13,8 +13,10 @@ typedef void (*FN_completed)(ContextHandle ctx, void* user_data, int id);
 typedef void (*FN_unload)(ContextHandle ctx, void* user_data, int id);
 
 //扩展函数原型
-// 1.函数命名的格式为 F_funcionNameInJs，例如：JS_alert在js中的方法名即为alert
-// 2.getter/setter 函数命名格式为: G_jsObjName - 创建一个getter的变量；S_jsObjName - 创建一个setter的变量
+// 1.函数命名的格式为 F_funcionNameInJs，例如：F_alert在js中的方法名即为alert
+// 2.getter/setter 函数命名格式为: 
+//   G_jsObjName - 创建一个getter的变量
+//   S_jsObjName - 创建一个setter的变量
 typedef ValueHandle(*FN_JS_ExtendFunction)(ContextHandle ctx, ValueHandle this_val, 
 	int argc, ValueHandle* argv, void* user_data, int id);
 
