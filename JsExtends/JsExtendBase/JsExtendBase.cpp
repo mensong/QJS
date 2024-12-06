@@ -338,14 +338,14 @@ QJS_API ValueHandle F_inputBox(
 	return qjs.NewStringJsValue(ctx, utext.c_str());
 }
 
-QJS_API ValueHandle G_input(
-	ContextHandle ctx, ValueHandle this_val, int argc, ValueHandle* argv, void* user_data, int id)
-{
-	std::wstring textInput = _InputBoxW(L"«Î ‰»Î£∫", L"QJS");
-	std::string utext = qjs.UnicodeToUtf8(ctx, textInput.c_str());
-
-	return qjs.NewStringJsValue(ctx, utext.c_str());
-}
+//QJS_API ValueHandle G_input(
+//	ContextHandle ctx, ValueHandle this_val, int argc, ValueHandle* argv, void* user_data, int id)
+//{
+//	std::wstring textInput = _InputBoxW(L"«Î ‰»Î£∫", L"QJS");
+//	std::string utext = qjs.UnicodeToUtf8(ctx, textInput.c_str());
+//
+//	return qjs.NewStringJsValue(ctx, utext.c_str());
+//}
 
 std::wstring resolveAndUpdateFilePath(ContextHandle ctx, const std::wstring& filename, int id)
 {

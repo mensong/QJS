@@ -125,7 +125,7 @@ std::wstring resolveAndUpdateFilePath(ContextHandle ctx, const std::wstring& fil
 	return L"";
 }
 
-//readTextFile(filename, [function(){}], [input charset]);
+//readTextFile(filename, [function(line:string, lineno:int){}], [input charset]);
 QJS_API ValueHandle F_readTextFile(
 	ContextHandle ctx, ValueHandle this_val, int argc, ValueHandle* argv, void* user_data, int id)
 {

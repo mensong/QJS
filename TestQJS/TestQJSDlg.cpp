@@ -447,7 +447,11 @@ void CTestQJSDlg::OnBnClickedButton1()
 		{
 			parent = qjs.NewObjectJsValue(ctx);
 			std::string sName = qjs.UnicodeToUtf8(ctx, m_extends[i].parentName.GetString());
-			qjs.SetNamedJsValue(ctx, sName.c_str(), parent, qjs.GetGlobalObject(ctx));
+			if (!qjs.SetNamedJsValue(ctx, sName.c_str(), parent, qjs.GetGlobalObject(ctx)))
+			{
+				AppendResultText(_T("加载插件错误:") + m_extends[i].parentName + _T(" 名无效"));
+				continue;
+			}
 		}
 		else
 		{
@@ -455,7 +459,20 @@ void CTestQJSDlg::OnBnClickedButton1()
 		}
 
 		std::string file = CW2A(m_extends[i].extFilePath);
-		qjs.LoadExtend(ctx, file.c_str(), parent, NULL);
+		int extId = qjs.LoadExtend(ctx, file.c_str(), parent, NULL);
+		if (extId > 0)
+		{
+			CString objName;
+			if (m_extends[i].parentName.IsEmpty())
+				objName = _T("GlobalObject");
+			else
+				objName = m_extends[i].parentName;
+			AppendResultText(_T("加载插件:") + m_extends[i].extFilePath + _T(" into ") + objName + _T(""));
+		}
+		else
+		{
+			AppendResultText(_T("加载插件错误:") + m_extends[i].extFilePath);
+		}
 	}
 
 	CString script;

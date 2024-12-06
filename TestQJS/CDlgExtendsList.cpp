@@ -70,7 +70,8 @@ void CDlgExtendsList::OnBnClickedOk()
 		CItemFile* file = (CItemFile*)m_listExtends.GetCtrl(i, 1);
 		file->m_editFile.GetWindowText(extInfo.extFilePath);
 
-		m_extents.push_back(extInfo);
+		if (!extInfo.extFilePath.IsEmpty())
+			m_extents.push_back(extInfo);
 	}
 
 	CDialogEx::OnOK();
