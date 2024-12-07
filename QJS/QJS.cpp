@@ -675,7 +675,10 @@ size_t PopRunScope(ContextHandle ctx, size_t pushdValueIdx)
 
 bool DefineGetterSetter(ContextHandle ctx, ValueHandle parent, 
 	const char* propName, ValueHandle getter, ValueHandle setter)
-{	
+{
+	if (!propName || propName[0] == '\0')
+		return false;
+
 	int flags = JS_PROP_HAS_CONFIGURABLE | JS_PROP_HAS_ENUMERABLE;
 	if (JS_IsFunction(_INNER_CTX(ctx), _INNER_VAL(getter)))
 	{
@@ -696,6 +699,9 @@ bool DefineGetterSetter(ContextHandle ctx, ValueHandle parent,
 
 ValueHandle GetNamedJsValue(ContextHandle ctx, const char* varName, ValueHandle parent)
 {
+	if (!varName || varName[0] == '\0')
+		return TheJsUndefined();
+
 	JSValue _this = _INNER_VAL(parent);
 	bool isUseGlobal = JsValueIsNull(parent) || JsValueIsUndefined(parent);
 	if (isUseGlobal)
@@ -715,6 +721,9 @@ ValueHandle GetNamedJsValue(ContextHandle ctx, const char* varName, ValueHandle 
 
 bool SetNamedJsValue(ContextHandle ctx, const char* varName, ValueHandle varValue, ValueHandle parent)
 {
+	if (!varName || varName[0] == '\0')
+		return false;
+
 	JSValue _this = _INNER_VAL(parent);
 	bool isUseGlobal = JsValueIsNull(parent) || JsValueIsUndefined(parent);
 	if (isUseGlobal)
@@ -731,6 +740,9 @@ bool SetNamedJsValue(ContextHandle ctx, const char* varName, ValueHandle varValu
 
 bool DeleteNamedJsValue(ContextHandle ctx, const char* varName, ValueHandle parent)
 {
+	if (!varName || varName[0] == '\0')
+		return false;
+
 	JSValue _this = _INNER_VAL(parent);
 	bool isUseGlobal = JsValueIsNull(parent) || JsValueIsUndefined(parent);
 	if (isUseGlobal)
@@ -748,6 +760,9 @@ bool DeleteNamedJsValue(ContextHandle ctx, const char* varName, ValueHandle pare
 
 bool HasNamedJsValue(ContextHandle ctx, const char* varName, ValueHandle parent)
 {
+	if (!varName || varName[0] == '\0')
+		return false;
+
 	JSValue _this = _INNER_VAL(parent);
 	bool isUseGlobal = JsValueIsNull(parent) || JsValueIsUndefined(parent);
 	if (isUseGlobal)
@@ -897,6 +912,9 @@ void FreeJsPointer(ContextHandle ctx, void* ptr)
 
 uint8_t* LoadFile(ContextHandle ctx, size_t* outLen, const char* filename)
 {
+	if (!filename || filename[0] == '\0')
+		return NULL;
+
 	//QJSContext* thisCtx = (QJSContext*)ctx;
 	uint8_t* buf = js_load_file(_INNER_CTX(ctx), outLen, filename);
 	return buf;
@@ -904,6 +922,9 @@ uint8_t* LoadFile(ContextHandle ctx, size_t* outLen, const char* filename)
 
 ValueHandle RunScript(ContextHandle ctx, const char* script, ValueHandle parent, const char* filename/* = ""*/)
 {
+	if (!script || script[0] == '\0')
+		return TheJsUndefined();
+
 	JSValue res = JS_UNDEFINED;
 	bool isUseGlobal = JsValueIsNull(parent) || JsValueIsUndefined(parent);
 	if (isUseGlobal)
@@ -918,6 +939,9 @@ ValueHandle RunScript(ContextHandle ctx, const char* script, ValueHandle parent,
 
 ValueHandle RunScriptFile(ContextHandle ctx, const char* filename, ValueHandle parent)
 {
+	if (!filename || filename[0] == '\0')
+		return TheJsUndefined();
+
 	size_t buf_len = 0;
 	uint8_t* buf = LoadFile(ctx, &buf_len, filename);
 	if (buf)
@@ -1008,7 +1032,7 @@ ValueHandle NewDoubleJsValue(ContextHandle ctx, double doubleValue)
 
 ValueHandle NewStringJsValue(ContextHandle ctx, const char* stringValue)
 {
-	JSValue res = JS_NewString(_INNER_CTX(ctx), stringValue);
+	JSValue res = JS_NewString(_INNER_CTX(ctx), (stringValue ? stringValue : ""));
 	ValueHandle ret = _OUTER_VAL(ctx, res);
 	ADD_AUTO_FREE(ret);
 	return ret;
@@ -1262,6 +1286,9 @@ uint64_t JsValueToTimestamp(ContextHandle ctx, ValueHandle value)
 
 ValueHandle CompileScript(ContextHandle ctx, const char* script, const char* filename/* = ""*/)
 {
+	if (!script || script[0] == '\0')
+		return TheJsUndefined();
+
 	int eval_flags;
 	eval_flags = JS_EVAL_FLAG_COMPILE_ONLY | JS_EVAL_TYPE_GLOBAL;
 	JSValue res = JS_Eval(_INNER_CTX(ctx), script, strlen(script), (filename ? filename : ""), eval_flags);
@@ -1295,6 +1322,9 @@ ValueHandle ByteCodeToJsValue(ContextHandle ctx, const uint8_t* byteCode, size_t
 
 bool SaveByteCodeToFile(const uint8_t* byteCode, size_t byteCodeLen, const char* filepath)
 {
+	if (!filepath || filepath[0] == '\0')
+		return false;
+
 	bool res = false;
 	FILE* file = fopen(filepath, "wb"); 
 	if (file)
@@ -1388,6 +1418,9 @@ ValueHandle JsonStringify(ContextHandle ctx, ValueHandle value)
 
 ValueHandle JsonParse(ContextHandle ctx, const char* json)
 {
+	if (!json || json[0] == '\0')
+		return TheJsException();
+
 	JSValue obj = JS_ParseJSON2(_INNER_CTX(ctx), json, strlen(json), "<json>", JS_PARSE_JSON_EXT);
 	ValueHandle ret = _OUTER_VAL(ctx, obj);
 	ADD_AUTO_FREE(ret);
@@ -1711,6 +1744,9 @@ ValueHandle _extendCallHelper(
 
 int LoadExtend(ContextHandle ctx, const char* extendFile, ValueHandle parent, void* userData/*=NULL*/)
 {
+	if (!extendFile || extendFile[0] == '\0')
+		return -1;
+
 	std::vector<std::string> function_list;
 	if (!GetExportNames(extendFile, function_list) || function_list.size() == 0)
 		return 0;
