@@ -907,9 +907,9 @@ ValueHandle RunScript(ContextHandle ctx, const char* script, ValueHandle parent,
 	JSValue res = JS_UNDEFINED;
 	bool isUseGlobal = JsValueIsNull(parent) || JsValueIsUndefined(parent);
 	if (isUseGlobal)
-		res = JS_Eval(_INNER_CTX(ctx), script, strlen(script), filename, 0);
+		res = JS_Eval(_INNER_CTX(ctx), script, strlen(script), (filename ? filename : ""), 0);
 	else
-		res = JS_EvalThis(_INNER_CTX(ctx), _INNER_VAL(parent), script, strlen(script), filename, 0);
+		res = JS_EvalThis(_INNER_CTX(ctx), _INNER_VAL(parent), script, strlen(script), (filename ? filename : ""), 0);
 
 	ValueHandle ret = _OUTER_VAL(ctx, res);
 	ADD_AUTO_FREE(ret);
@@ -1264,7 +1264,7 @@ ValueHandle CompileScript(ContextHandle ctx, const char* script, const char* fil
 {
 	int eval_flags;
 	eval_flags = JS_EVAL_FLAG_COMPILE_ONLY | JS_EVAL_TYPE_GLOBAL;
-	JSValue res = JS_Eval(_INNER_CTX(ctx), script, strlen(script), filename, eval_flags);
+	JSValue res = JS_Eval(_INNER_CTX(ctx), script, strlen(script), (filename ? filename : ""), eval_flags);
 	ValueHandle ret = _OUTER_VAL(ctx, res);
 	ADD_AUTO_FREE(ret);
 	return ret;
