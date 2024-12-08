@@ -5,6 +5,7 @@
 #include "..\QJS\QJS.h"
 #include "..\JsExtends\JsExtendBase\JsExtendBase.h"
 #include <sstream>
+#include <iostream>
 
 void printObject(ContextHandle ctx, ValueHandle obj)
 {
@@ -669,8 +670,33 @@ void testArrayBuffer()
 	qjs.FreeRuntime(rt);
 }
 
+void testMultiContext()
+{
+	auto rt = qjs.NewRuntime();
+
+	auto ctx1 = qjs.NewContext(rt);
+	auto ctx2 = qjs.NewContext(rt);
+
+	auto string1 = qjs.NewStringJsValue(ctx1, "string1");
+	qjs.SetNamedJsValue(ctx1, "name1", string1, qjs.GetGlobalObject(ctx1));
+
+	//测试是否不同的上下文是否共用
+	auto testName1 = qjs.GetNamedJsValue(ctx2, "name1", qjs.GetGlobalObject(ctx2));
+	std::string res = qjs.JsValueToStdString(ctx2, testName1, "");
+	if (qjs.JsValueIsUndefined(testName1))
+		std::cout << "不同的上下文不共用" << std::endl;
+	else
+		std::cout << "不同的上下文共用" << std::endl;
+
+	qjs.FreeContext(ctx1);
+	qjs.FreeContext(ctx2);
+	qjs.FreeRuntime(rt);
+}
+
 int main()
 {
+	testMultiContext();
+
 	baseTest();
 	extendTest();
 	myTest();
