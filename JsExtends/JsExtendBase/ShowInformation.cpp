@@ -2,6 +2,7 @@
 #include <windows.h>
 #include "ShowInformation.h"
 #include <string>
+#include "..\pystring\pywstring.h"
 
 std::wstring g_text;
 std::wstring g_title;
@@ -12,9 +13,15 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 void ShowInformation(const wchar_t* text, const wchar_t* title/* = L"QJS"*/, int width/* = 0*/, int height/* = 0*/)
 {
     if (text)
-        g_text = text;
+    {
+        g_text = pywstring::replace(
+            pywstring::replace(text, L"\r\n", L"\n"),
+            L"\n", L"\r\n");
+    }
     if (title)
         g_title = title;
+
+
 
     // ×¢²á´°¿ÚÀà  
     const wchar_t CLASS_NAME[] = L"ShowInformationClass";
