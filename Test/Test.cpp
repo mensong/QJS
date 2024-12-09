@@ -732,8 +732,28 @@ void testNewVarInFunction()
 	qjs.FreeRuntime(rt);
 }
 
+void testJsValueToStdString()
+{
+	auto rt = qjs.NewRuntime();
+	auto ctx = qjs.NewContext(rt);
+
+#define _testToSrting(v) \
+	std::cout << #v << " to string: " << qjs.JsValueToStdString(ctx, (v), "") << std::endl;
+
+	_testToSrting(qjs.qjs.TheJsException());
+	_testToSrting(qjs.TheJsFalse());
+	_testToSrting(qjs.TheJsTrue());
+	_testToSrting(qjs.TheJsNull());
+	_testToSrting(qjs.TheJsUndefined());
+
+	qjs.FreeContext(ctx);
+	qjs.FreeRuntime(rt);
+}
+
 int main()
 {
+	testJsValueToStdString();
+	return 0;
 	testNewVarInFunction();
 
 	testMultiContext();
