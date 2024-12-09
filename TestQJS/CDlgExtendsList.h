@@ -3,7 +3,7 @@
 #include "ListCtrlCustom.h"
 #include <string>
 #include <vector>
-#include "CtrlScale.h"
+#include "..\3RD\CtrlScale\CtrlScale.h"
 
 
 // CDlgExtendsList 对话框

@@ -146,17 +146,16 @@ BOOL CTestQJSDlg::OnInitDialog()
 	m_btnContinue.EnableWindow(FALSE);
 	m_btnSingleStep.EnableWindow(FALSE);
 
-	m_scale.SetAnchor(IDC_EDIT1, CCtrlScale::AnchorLeftToWinLeft | CCtrlScale::AnchorTopToWinTop | CCtrlScale::AnchorRightToWinRight);
-	m_scale.SetAnchor(IDC_EDIT2, CCtrlScale::AnchorLeftToWinLeft | CCtrlScale::AnchorBottomToWinBottom | CCtrlScale::AnchorRightToWinRight);
-	m_scale.SetAnchor(IDC_STATIC_DEBUG, CCtrlScale::AnchorLeftToWinLeft | CCtrlScale::AnchorRightToWinRight);
-	m_scale.SetAnchor(IDC_STATIC1, CCtrlScale::AnchorLeftToWinLeft | CCtrlScale::AnchorRightToWinLeft);
-	m_scale.SetAnchor(IDC_STATIC2, CCtrlScale::AnchorLeftToWinLeft | CCtrlScale::AnchorRightToWinLeft);
-	m_scale.SetAnchor(IDC_BTN_CLEAR_SRC, CCtrlScale::AnchorRightToWinRight);
-	m_scale.SetAnchor(IDC_BTN_LOAD_FROM_FILE, CCtrlScale::AnchorRightToWinRight);
-	m_scale.SetAnchor(IDC_BUTTON5, CCtrlScale::AnchorRightToWinRight);
-	m_scale.SetAnchor(IDC_EDIT_BREAKPOITS, CCtrlScale::AnchorLeftToWinLeft);
-	m_scale.SetAnchor(IDC_EDIT_BREAKPOITS, CCtrlScale::AnchorLeftToWinLeft);
-	m_scale.SetAnchor(IDC_EDIT3, CCtrlScale::AnchorLeftToWinLeft | CCtrlScale::AnchorRightToWinRight);
+	m_scale.SetAnchor(m_editScript.m_hWnd, CCtrlScale::AnchorLeftToWinLeft | CCtrlScale::AnchorTopToWinTop | CCtrlScale::AnchorRightToWinRight);
+	m_scale.SetAnchor(m_editResult.m_hWnd, CCtrlScale::AnchorLeftToWinLeft | CCtrlScale::AnchorBottomToWinBottom | CCtrlScale::AnchorRightToWinRight);
+	m_scale.SetAnchor(GetDlgItem(IDC_STATIC_DEBUG)->m_hWnd, CCtrlScale::AnchorLeftToWinLeft | CCtrlScale::AnchorRightToWinRight);
+	m_scale.SetAnchor(GetDlgItem(IDC_STATIC1)->m_hWnd, CCtrlScale::AnchorLeftToWinLeft | CCtrlScale::AnchorRightToWinLeft);
+	m_scale.SetAnchor(GetDlgItem(IDC_STATIC2)->m_hWnd, CCtrlScale::AnchorLeftToWinLeft | CCtrlScale::AnchorRightToWinLeft);
+	m_scale.SetAnchor(GetDlgItem(IDC_BTN_CLEAR_SRC)->m_hWnd, CCtrlScale::AnchorRightToWinRight);
+	m_scale.SetAnchor(GetDlgItem(IDC_BTN_LOAD_FROM_FILE)->m_hWnd, CCtrlScale::AnchorRightToWinRight);
+	m_scale.SetAnchor(GetDlgItem(IDC_BUTTON5)->m_hWnd, CCtrlScale::AnchorRightToWinRight);
+	m_scale.SetAnchor(m_editBreakpointsList.m_hWnd, CCtrlScale::AnchorLeftToWinLeft);
+	m_scale.SetAnchor(m_editTestScript.m_hWnd, CCtrlScale::AnchorLeftToWinLeft | CCtrlScale::AnchorRightToWinRight);
 	m_scale.Init(GetSafeHwnd());
 
 	CDlgExtendsList::ExtInfo baseExt;

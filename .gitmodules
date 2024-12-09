@@ -1,0 +1,3 @@
+[submodule "3RD/CtrlScale"]
+	path = 3RD/CtrlScale
+	url = https://github.com/mensong/CtrlScale.git

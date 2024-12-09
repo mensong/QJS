@@ -8,8 +8,8 @@
 #include <tchar.h>
 #include <vector>
 #include "JsExtendBase.h"
-#include "InputBoxW.h"
-#include "ShowInformation.h"
+#include "DlgInputBox.h"
+#include "DlgShowInformation.h"
 
 // 判断文件是否存在
 BOOL IsFileExist(const TCHAR* csFile)
@@ -260,6 +260,9 @@ ValueHandle _jprint(
 QJS_API ValueHandle F_debug(
 	ContextHandle ctx, ValueHandle this_val, int argc, ValueHandle* argv, void* user_data, int id)
 {
+	if (DlgShowInformation::ms_noShowAgain)
+		return qjs.TheJsUndefined();
+
 	ValueHandle parentObj = qjs.GetExtendParentObject(ctx, id);
 
 	ValueHandle jprocess = qjs.GetNamedJsValue(ctx, "process", parentObj);
@@ -282,7 +285,11 @@ QJS_API ValueHandle F_debug(
 			qjs.FreeJsValueToStringBuffer(ctx, sz);
 		}
 
-		ShowInformation(ss.str().c_str(), L"Debug");
+		DlgShowInformation dlg;
+		dlg.m_title = L"Debug";
+		dlg.m_msg = ss.str().c_str();
+		dlg.DoModal();
+		//ShowInformation(ss.str().c_str(), L"Debug");
 	}
 
 	return qjs.TheJsUndefined();
@@ -333,8 +340,12 @@ QJS_API ValueHandle F_inputBox(
 		defText = qjs.Utf8ToUnicode(ctx, sdefText.c_str());
 	}
 
-	std::wstring textInput = _InputBoxW(tip.c_str(), title.c_str(), defText.c_str());
-	std::string utext = qjs.UnicodeToUtf8(ctx, textInput.c_str());
+	DlgInputBox inputBox;
+	inputBox.m_title = title.c_str();
+	inputBox.m_tip = tip.c_str();
+	inputBox.m_content = defText.c_str();
+	inputBox.DoModal();
+	std::string utext = qjs.UnicodeToUtf8(ctx, inputBox.m_content.GetString());
 
 	return qjs.NewStringJsValue(ctx, utext.c_str());
 }

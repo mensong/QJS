@@ -753,7 +753,7 @@ void testJsValueToStdString()
 int main()
 {
 	testJsValueToStdString();
-	return 0;
+
 	testNewVarInFunction();
 
 	testMultiContext();

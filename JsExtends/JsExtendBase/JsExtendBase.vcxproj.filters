@@ -15,30 +15,7 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="framework.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="pch.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="..\pystring\pystring.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="..\pystring\pywstring.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="JsExtendBase.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="InputBoxW.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="ShowInformation.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="dllmain.cpp">
+    <ClCompile Include="entry.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="pch.cpp">
@@ -53,11 +30,62 @@
     <ClCompile Include="..\pystring\pywstring.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="InputBoxW.cpp">
+    <ClCompile Include="DlgInputBox.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="ShowInformation.cpp">
+    <ClCompile Include="DlgShowInformation.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\3RD\CtrlScale\CtrlScale.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="JsExtendBase.def">
+      <Filter>源文件</Filter>
+    </None>
+    <None Include="res\JsExtendBase.rc2">
+      <Filter>资源文件</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="framework.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="targetver.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="Resource.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="entry.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="pch.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="JsExtendBase.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\pystring\pystring.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\pystring\pywstring.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="DlgInputBox.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="DlgShowInformation.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3RD\CtrlScale\CtrlScale.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="JsExtendBase.rc">
+      <Filter>资源文件</Filter>
+    </ResourceCompile>
   </ItemGroup>
 </Project>

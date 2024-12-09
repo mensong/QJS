@@ -6,7 +6,7 @@
 #include <set>
 #include <string>
 #include "../QJS/QJS.h"
-#include "CtrlScale.h"
+#include "..\3RD\CtrlScale\CtrlScale.h"
 #include "CDlgExtendsList.h"
 
 // CTestQJSDlg 对话框

@@ -25,3 +25,4 @@
 /JsExtends/JsExtendFile/Win32
 /JsExtends/JsExtendPath/Win32
 /JsExtends/JsExtendReg/Win32
+/JsExtends/JsExtendBase/*.aps
