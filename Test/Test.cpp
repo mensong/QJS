@@ -567,27 +567,27 @@ void fileExtendTest()
 void totalScopeTest()
 {
 	auto m_rt = qjs.NewRuntime();
-	auto m_ctx = qjs.NewContext(m_rt);
+	auto ctx = qjs.NewContext(m_rt);
 
-	QJS_SCOPE(m_ctx);
+	QJS_SCOPE(ctx);
 
 	//加载base插件
 	std::string baseExtend = "JsExtendBase.dll";
-	qjs.LoadExtend(m_ctx, baseExtend.c_str(), qjs.GetGlobalObject(m_ctx), NULL);
+	qjs.LoadExtend(ctx, baseExtend.c_str(), qjs.GetGlobalObject(ctx), NULL);
 	//加载Path插件
 	std::string pathExtend = "JsExtendPath.dll";
-	ValueHandle jpath = qjs.NewObjectJsValue(m_ctx);
-	qjs.SetNamedJsValue(m_ctx, "Path", jpath, qjs.TheJsNull());
-	qjs.LoadExtend(m_ctx, pathExtend.c_str(), jpath, NULL);
+	ValueHandle jpath = qjs.NewObjectJsValue(ctx);
+	qjs.SetNamedJsValue(ctx, "Path", jpath, qjs.TheJsNull());
+	qjs.LoadExtend(ctx, pathExtend.c_str(), jpath, NULL);
 
-	ValueHandle jmsg = qjs.NewFunction(m_ctx, JsMsg, 0, NULL);
-	qjs.SetNamedJsValue(m_ctx, "msg", jmsg, qjs.TheJsNull());
+	ValueHandle jmsg = qjs.NewFunction(ctx, JsMsg, 0, NULL);
+	qjs.SetNamedJsValue(ctx, "msg", jmsg, qjs.TheJsNull());
 
 //#ifdef _DEBUG
-	qjs.RunScript(m_ctx, "process.isDebug=true;", qjs.TheJsNull(), "");
+	qjs.RunScript(ctx, "process.isDebug=true;", qjs.TheJsNull(), "");
 //#endif // DEBUG
 
-	qjs.FreeContext(m_ctx);
+	qjs.FreeContext(ctx);
 	qjs.FreeRuntime(m_rt);
 }
 
@@ -693,8 +693,49 @@ void testMultiContext()
 	qjs.FreeRuntime(rt);
 }
 
+ValueHandle testNewVarInFunctionCallback(
+	ContextHandle ctx, ValueHandle this_val, int argc, ValueHandle* argv, void* user_data)
+{
+	ValueHandle arrRet = qjs.NewArrayJsValue(ctx);
+	int idx = 0;
+	for (size_t i = 0; i < 10; i++)
+	{
+		/*
+		{"name":"mensong", "age":18}
+		*/
+		ValueHandle itemObj = qjs.NewObjectJsValue(ctx);
+		ValueHandle jName = qjs.NewStringJsValue(ctx, "mensong");
+		qjs.SetNamedJsValue(ctx, "name", jName, itemObj);
+		ValueHandle jAge = qjs.NewIntJsValue(ctx, 18);
+		qjs.SetNamedJsValue(ctx, "age", jAge, itemObj);
+		qjs.SetIndexedJsValue(ctx, idx, itemObj, arrRet);
+		++idx;
+	}
+	return arrRet;
+}
+
+void testNewVarInFunction()
+{
+	auto rt = qjs.NewRuntime();
+	auto ctx = qjs.NewContext(rt);
+
+	//加载base插件
+	std::string baseExtend = "JsExtendBase.dll";
+	qjs.LoadExtend(ctx, baseExtend.c_str(), qjs.GetGlobalObject(ctx), NULL);
+
+	ValueHandle jFunc = qjs.NewFunction(ctx, testNewVarInFunctionCallback, 0, NULL);
+	qjs.SetNamedJsValue(ctx, "foo", jFunc, qjs.TheJsUndefined());
+
+	qjs.RunScript(ctx, "process.isDebug=true;debug(debugObject(foo()))", qjs.TheJsUndefined(), NULL);
+
+	qjs.FreeContext(ctx);
+	qjs.FreeRuntime(rt);
+}
+
 int main()
 {
+	testNewVarInFunction();
+
 	testMultiContext();
 
 	baseTest();
