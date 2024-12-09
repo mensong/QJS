@@ -9,6 +9,7 @@
 #include <vector>
 #include "JsExtendBase.h"
 #include "InputBoxW.h"
+#include "ShowInformation.h"
 
 // 判断文件是否存在
 BOOL IsFileExist(const TCHAR* csFile)
@@ -281,7 +282,7 @@ QJS_API ValueHandle F_debug(
 			qjs.FreeJsValueToStringBuffer(ctx, sz);
 		}
 
-		MessageBoxW(NULL, ss.str().c_str(), L"Debug", 0);
+		ShowInformation(ss.str().c_str(), L"Debug");
 	}
 
 	return qjs.TheJsUndefined();
