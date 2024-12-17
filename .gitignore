@@ -26,3 +26,6 @@
 /JsExtends/JsExtendPath/Win32
 /JsExtends/JsExtendReg/Win32
 /JsExtends/JsExtendBase/*.aps
+/JsExtends/JsExtendDebugger/x64
+/JsExtends/JsExtendDebugger/Win32
+/JsExtends/JsExtendDebugger/*.aps

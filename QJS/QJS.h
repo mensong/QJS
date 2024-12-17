@@ -2,7 +2,9 @@
 QJS重新封装了quickjs，使得在Windows上使用更方便快捷
 */
 
-#pragma once
+#ifndef QJS_H
+#define QJS_H
+
 #ifndef _AFX
 #include <windows.h>
 #endif
@@ -621,3 +623,6 @@ private:
 };
 
 #define QJS_SCOPE(ctx) QJSRunScope __scope(ctx)
+
+
+#endif // QJS_H

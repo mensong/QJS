@@ -750,8 +750,29 @@ void testJsValueToStdString()
 	qjs.FreeRuntime(rt);
 }
 
+void testDebuggerExtend()
+{
+	auto rt = qjs.NewRuntime();
+	auto ctx = qjs.NewContext(rt);
+
+	//加载base插件
+	std::string baseExtend = "JsExtendBase.dll";
+	qjs.LoadExtend(ctx, baseExtend.c_str(), qjs.GetGlobalObject(ctx), NULL);
+
+	std::string debuggerExtend = "JsExtendDebugger.dll";
+	qjs.LoadExtend(ctx, debuggerExtend.c_str(), qjs.GetGlobalObject(ctx), NULL);
+
+	qjs.RunScript(ctx, "process.isDebug=true;debug(debugObject(process))", qjs.TheJsUndefined(), NULL);
+
+	qjs.FreeContext(ctx);
+	qjs.FreeRuntime(rt);
+}
+
 int main()
 {
+	testDebuggerExtend();
+	return 0;
+
 	testJsValueToStdString();
 
 	testNewVarInFunction();

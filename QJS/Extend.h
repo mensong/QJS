@@ -1,6 +1,19 @@
-#pragma once
+#ifndef EXTEND_H
+#define EXTEND_H
+
 #define QJS_EXPORTS
+
+#ifdef QJS_H
+	#ifdef QJS_EXPORTS
+	#define QJS_API extern "C" __declspec(dllexport)
+	#else
+	#define QJS_API extern "C" __declspec(dllimport)
+	#endif
+#endif // QJS_H
+
 #include "QJS.h"
+
+
 
 //入口函数原型: QJS_API int _entry(ContextHandle ctx, void* user_data, int id){}
 // return 错误码。返回非0则不加载插件
@@ -23,7 +36,7 @@ typedef void (*FN_unload)(ContextHandle ctx, void* user_data, int id);
 typedef ValueHandle(*FN_JS_ExtendFunction)(ContextHandle ctx, ValueHandle this_val, 
 	int argc, ValueHandle* argv, void* user_data, int id);
 
-
+#endif // !EXTEND_H
 
 /*
 创建扩展步骤：
@@ -35,4 +48,6 @@ typedef ValueHandle(*FN_JS_ExtendFunction)(ContextHandle ctx, ValueHandle this_v
 6.实现并导出扩展函数
 7.使用LoadExtend加载即可
 */
+
+
 
