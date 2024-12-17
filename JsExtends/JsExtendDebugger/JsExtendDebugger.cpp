@@ -24,6 +24,7 @@ QJS_API void _completed(ContextHandle ctx, void* user_data, int id)
 	g_debugerDlg->ShowWindow(SW_SHOW);
 
 	qjs.SetDebuggerLineCallback(ctx, DlgDebugger::DebuggerLineCallback, g_debugerDlg);
+	qjs.SetDebuggerMode(ctx, true);
 }
 
 //Ð¶ÔØº¯Êý
