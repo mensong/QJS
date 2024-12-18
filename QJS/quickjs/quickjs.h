@@ -1217,7 +1217,9 @@ int JS_SetModuleExportList(JSContext *ctx, JSModuleDef *m,
 typedef JS_BOOL JSDebuggerCheckLineNoF(JSContext *ctx, JSAtom file_name, uint32_t line_no, const uint8_t *pc);
 
 void JS_SetBreakpointHandler(JSContext *ctx, JSDebuggerCheckLineNoF* line_hit_handler);
+JSDebuggerCheckLineNoF* JS_GetBreakpointHandler(JSContext* ctx);
 void JS_SetDebuggerMode(JSContext *ctx, int onoff);
+int JS_GetDebuggerMode(JSContext* ctx);
 
 uint32_t js_debugger_stack_depth(JSContext *ctx);
 JSValue  js_debugger_build_backtrace(JSContext *ctx, const uint8_t *cur_pc);

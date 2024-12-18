@@ -54711,9 +54711,19 @@ void JS_SetBreakpointHandler(JSContext *ctx, JSDebuggerCheckLineNoF* debugger_ch
   ctx->debugger_check_line_no = debugger_check_line_no;
 }
 
+JSDebuggerCheckLineNoF* JS_GetBreakpointHandler(JSContext* ctx)
+{
+  return ctx->debugger_check_line_no;
+}
+
 void JS_SetDebuggerMode(JSContext *ctx, int onoff)
 {
   ctx->debugger_enabled = onoff;
+}
+
+int JS_GetDebuggerMode(JSContext* ctx)
+{
+  return ctx->debugger_enabled;
 }
 
 #endif // CONFIG_DEBUGGER

@@ -257,10 +257,12 @@ QJS_API int WaitForExecutingJobs(RuntimeHandle runtime,
 
 //开启调试模式
 QJS_API void SetDebuggerMode(ContextHandle ctx, bool onoff);
+QJS_API bool GetDebuggerMode(ContextHandle ctx);
 //调试行回调 line_no - 从0开始
 typedef void (*FN_DebuggerLineCallback)(ContextHandle ctx, uint32_t line_no, const uint8_t* pc, void* user_data);
 //设置调试行回调
 QJS_API void SetDebuggerLineCallback(ContextHandle ctx, FN_DebuggerLineCallback cb, void* user_data);
+QJS_API bool GetDebuggerLineCallback(ContextHandle ctx, FN_DebuggerLineCallback* out_cb, void** out_user_data);
 //获得调试时的堆栈深度
 QJS_API uint32_t GetDebuggerStackDepth(ContextHandle ctx);
 //获得回溯 return - jArray
@@ -409,7 +411,9 @@ public:
 		SET_PROC(hDll, GetContextByRaw); 
 		SET_PROC(hDll, WaitForExecutingJobs);
 		SET_PROC(hDll, SetDebuggerMode); 
-		SET_PROC(hDll, SetDebuggerLineCallback); 
+		SET_PROC(hDll, GetDebuggerMode);
+		SET_PROC(hDll, SetDebuggerLineCallback);
+		SET_PROC(hDll, GetDebuggerLineCallback);
 		SET_PROC(hDll, GetDebuggerStackDepth); 
 		SET_PROC(hDll, GetDebuggerBacktrace);
 		SET_PROC(hDll, GetDebuggerClosureVariables); 
@@ -519,7 +523,9 @@ public:
 	DEF_PROC(GetContextByRaw); 
 	DEF_PROC(WaitForExecutingJobs);
 	DEF_PROC(SetDebuggerMode);
-	DEF_PROC(SetDebuggerLineCallback); 
+	DEF_PROC(GetDebuggerMode);
+	DEF_PROC(SetDebuggerLineCallback);
+	DEF_PROC(GetDebuggerLineCallback);
 	DEF_PROC(GetDebuggerStackDepth);
 	DEF_PROC(GetDebuggerBacktrace);
 	DEF_PROC(GetDebuggerClosureVariables); 

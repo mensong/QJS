@@ -23,13 +23,27 @@ QJS_API void _unload(ContextHandle ctx, void* user_data, int id)
 
 }
 
+void switchDebuggerMode(ContextHandle ctx, bool debugMode, FN_DebuggerLineCallback cb, void* user_data,
+	bool* old_debugMode, FN_DebuggerLineCallback* old_cb, void** old_user_data)
+{
+	*old_debugMode = qjs.GetDebuggerMode(ctx);
+	*old_cb = NULL;
+	*old_user_data = NULL;
+	qjs.GetDebuggerLineCallback(ctx, old_cb, old_user_data);
+
+	qjs.SetDebuggerLineCallback(ctx, cb, user_data);
+	qjs.SetDebuggerMode(ctx, debugMode);
+}
+
 ValueHandle RunScript(ContextHandle ctx, const char* script, ValueHandle parent, const char* filename/*=""*/)
 {
 	DlgDebugger* debuggerDlg = new DlgDebugger();
 	debuggerDlg->Create(DlgDebugger::IDD);
 	debuggerDlg->ShowWindow(SW_SHOW);
-	qjs.SetDebuggerLineCallback(ctx, DlgDebugger::DebuggerLineCallback, debuggerDlg);
-	qjs.SetDebuggerMode(ctx, true);
+
+	bool old_debugMode; FN_DebuggerLineCallback old_cb; void* old_user_data;
+	switchDebuggerMode(ctx, true, DlgDebugger::DebuggerLineCallback, debuggerDlg,
+		&old_debugMode, &old_cb, &old_user_data);
 
 	std::string sFileSrc = script;
 	ValueHandle jret = qjs.RunScript(ctx, script, parent, sFileSrc.c_str());
@@ -43,11 +57,12 @@ ValueHandle RunScript(ContextHandle ctx, const char* script, ValueHandle parent,
 		if (!DlgDebugger::DoEvent(debuggerDlg, ctx))
 			break;
 		Sleep(10);
-	}
-	qjs.SetDebuggerMode(ctx, true);
-
+	}	
 	//debuggerDlg->DestroyWindow();
 	delete debuggerDlg;
+
+	qjs.SetDebuggerMode(ctx, old_debugMode);
+	qjs.SetDebuggerLineCallback(ctx, old_cb, old_user_data);
 
 	return jret;
 }
@@ -71,9 +86,17 @@ ValueHandle RunScriptFile(ContextHandle ctx, const char* filename, ValueHandle p
 
 ValueHandle CompileScript(ContextHandle ctx, const char* script, const char* filename/* = ""*/)
 {
-	qjs.SetDebuggerMode(ctx, true);//必须使用调试模式编译脚本才有效
+	//必须使用调试模式编译脚本才有效
+	bool old_debugMode; FN_DebuggerLineCallback old_cb; void* old_user_data;
+	switchDebuggerMode(ctx, true, NULL, NULL,
+		&old_debugMode, &old_cb, &old_user_data);
+
 	std::string sFileSrc = script;
 	ValueHandle jret = qjs.CompileScript(ctx, script, sFileSrc.c_str());
+
+	qjs.SetDebuggerMode(ctx, old_debugMode);
+	qjs.SetDebuggerLineCallback(ctx, old_cb, old_user_data);
+
 	return jret;
 }
 
@@ -82,8 +105,10 @@ ValueHandle RunByteCode(ContextHandle ctx, const uint8_t* byteCode, size_t byteC
 	DlgDebugger* debuggerDlg = new DlgDebugger();
 	debuggerDlg->Create(DlgDebugger::IDD);
 	debuggerDlg->ShowWindow(SW_SHOW);
-	qjs.SetDebuggerLineCallback(ctx, DlgDebugger::DebuggerLineCallback, debuggerDlg);
-	qjs.SetDebuggerMode(ctx, true);
+	
+	bool old_debugMode; FN_DebuggerLineCallback old_cb; void* old_user_data;
+	switchDebuggerMode(ctx, true, DlgDebugger::DebuggerLineCallback, debuggerDlg,
+		&old_debugMode, &old_cb, &old_user_data);
 
 	ValueHandle jret = qjs.RunByteCode(ctx, byteCode, byteCodeLen);
 
@@ -97,10 +122,12 @@ ValueHandle RunByteCode(ContextHandle ctx, const uint8_t* byteCode, size_t byteC
 			break;
 		Sleep(10);
 	}
-	qjs.SetDebuggerMode(ctx, true);
 
 	//debuggerDlg->DestroyWindow();
 	delete debuggerDlg;
+
+	qjs.SetDebuggerMode(ctx, old_debugMode);
+	qjs.SetDebuggerLineCallback(ctx, old_cb, old_user_data);
 
 	return jret;
 }

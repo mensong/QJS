@@ -1571,6 +1571,11 @@ void SetDebuggerMode(ContextHandle ctx, bool onoff)
 	JS_SetDebuggerMode(_INNER_CTX(ctx), (onoff ? 1 : 0));
 }
 
+bool GetDebuggerMode(ContextHandle ctx)
+{
+	return JS_GetDebuggerMode(_INNER_CTX(ctx));
+}
+
 static std::map<JSContext*, std::pair<FN_DebuggerLineCallback, void*> > __SetDebuggerCheckLineNoCallbackFunctions;
 JS_BOOL __SetDebuggerCheckLineNoCallbackHelper(JSContext* rawCtx, JSAtom file_name, uint32_t line_no, const uint8_t* pc)
 {
@@ -1611,6 +1616,22 @@ void SetDebuggerLineCallback(ContextHandle ctx, FN_DebuggerLineCallback cb, void
 {
 	__SetDebuggerCheckLineNoCallbackFunctions[_INNER_CTX(ctx)] = std::make_pair(cb, user_data);
 	JS_SetBreakpointHandler(_INNER_CTX(ctx), __SetDebuggerCheckLineNoCallbackHelper);
+}
+
+bool GetDebuggerLineCallback(ContextHandle ctx, FN_DebuggerLineCallback* out_cb, void** out_user_data)
+{
+	std::map<JSContext*, std::pair<FN_DebuggerLineCallback, void*> >::iterator itFinder =
+		__SetDebuggerCheckLineNoCallbackFunctions.find(_INNER_CTX(ctx));
+	if (itFinder == __SetDebuggerCheckLineNoCallbackFunctions.end())
+	{
+		*out_cb = NULL;
+		*out_user_data = NULL;
+		return false;
+	}
+
+	*out_cb = itFinder->second.first;
+	*out_user_data = itFinder->second.second;
+	return true;
 }
 
 uint32_t GetDebuggerStackDepth(ContextHandle ctx)
