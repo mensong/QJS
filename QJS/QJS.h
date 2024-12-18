@@ -257,13 +257,13 @@ QJS_API int WaitForExecutingJobs(RuntimeHandle runtime,
 
 //开启调试模式
 QJS_API void SetDebuggerMode(ContextHandle ctx, bool onoff);
-//调试行回调
+//调试行回调 line_no - 从0开始
 typedef void (*FN_DebuggerLineCallback)(ContextHandle ctx, uint32_t line_no, const uint8_t* pc, void* user_data);
 //设置调试行回调
 QJS_API void SetDebuggerLineCallback(ContextHandle ctx, FN_DebuggerLineCallback cb, void* user_data);
 //获得调试时的堆栈深度
 QJS_API uint32_t GetDebuggerStackDepth(ContextHandle ctx);
-//获得回溯
+//获得回溯 return - jArray
 QJS_API ValueHandle GetDebuggerBacktrace(ContextHandle ctx, const uint8_t* pc);
 //获得调试变量（只读）
 QJS_API ValueHandle GetDebuggerClosureVariables(ContextHandle ctx, int stack_idx);

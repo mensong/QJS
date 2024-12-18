@@ -14,7 +14,9 @@
 #define IDC_EDIT3                       1007
 #define IDC_EDIT_DEBUGGER_EXPR          1007
 #define IDC_STATIC1                     1009
+#define IDC_STATIC_BREAKPOINTS          1009
 #define IDC_STATIC2                     1010
+#define IDC_STATIC_EXPR                 1010
 #define IDC_STATIC_DEBUG                1013
 
 // Next default values for new objects

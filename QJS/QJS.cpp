@@ -1928,7 +1928,7 @@ ValueHandle GetExtendParentObject(ContextHandle ctx, int extendId)
 const wchar_t* AnsiToUnicode(ContextHandle ctx, const char* multiByteStr)
 {
 	QJSContext* thisCtx = (QJSContext*)ctx;
-	if (thisCtx == NULL)
+	if (thisCtx == NULL || !multiByteStr)
 		return L"";
 
 	wchar_t* pWideCharStr; //定义返回的宽字符指针
@@ -1949,7 +1949,7 @@ const wchar_t* AnsiToUnicode(ContextHandle ctx, const char* multiByteStr)
 const char* UnicodeToAnsi(ContextHandle ctx, const wchar_t* wideByteRet)
 {
 	QJSContext* thisCtx = (QJSContext*)ctx;
-	if (thisCtx == NULL)
+	if (thisCtx == NULL || !wideByteRet)
 		return "";
 
 	char* pMultiCharStr; //定义返回的多字符指针
@@ -1970,7 +1970,7 @@ const char* UnicodeToAnsi(ContextHandle ctx, const wchar_t* wideByteRet)
 const char* UnicodeToUtf8(ContextHandle ctx, const wchar_t* wideByteRet)
 {
 	QJSContext* thisCtx = (QJSContext*)ctx;
-	if (thisCtx == NULL)
+	if (thisCtx == NULL || !wideByteRet)
 		return "";
 
 	char* pMultiCharStr; //定义返回的多字符指针
@@ -1991,7 +1991,7 @@ const char* UnicodeToUtf8(ContextHandle ctx, const wchar_t* wideByteRet)
 const wchar_t* Utf8ToUnicode(ContextHandle ctx, const char* utf8ByteStr)
 {
 	QJSContext* thisCtx = (QJSContext*)ctx;
-	if (thisCtx == NULL)
+	if (thisCtx == NULL || !utf8ByteStr)
 		return L"";
 
 	wchar_t* pWideCharStr; //定义返回的宽字符指针

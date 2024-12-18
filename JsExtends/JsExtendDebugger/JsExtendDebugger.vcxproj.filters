@@ -27,6 +27,15 @@
     <ClCompile Include="JsExtendDebugger.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="..\pystring\pystring.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="..\pystring\pywstring.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3RD\CtrlScale\CtrlScale.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="JsExtendDebugger.def">
@@ -56,6 +65,15 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="JsExtendDebugger.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\pystring\pystring.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\pystring\pywstring.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3RD\CtrlScale\CtrlScale.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>
