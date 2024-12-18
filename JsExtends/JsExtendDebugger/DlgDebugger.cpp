@@ -121,7 +121,23 @@ void DlgDebugger::DebuggerLineCallback(ContextHandle ctx, uint32_t line_no, cons
 			std::string src = qjs.JsValueToStdString(ctx, jfilename);
 			src = pystring::replace(src, "\r\n", "\n");
 			src = pystring::replace(src, "\n", "\r\n");
-			_this->m_editSrc.SetWindowText(qjs.Utf8ToUnicode(ctx, src.c_str()));
+			CString usrc = qjs.Utf8ToUnicode(ctx, src.c_str());
+
+			//添加行号
+			CString usrc_line_no;
+			CStringArray lines;
+			_this->SplitCString(usrc, _T("\r\n"), lines);
+			for (size_t i = 0; i < lines.GetSize(); i++)
+			{
+				CString a;
+				a.Format(_T("%d%s\t\t %s\r\n"),
+					(int)(i + 1), 
+					(line_no == (i + 1) ? _T("->") : _T("")), 
+					lines[i].GetString());
+				usrc_line_no += a;
+			}
+
+			_this->m_editSrc.SetWindowText(usrc_line_no);
 
 			ValueHandle jname = qjs.GetNamedJsValue(ctx, "name", jframe);
 			funcName = qjs.Utf8ToUnicode(ctx, qjs.JsValueToString(ctx, jname));

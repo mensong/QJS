@@ -6,11 +6,11 @@
 #include <stdint.h>
 #include "QJS.h"
 
-QJS_API ValueHandle RunScript(ContextHandle ctx, const char* script, ValueHandle parent, const char* filename/*=""*/);
-QJS_API ValueHandle RunScriptFile(ContextHandle ctx, const char* filename, ValueHandle parent);
+QJS_API ValueHandle RunScript_Debug(ContextHandle ctx, const char* script, ValueHandle parent, const char* filename/*=""*/);
+QJS_API ValueHandle RunScriptFile_Debug(ContextHandle ctx, const char* filename, ValueHandle parent);
 
-QJS_API ValueHandle CompileScript(ContextHandle ctx, const char* script, const char* filename/* = ""*/);
-QJS_API ValueHandle RunByteCode(ContextHandle ctx, const uint8_t* byteCode, size_t byteCodeLen);
+QJS_API ValueHandle CompileScript_Debug(ContextHandle ctx, const char* script, const char* filename/* = ""*/);
+QJS_API ValueHandle RunByteCode_Debug(ContextHandle ctx, const uint8_t* byteCode, size_t byteCodeLen);
 
 class JsExtendDebugger
 {
@@ -27,17 +27,17 @@ public:
 		if (!hDll)
 			return;
 
-		SET_PROC(hDll, RunScript);
-		SET_PROC(hDll, RunScriptFile);
-		SET_PROC(hDll, CompileScript);
-		SET_PROC(hDll, RunByteCode);
+		SET_PROC(hDll, RunScript_Debug);
+		SET_PROC(hDll, RunScriptFile_Debug);
+		SET_PROC(hDll, CompileScript_Debug);
+		SET_PROC(hDll, RunByteCode_Debug);
 
 	}
 
-	DEF_PROC(RunScript);
-	DEF_PROC(RunScriptFile);
-	DEF_PROC(CompileScript); 
-	DEF_PROC(RunByteCode);
+	DEF_PROC(RunScript_Debug);
+	DEF_PROC(RunScriptFile_Debug);
+	DEF_PROC(CompileScript_Debug);
+	DEF_PROC(RunByteCode_Debug);
 
 
 public:

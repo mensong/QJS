@@ -5,6 +5,42 @@
 #include "../pystring/pywstring.h"
 #include "DlgDebugger.h"
 
+struct DebuggerInfo
+{
+	ContextHandle _ctx;
+	DlgDebugger* debuggerDlg;
+
+	bool old_debugMode; 
+	FN_DebuggerLineCallback old_cb; 
+	void* old_user_data;
+
+	struct DebuggerInfo(ContextHandle ctx)
+		: _ctx(ctx)
+	{
+		debuggerDlg = new DlgDebugger();
+		debuggerDlg->Create(DlgDebugger::IDD);
+		debuggerDlg->ShowWindow(SW_SHOW);
+
+		old_debugMode = qjs.GetDebuggerMode(ctx);
+		old_cb = NULL;
+		old_user_data = NULL;
+		qjs.GetDebuggerLineCallback(ctx, &old_cb, &old_user_data);
+
+		qjs.SetDebuggerLineCallback(ctx, DlgDebugger::DebuggerLineCallback, debuggerDlg);
+		qjs.SetDebuggerMode(ctx, true);
+	}
+
+	~DebuggerInfo()
+	{
+		if (debuggerDlg)
+			delete debuggerDlg;
+		qjs.SetDebuggerMode(_ctx, old_debugMode);
+		qjs.SetDebuggerLineCallback(_ctx, old_cb, old_user_data);
+	}
+};
+
+std::map<int, DebuggerInfo*> g_idMapToDebugger;
+
 //入口函数
 QJS_API int _entry(ContextHandle ctx, void* user_data, int id)
 {
@@ -14,60 +50,45 @@ QJS_API int _entry(ContextHandle ctx, void* user_data, int id)
 //加载完成函数
 QJS_API void _completed(ContextHandle ctx, void* user_data, int id)
 {
-	
+	//g_idMapToDebugger[id] = new DebuggerInfo(ctx);
 }
 
 //卸载函数
 QJS_API void _unload(ContextHandle ctx, void* user_data, int id)
 {
-
+	auto itFinder = g_idMapToDebugger.find(id);
+	if (itFinder != g_idMapToDebugger.end())
+	{
+		delete itFinder->second;
+		g_idMapToDebugger.erase(itFinder);
+	}
 }
 
-void switchDebuggerMode(ContextHandle ctx, bool debugMode, FN_DebuggerLineCallback cb, void* user_data,
-	bool* old_debugMode, FN_DebuggerLineCallback* old_cb, void** old_user_data)
+ValueHandle RunScript_Debug(ContextHandle ctx, const char* script, ValueHandle parent, const char* filename/*=""*/)
 {
-	*old_debugMode = qjs.GetDebuggerMode(ctx);
-	*old_cb = NULL;
-	*old_user_data = NULL;
-	qjs.GetDebuggerLineCallback(ctx, old_cb, old_user_data);
-
-	qjs.SetDebuggerLineCallback(ctx, cb, user_data);
-	qjs.SetDebuggerMode(ctx, debugMode);
-}
-
-ValueHandle RunScript(ContextHandle ctx, const char* script, ValueHandle parent, const char* filename/*=""*/)
-{
-	DlgDebugger* debuggerDlg = new DlgDebugger();
-	debuggerDlg->Create(DlgDebugger::IDD);
-	debuggerDlg->ShowWindow(SW_SHOW);
-
-	bool old_debugMode; FN_DebuggerLineCallback old_cb; void* old_user_data;
-	switchDebuggerMode(ctx, true, DlgDebugger::DebuggerLineCallback, debuggerDlg,
-		&old_debugMode, &old_cb, &old_user_data);
+	DebuggerInfo debugger(ctx);
 
 	std::string sFileSrc = script;
 	ValueHandle jret = qjs.RunScript(ctx, script, parent, sFileSrc.c_str());
 
-	debuggerDlg->AppendResultText(_T("\r\n运行结果："), true);
-	debuggerDlg->AppendResultText(ctx, jret, false);
-
-	qjs.SetDebuggerMode(ctx, false);//防止在运行后的表达式调试中又重复进入调试
-	while (debuggerDlg->m_debugMode)
+	if (debugger.debuggerDlg)
 	{
-		if (!DlgDebugger::DoEvent(debuggerDlg, ctx))
-			break;
-		Sleep(10);
-	}	
-	//debuggerDlg->DestroyWindow();
-	delete debuggerDlg;
+		debugger.debuggerDlg->AppendResultText(_T("\r\n运行结果："), true);
+		debugger.debuggerDlg->AppendResultText(ctx, jret, false);
 
-	qjs.SetDebuggerMode(ctx, old_debugMode);
-	qjs.SetDebuggerLineCallback(ctx, old_cb, old_user_data);
+		qjs.SetDebuggerMode(ctx, false);//防止在运行后的表达式调试中又重复进入调试
+		while (debugger.debuggerDlg->m_debugMode)
+		{
+			if (!DlgDebugger::DoEvent(debugger.debuggerDlg, ctx))
+				break;
+			Sleep(10);
+		}
+	}
 
 	return jret;
 }
 
-ValueHandle RunScriptFile(ContextHandle ctx, const char* filename, ValueHandle parent)
+ValueHandle RunScriptFile_Debug(ContextHandle ctx, const char* filename, ValueHandle parent)
 {
 	if (!filename || filename[0] == '\0')
 		return qjs.TheJsUndefined();
@@ -76,7 +97,7 @@ ValueHandle RunScriptFile(ContextHandle ctx, const char* filename, ValueHandle p
 	uint8_t* buf = qjs.LoadFile(ctx, &buf_len, filename);
 	if (buf)
 	{
-		ValueHandle ret = RunScript(ctx, (const char*)buf, parent, NULL);
+		ValueHandle ret = RunScript_Debug(ctx, (const char*)buf, parent, NULL);
 		qjs.FreeJsPointer(ctx, buf);
 		return ret;
 	}
@@ -84,12 +105,15 @@ ValueHandle RunScriptFile(ContextHandle ctx, const char* filename, ValueHandle p
 	return qjs.TheJsUndefined();
 }
 
-ValueHandle CompileScript(ContextHandle ctx, const char* script, const char* filename/* = ""*/)
+ValueHandle CompileScript_Debug(ContextHandle ctx, const char* script, const char* filename/* = ""*/)
 {
-	//必须使用调试模式编译脚本才有效
-	bool old_debugMode; FN_DebuggerLineCallback old_cb; void* old_user_data;
-	switchDebuggerMode(ctx, true, NULL, NULL,
-		&old_debugMode, &old_cb, &old_user_data);
+	//必须使用调试模式编译脚本才有效	
+	bool old_debugMode = qjs.GetDebuggerMode(ctx);
+	qjs.SetDebuggerMode(ctx, true);
+	FN_DebuggerLineCallback old_cb = NULL;
+	void* old_user_data = NULL;
+	qjs.GetDebuggerLineCallback(ctx, &old_cb, &old_user_data);
+	qjs.SetDebuggerLineCallback(ctx, NULL, NULL);
 
 	std::string sFileSrc = script;
 	ValueHandle jret = qjs.CompileScript(ctx, script, sFileSrc.c_str());
@@ -100,34 +124,25 @@ ValueHandle CompileScript(ContextHandle ctx, const char* script, const char* fil
 	return jret;
 }
 
-ValueHandle RunByteCode(ContextHandle ctx, const uint8_t* byteCode, size_t byteCodeLen)
+ValueHandle RunByteCode_Debug(ContextHandle ctx, const uint8_t* byteCode, size_t byteCodeLen)
 {
-	DlgDebugger* debuggerDlg = new DlgDebugger();
-	debuggerDlg->Create(DlgDebugger::IDD);
-	debuggerDlg->ShowWindow(SW_SHOW);
-	
-	bool old_debugMode; FN_DebuggerLineCallback old_cb; void* old_user_data;
-	switchDebuggerMode(ctx, true, DlgDebugger::DebuggerLineCallback, debuggerDlg,
-		&old_debugMode, &old_cb, &old_user_data);
+	DebuggerInfo debugger(ctx);
 
 	ValueHandle jret = qjs.RunByteCode(ctx, byteCode, byteCodeLen);
 
-	debuggerDlg->AppendResultText(_T("\r\n运行结果："), true);
-	debuggerDlg->AppendResultText(ctx, jret, false);
-
-	qjs.SetDebuggerMode(ctx, false);//防止在运行后的表达式调试中又重复进入调试
-	while (debuggerDlg->m_debugMode)
+	if (debugger.debuggerDlg)
 	{
-		if (!DlgDebugger::DoEvent(debuggerDlg, ctx))
-			break;
-		Sleep(10);
+		debugger.debuggerDlg->AppendResultText(_T("\r\n运行结果："), true);
+		debugger.debuggerDlg->AppendResultText(ctx, jret, false);
+
+		qjs.SetDebuggerMode(ctx, false);//防止在运行后的表达式调试中又重复进入调试
+		while (debugger.debuggerDlg->m_debugMode)
+		{
+			if (!DlgDebugger::DoEvent(debugger.debuggerDlg, ctx))
+				break;
+			Sleep(10);
+		}
 	}
-
-	//debuggerDlg->DestroyWindow();
-	delete debuggerDlg;
-
-	qjs.SetDebuggerMode(ctx, old_debugMode);
-	qjs.SetDebuggerLineCallback(ctx, old_cb, old_user_data);
 
 	return jret;
 }
