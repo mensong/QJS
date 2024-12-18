@@ -762,8 +762,9 @@ void testDebuggerExtend()
 
 	std::string debuggerExtend = "JsExtendDebugger.dll";
 	qjs.LoadExtend(ctx, debuggerExtend.c_str(), qjs.GetGlobalObject(ctx), NULL);
+	qjs.LoadExtend(ctx, debuggerExtend.c_str(), qjs.GetGlobalObject(ctx), NULL);
 
-	JsExtendDebugger::Ins().RunScript_Debug(ctx,
+	const char* src =
 		"var a = 123;\n"
 		"var b = 456;\n"
 		"var c = a + b;\n"
@@ -772,37 +773,13 @@ void testDebuggerExtend()
 		"	var d = c;\n"
 		"	return 'OK';\n"
 		"}\n"
-		"foo(c);\n"
-		, 
-		qjs.TheJsUndefined(), NULL);
+		/*"foo(c);\n"*/;
 
-	//qjs.RunScript(ctx,
-	//	"var a = 123;\n"
-	//	"var b = 456;\n"
-	//	"var c = a + b;\n"
-	//	"function foo(c){\n"
-	//	"	alert(c);\n"
-	//	"	var d = c;\n"
-	//	"	return 'OK';\n"
-	//	"}\n"
-	//	"foo(c);\n"
-	//	,
-	//	qjs.TheJsUndefined(), NULL);
+	//JsExtendDebugger::Ins().RunScript_Debug(ctx, src, qjs.TheJsUndefined(), NULL);
 
 	//JsExtendDebugger::Ins().RunScriptFile_Debug(ctx, "baseTest.js", qjs.TheJsUndefined());
 
-	//ValueHandle res = JsExtendDebugger::Ins().CompileScript_Debug(ctx, 
-	//	"var a = 123;\n"
-	//	"var b = 456;\n"
-	//	"var c = a + b;\n"
-	//	"function foo(c){\n"
-	//	"	alert(c);\n"
-	//	"	var d = c;\n"
-	//	"	return 'OK';\n"
-	//	"}\n"
-	//	"foo(c);\n"
-	//	,
-	//	"");
+	//ValueHandle res = JsExtendDebugger::Ins().CompileScript_Debug(ctx, src, "");
 	//size_t byteCodeLen = 0;
 	//uint8_t* byteCode = qjs.JsValueToByteCode(ctx, res, &byteCodeLen, false);
 	//if (byteCode)
@@ -810,6 +787,12 @@ void testDebuggerExtend()
 	//	JsExtendDebugger::Ins().RunByteCode_Debug(ctx, byteCode, byteCodeLen);
 	//	qjs.FreeJsPointer(ctx, byteCode);
 	//}
+
+	qjs.RunScript(ctx, src, qjs.TheJsUndefined(), src);
+	JsExtendDebugger::Ins().WaitDebuged();
+
+	qjs.CallJsFunction(ctx, qjs.GetNamedJsValue(ctx, "foo", qjs.TheJsUndefined()), NULL, 0, qjs.TheJsUndefined());
+	JsExtendDebugger::Ins().WaitDebuged();
 
 	qjs.FreeContext(ctx);
 	qjs.FreeRuntime(rt);

@@ -204,6 +204,18 @@ struct QJSContext
 		return pUserData;
 	}
 
+	bool unloadExtend_withoutUnloadCallback_inner(int extendId)
+	{
+		ExtendInfo* pEI = getExtendInfo(extendId);
+		if (!pEI)
+			return false;
+
+		::FreeLibrary(pEI->hDll);
+		extends.erase(extendId);
+		delete pEI;
+		return true;
+	}
+
 	bool unloadExtend(int extendId)
 	{
 		ExtendInfo* pEI = getExtendInfo(extendId);
@@ -1806,7 +1818,8 @@ int LoadExtend(ContextHandle ctx, const char* extendFile, ValueHandle parent, vo
 		int entryRes = _entry(ctx, userData, extendId);
 		if (entryRes != 0)
 		{
-			_ctx->unloadExtend(extendId);
+			//_ctx->unloadExtend(extendId);//入口处错误不能调用_unload
+			_ctx->unloadExtend_withoutUnloadCallback_inner(extendId);
 
 			if (bDupGlobal)
 				FreeValueHandle(&parent);

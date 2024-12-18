@@ -8,9 +8,11 @@
 
 QJS_API ValueHandle RunScript_Debug(ContextHandle ctx, const char* script, ValueHandle parent, const char* filename/*=""*/);
 QJS_API ValueHandle RunScriptFile_Debug(ContextHandle ctx, const char* filename, ValueHandle parent);
-
 QJS_API ValueHandle CompileScript_Debug(ContextHandle ctx, const char* script, const char* filename/* = ""*/);
 QJS_API ValueHandle RunByteCode_Debug(ContextHandle ctx, const uint8_t* byteCode, size_t byteCodeLen);
+QJS_API ValueHandle CallJsFunction_Debug(ContextHandle ctx, ValueHandle jsFunction, ValueHandle args[], int argc, ValueHandle parent);
+
+QJS_API void WaitDebuged();
 
 class JsExtendDebugger
 {
@@ -30,7 +32,9 @@ public:
 		SET_PROC(hDll, RunScript_Debug);
 		SET_PROC(hDll, RunScriptFile_Debug);
 		SET_PROC(hDll, CompileScript_Debug);
-		SET_PROC(hDll, RunByteCode_Debug);
+		SET_PROC(hDll, RunByteCode_Debug); 
+		SET_PROC(hDll, CallJsFunction_Debug);
+		SET_PROC(hDll, WaitDebuged);
 
 	}
 
@@ -38,6 +42,8 @@ public:
 	DEF_PROC(RunScriptFile_Debug);
 	DEF_PROC(CompileScript_Debug);
 	DEF_PROC(RunByteCode_Debug);
+	DEF_PROC(CallJsFunction_Debug);
+	DEF_PROC(WaitDebuged);
 
 
 public:

@@ -111,6 +111,8 @@ void DlgDebugger::DebuggerLineCallback(ContextHandle ctx, uint32_t line_no, cons
 			)
 		)
 	{
+		_this->ShowWindow(SW_SHOW);
+
 		//设置源码
 		ValueHandle backtrace = qjs.GetDebuggerBacktrace(ctx, pc);
 		std::wstring funcName;
@@ -358,5 +360,6 @@ void DlgDebugger::OnBnClickedButtonContinue()
 void DlgDebugger::OnClose()
 {
 	QuitDebug();
-	CDialogEx::OnClose();
+	ShowWindow(SW_HIDE);
+	//CDialogEx::OnClose();
 }
