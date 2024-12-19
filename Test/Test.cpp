@@ -788,9 +788,8 @@ void testDebuggerExtend()
 	//	qjs.FreeJsPointer(ctx, byteCode);
 	//}
 
-	qjs.RunScript(ctx, src, qjs.TheJsUndefined(), src);
+	qjs.RunScript(ctx, src, qjs.TheJsUndefined(), src/*必须把源码放到这里，否则调试不显示源码*/);
 	JsExtendDebugger::Ins().WaitDebuged();
-
 	qjs.CallJsFunction(ctx, qjs.GetNamedJsValue(ctx, "foo", qjs.TheJsUndefined()), NULL, 0, qjs.TheJsUndefined());
 	JsExtendDebugger::Ins().WaitDebuged();
 

@@ -19,7 +19,7 @@ struct DebuggerInfo
 	{
 		debuggerDlg = new DlgDebugger();
 		debuggerDlg->Create(DlgDebugger::IDD);
-		debuggerDlg->ShowWindow(SW_SHOW);
+		debuggerDlg->ShowWindow(SW_HIDE);
 
 		old_debugMode = qjs.GetDebuggerMode(ctx);
 		old_cb = NULL;
@@ -33,7 +33,11 @@ struct DebuggerInfo
 	~DebuggerInfo()
 	{
 		if (debuggerDlg)
+		{
+			debuggerDlg->DestroyWindow();
 			delete debuggerDlg;
+			debuggerDlg = NULL;
+		}
 		qjs.SetDebuggerMode(_ctx, old_debugMode);
 		qjs.SetDebuggerLineCallback(_ctx, old_cb, old_user_data);
 	}
@@ -86,7 +90,13 @@ void _waitDebuged(DebuggerInfo* debugger)
 {
 	if (debugger && debugger->debuggerDlg)
 	{
+		//qjs.GetAndClearJsLastException(debugger->_ctx);
+
+		debugger->debuggerDlg->ShowWindow(SW_SHOW);
+
+		bool oldDebuggerMode = qjs.GetDebuggerMode(debugger->_ctx);
 		qjs.SetDebuggerMode(debugger->_ctx, false);//防止在运行后的表达式调试中又重复进入调试
+
 		while (debugger->debuggerDlg->m_debugMode)
 		{
 			if (!DlgDebugger::DoEvent(debugger->debuggerDlg, debugger->_ctx))
@@ -94,6 +104,7 @@ void _waitDebuged(DebuggerInfo* debugger)
 			Sleep(1);
 		}
 
+		qjs.SetDebuggerMode(debugger->_ctx, oldDebuggerMode);
 		debugger->debuggerDlg->m_debugMode = true;
 	}
 }

@@ -6,12 +6,22 @@
 #include <stdint.h>
 #include "QJS.h"
 
+/** 注意：
+* 要想使用debugger，有两种路径：
+  1.使用下面的XXX_Debug替代对应的原型执行函数（RunScript/RunScriptFile/CompileScript/RunByteCode/CallJsFunction），这样每次调用都会出现一个新的debugger
+  2.直接调用原型执行函数，紧接着执行WaitDebuged来保持debugger窗口
+*/
+
+/* 用法1 */
 QJS_API ValueHandle RunScript_Debug(ContextHandle ctx, const char* script, ValueHandle parent, const char* filename/*=""*/);
 QJS_API ValueHandle RunScriptFile_Debug(ContextHandle ctx, const char* filename, ValueHandle parent);
 QJS_API ValueHandle CompileScript_Debug(ContextHandle ctx, const char* script, const char* filename/* = ""*/);
 QJS_API ValueHandle RunByteCode_Debug(ContextHandle ctx, const uint8_t* byteCode, size_t byteCodeLen);
 QJS_API ValueHandle CallJsFunction_Debug(ContextHandle ctx, ValueHandle jsFunction, ValueHandle args[], int argc, ValueHandle parent);
 
+/* 用法2 */
+//1.RunScript/RunScriptFile/CompileScript/RunByteCode/CallJsFunction
+//2.JsExtendDebugger::Ins().WaitDebuged();
 QJS_API void WaitDebuged();
 
 class JsExtendDebugger
