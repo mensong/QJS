@@ -763,68 +763,6 @@ void testDebuggerExtend()
 	std::string debuggerExtend = "JsExtendDebugger.dll";
 	qjs.LoadExtend(ctx, debuggerExtend.c_str(), qjs.GetGlobalObject(ctx), NULL);
 
-	const wchar_t* wsrc =
-		L"var a = 123;\n"
-		L"var b = 456;\n"
-		L"var c = a + b;\n"
-		L"function foo(c){\n"
-		L"	alert(c);\n"
-		L"	var d = c;\n"
-		L"	return '我是中文';\n"
-		L"}\n"
-		/*L"foo(c);\n"*/;
-
-	std::string src = qjs.UnicodeToUtf8(ctx, wsrc);
-
-#if 0
-
-	JsExtendDebugger::Ins().RunScript_Debug(ctx, src.c_str(), qjs.TheJsUndefined(), NULL);
-
-	JsExtendDebugger::Ins().RunScriptFile_Debug(ctx, "baseTest.js", qjs.TheJsUndefined());
-
-	ValueHandle res = JsExtendDebugger::Ins().CompileScript_Debug(ctx, src.c_str(), "");
-	size_t byteCodeLen = 0;
-	uint8_t* byteCode = qjs.JsValueToByteCode(ctx, res, &byteCodeLen, false);
-	if (byteCode)
-	{
-		JsExtendDebugger::Ins().RunByteCode_Debug(ctx, byteCode, byteCodeLen);
-		qjs.FreeJsPointer(ctx, byteCode);
-	}
-
-#else
-	JsExtendDebugger::Ins().StartDebugger();
-	qjs.RunScript(ctx, src.c_str(), qjs.TheJsUndefined(), src.c_str()/*必须把源码放到这里，否则调试不显示源码*/);
-	JsExtendDebugger::Ins().WaitDebuged();
-
-	JsExtendDebugger::Ins().StartDebugger();
-	qjs.CallJsFunction(ctx, qjs.GetNamedJsValue(ctx, "foo", qjs.TheJsUndefined()), NULL, 0, qjs.TheJsUndefined());
-	JsExtendDebugger::Ins().WaitDebuged();
-
-	JsExtendDebugger::Ins().StartDebugger();
-	qjs.CallJsFunction(ctx, qjs.GetNamedJsValue(ctx, "foo", qjs.TheJsUndefined()), NULL, 0, qjs.TheJsUndefined());
-	JsExtendDebugger::Ins().WaitDebuged();
-
-	JsExtendDebugger::Ins().StartDebugger();
-	qjs.RunScript(ctx, "", qjs.TheJsUndefined(), "");
-	JsExtendDebugger::Ins().WaitDebuged();
-#endif
-
-	qjs.FreeContext(ctx);
-	qjs.FreeRuntime(rt);
-}
-
-void testRuleCheck20241219()
-{
-	auto rt = qjs.NewRuntime();
-	auto ctx = qjs.NewContext(rt);
-
-	//加载base插件
-	std::string baseExtend = "JsExtendBase.dll";
-	qjs.LoadExtend(ctx, baseExtend.c_str(), qjs.GetGlobalObject(ctx), NULL);
-
-	std::string debuggerExtend = "JsExtendDebugger.dll";
-	qjs.LoadExtend(ctx, debuggerExtend.c_str(), qjs.GetGlobalObject(ctx), NULL);
-
 	const char* src1 =
 		"function isValidString(str) {                    \n"
 		"	try{                                          \n"
@@ -834,32 +772,17 @@ void testRuleCheck20241219()
 		"	}                                             \n"
 		"}                                                \n";
 
-	const char* src2 = 
+	const char* src2 =
 		"function main(){						\n"
-		"	if (!isValidString('123'))			\n"
+		"	var str = '123';					\n"
+		"	if (!isValidString(str))			\n"
 		"		return undefined;				\n"
 		"	return \"ok\";						\n"
 		"}										\n";
 
-	JsExtendDebugger::Ins().StartDebugger();
-	qjs.RunScript(ctx, src1, qjs.TheJsUndefined(), src1);
-	JsExtendDebugger::Ins().WaitDebuged();
-
-	JsExtendDebugger::Ins().StartDebugger();
-	qjs.RunScript(ctx, src2, qjs.TheJsUndefined(), src2);
-	JsExtendDebugger::Ins().WaitDebuged();
-
-	JsExtendDebugger::Ins().StartDebugger();
+	qjs.RunScript(ctx, src1, qjs.TheJsUndefined(), src1/*必须把源码放到这里，否则调试不显示源码*/);
+	qjs.RunScript(ctx, src2, qjs.TheJsUndefined(), src2/*必须把源码放到这里，否则调试不显示源码*/);
 	qjs.CallJsFunction(ctx, qjs.GetNamedJsValue(ctx, "main", qjs.TheJsUndefined()), NULL, 0, qjs.TheJsUndefined());
-	JsExtendDebugger::Ins().WaitDebuged();
-
-	JsExtendDebugger::Ins().StartDebugger();
-	qjs.CallJsFunction(ctx, qjs.GetNamedJsValue(ctx, "main", qjs.TheJsUndefined()), NULL, 0, qjs.TheJsUndefined());
-	JsExtendDebugger::Ins().WaitDebuged();
-
-	JsExtendDebugger::Ins().StartDebugger();
-	qjs.CallJsFunction(ctx, qjs.GetNamedJsValue(ctx, "main", qjs.TheJsUndefined()), NULL, 0, qjs.TheJsUndefined());
-	JsExtendDebugger::Ins().WaitDebuged();
 
 	qjs.FreeContext(ctx);
 	qjs.FreeRuntime(rt);
@@ -867,10 +790,8 @@ void testRuleCheck20241219()
 
 int main()
 {
-	testRuleCheck20241219();
-	return 0;
-
 	testDebuggerExtend();
+	return 0;
 
 	testJsValueToStdString();
 

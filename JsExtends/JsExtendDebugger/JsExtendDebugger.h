@@ -6,25 +6,7 @@
 #include <stdint.h>
 #include "QJS.h"
 
-/** 注意：
-* 要想使用debugger，有两种路径：
-  1.使用下面的XXX_Debug替代对应的原型执行函数（RunScript/RunScriptFile/CompileScript/RunByteCode/CallJsFunction），这样每次调用都会出现一个新的debugger
-  2.使用全局debugger来调试：StartDebugger() -> RunScript/RunScriptFile/CompileScript/RunByteCode/CallJsFunction -> WaitDebuged()
-*/
-
-/* 用法1 */
-QJS_API ValueHandle RunScript_Debug(ContextHandle ctx, const char* script, ValueHandle parent, const char* filename/*=""*/);
-QJS_API ValueHandle RunScriptFile_Debug(ContextHandle ctx, const char* filename, ValueHandle parent);
-QJS_API ValueHandle CompileScript_Debug(ContextHandle ctx, const char* script, const char* filename/* = ""*/);
-QJS_API ValueHandle RunByteCode_Debug(ContextHandle ctx, const uint8_t* byteCode, size_t byteCodeLen);
-QJS_API ValueHandle CallJsFunction_Debug(ContextHandle ctx, ValueHandle jsFunction, ValueHandle args[], int argc, ValueHandle parent);
-
-/* 用法2 */
-//1.StartDebugger()
-//2.RunScript/RunScriptFile/CompileScript/RunByteCode/CallJsFunction
-//3.JsExtendDebugger::Ins().WaitDebuged();
-QJS_API void StartDebugger();
-QJS_API void WaitDebuged();
+QJS_API void SetEnableDebugger(ContextHandle ctx, bool b);
 
 class JsExtendDebugger
 {
@@ -41,23 +23,11 @@ public:
 		if (!hDll)
 			return;
 
-		SET_PROC(hDll, RunScript_Debug);
-		SET_PROC(hDll, RunScriptFile_Debug);
-		SET_PROC(hDll, CompileScript_Debug);
-		SET_PROC(hDll, RunByteCode_Debug); 
-		SET_PROC(hDll, CallJsFunction_Debug);
-		SET_PROC(hDll, StartDebugger);
-		SET_PROC(hDll, WaitDebuged);
+		SET_PROC(hDll, SetEnableDebugger);
 
 	}
 
-	DEF_PROC(RunScript_Debug);
-	DEF_PROC(RunScriptFile_Debug);
-	DEF_PROC(CompileScript_Debug);
-	DEF_PROC(RunByteCode_Debug);
-	DEF_PROC(CallJsFunction_Debug); 
-	DEF_PROC(StartDebugger);
-	DEF_PROC(WaitDebuged);
+	DEF_PROC(SetEnableDebugger);
 
 
 public:

@@ -18,7 +18,8 @@ DlgDebugger::DlgDebugger(CWnd* pParent /*=nullptr*/)
 	, m_debugMode(true)
 	, m_singleStepExecution(false)
 	, m_continue(false)
-	, m_newSession(true)
+	, m_ignoredSrc(NULL)
+	, m_debuggerChanged(false)
 {
 	m_breakPoints.insert(0);
 }
@@ -51,6 +52,11 @@ void DlgDebugger::AppendResultText(ContextHandle ctx, const char* msg, bool newL
 {
 	CString text = qjs.Utf8ToUnicode(ctx, msg);
 	AppendResultText(text, newLine);
+}
+
+void DlgDebugger::OnDebuggerChanged()
+{
+	m_debuggerChanged = true;
 }
 
 void DlgDebugger::RefreshBreakPoints()
@@ -100,17 +106,13 @@ void DlgDebugger::EnbaleDebugOperations(BOOL enable)
 	m_btnContinue.EnableWindow(enable);
 }
 
-void DlgDebugger::DebuggerLineCallback(ContextHandle ctx, uint32_t line_no, const uint8_t* pc, void* user_data)
+void DlgDebugger::DebuggerLineCallback(ContextHandle ctx, uint32_t line_no, const uint8_t* pc, void* user_data, const char* src)
 {
-	DlgDebugger* _this = (DlgDebugger*)user_data;
-	if (!_this)
-		return;
-
-	if (_this->m_debugMode													//是否开启调试
+	if (this->m_debugMode													//是否开启调试
 		&& (
-			_this->m_breakPoints.find(line_no) != _this->m_breakPoints.end()	//断点
-			|| _this->m_singleStepExecution										//单步
-			|| _this->m_newSession												//新的调试
+			this->m_breakPoints.find(line_no) != this->m_breakPoints.end()	//断点
+			|| this->m_singleStepExecution									//单步
+			|| this->m_debuggerChanged										//debugger是从其它debugger切换回来的，目的是为了
 			)
 		)
 	{
@@ -120,24 +122,16 @@ void DlgDebugger::DebuggerLineCallback(ContextHandle ctx, uint32_t line_no, cons
 		if (qjs.JsValueIsArray(backtrace))
 		{
 			ValueHandle jframe = qjs.GetIndexedJsValue(ctx, 0, backtrace);
-			ValueHandle jfilename = qjs.GetNamedJsValue(ctx, "filename", jframe);
-			_this->m_curSrc = qjs.JsValueToStdString(ctx, jfilename);
 
-			//判断是否已忽略
-			if (_this->m_ignoredSrc.find(_this->m_curSrc) != _this->m_ignoredSrc.end())
-			{
-				_this->QuitDebug();
-				return;
-			}
-
-			std::string src = pystring::replace(_this->m_curSrc, "\r\n", "\n");
+			this->m_curSrc = src;
+			std::string src = pystring::replace(this->m_curSrc, "\r\n", "\n");
 			src = pystring::replace(src, "\n", "\r\n");
 			CString usrc = qjs.Utf8ToUnicode(ctx, src.c_str());
 
 			//添加行号
 			CString usrc_line_no;
 			CStringArray lines;
-			_this->SplitCString(usrc, _T("\r\n"), lines);
+			this->SplitCString(usrc, _T("\r\n"), lines);
 			for (size_t i = 0; i < lines.GetSize(); i++)
 			{
 				CString a;
@@ -148,7 +142,7 @@ void DlgDebugger::DebuggerLineCallback(ContextHandle ctx, uint32_t line_no, cons
 				usrc_line_no += a;
 			}
 
-			_this->m_editSrc.SetWindowText(usrc_line_no);
+			this->m_editSrc.SetWindowText(usrc_line_no);
 
 			ValueHandle jname = qjs.GetNamedJsValue(ctx, "name", jframe);
 			funcName = qjs.Utf8ToUnicode(ctx, qjs.JsValueToString(ctx, jname));
@@ -161,52 +155,51 @@ void DlgDebugger::DebuggerLineCallback(ContextHandle ctx, uint32_t line_no, cons
 		}
 		else
 		{
-			_this->AppendResultText(_T("======================="), true);
+			this->AppendResultText(_T("======================="), true);
 
 			txt.Format(_T("(DEBUG)运行到行号(%d)，已暂停……"), line_no);
 
 			//选中调试行
-			int start = _this->m_editSrc.LineIndex(line_no - 1);
+			int start = this->m_editSrc.LineIndex(line_no - 1);
 			int end = -1;
 			if (-1 != start)
 			{
-				end = start + _this->m_editSrc.LineLength(start);
-				_this->m_editSrc.SetFocus();
-				_this->m_editSrc.SetSel(start, end);
+				end = start + this->m_editSrc.LineLength(start);
+				this->m_editSrc.SetFocus();
+				this->m_editSrc.SetSel(start, end);
 			}
 		}
-		_this->AppendResultText(txt, true);
+		this->AppendResultText(txt, true);
 
-		_this->AppendResultText(_T("(DEBUG)FunctionName:"), true);
-		_this->AppendResultText(funcName.c_str(), false);
+		this->AppendResultText(_T("(DEBUG)FunctionName:"), true);
+		this->AppendResultText(funcName.c_str(), false);
 
 		int stack = qjs.GetDebuggerStackDepth(ctx);
-		_this->AppendResultText(_T("(DEBUG)StackDepth:"), true);
-		_this->AppendResultText(std::to_wstring(stack).c_str(), false);
+		this->AppendResultText(_T("(DEBUG)StackDepth:"), true);
+		this->AppendResultText(std::to_wstring(stack).c_str(), false);
 
 		ValueHandle localVars = qjs.GetDebuggerLocalVariables(ctx, 0);
-		_this->AppendResultText(_T("(DEBUG)LocalVariables:"), true);
-		_this->AppendResultText(ctx, qjs.JsonStringify(ctx, localVars), false);
+		this->AppendResultText(_T("(DEBUG)LocalVariables:"), true);
+		this->AppendResultText(ctx, qjs.JsonStringify(ctx, localVars), false);
 
 		ValueHandle closureVars = qjs.GetDebuggerClosureVariables(ctx, 0);
-		_this->AppendResultText(_T("(DEBUG)ClosureVariables:"), true);
-		_this->AppendResultText(ctx, qjs.JsonStringify(ctx, closureVars), false);
+		this->AppendResultText(_T("(DEBUG)ClosureVariables:"), true);
+		this->AppendResultText(ctx, qjs.JsonStringify(ctx, closureVars), false);
 
-		//_this->AppendResultText(_T("(DEBUG)Backtrace:"), true);
-		//_this->AppendResultText(ctx, qjs.JsonStringify(ctx, backtrace), false);
+		//this->AppendResultText(_T("(DEBUG)Backtrace:"), true);
+		//this->AppendResultText(ctx, qjs.JsonStringify(ctx, backtrace), false);
 
-		_this->ShowWindow(SW_SHOW);
-		_this->m_newSession = false;
-		_this->m_singleStepExecution = false;
-		_this->m_continue = false;
+		this->m_singleStepExecution = false;
+		this->m_continue = false;
+		this->m_debuggerChanged = false;
 
-		_this->EnbaleDebugOperations(TRUE);		
-		while (!_this->m_continue)
+		this->EnbaleDebugOperations(TRUE);		
+		while (!this->m_continue)
 		{
-			if (!DoEvent(_this, ctx))
+			if (!DoEvent(this, ctx))
 				break;
 		}
-		_this->EnbaleDebugOperations(FALSE);
+		this->EnbaleDebugOperations(FALSE);
 	}
 	else
 	{
@@ -217,7 +210,7 @@ void DlgDebugger::DebuggerLineCallback(ContextHandle ctx, uint32_t line_no, cons
 			::TranslateMessage(&msg);
 		}
 
-		//_this->m_lastBreak = false;
+		//this->m_lastBreak = false;
 	}
 }
 
@@ -225,7 +218,7 @@ bool DlgDebugger::DoEvent(DlgDebugger* dlg, ContextHandle ctx)
 {
 	bool ret = true;
 	MSG msg;
-	if (::PeekMessage(&msg, dlg->m_hWnd, 0, 0, PM_REMOVE))
+	if (::PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
 	{
 #pragma region 执行临时脚本
 		if (msg.message == WM_KEYDOWN && msg.wParam == VK_RETURN)
@@ -271,12 +264,6 @@ bool DlgDebugger::DoEvent(DlgDebugger* dlg, ContextHandle ctx)
 	}
 
 	return true;
-}
-
-void DlgDebugger::StartNewSession()
-{
-	m_debugMode = true;
-	m_newSession = true;
 }
 
 void DlgDebugger::QuitDebug()
@@ -403,18 +390,24 @@ void DlgDebugger::OnClose()
 
 void DlgDebugger::OnBnClickedButtonShowIgnore()
 {
-	DlgIgnoreList dlg(&m_ignoredSrc);
+	if (!m_ignoredSrc)
+		return;
+
+	DlgIgnoreList dlg(m_ignoredSrc);
 	dlg.DoModal();
 
-	if (m_ignoredSrc.find(m_curSrc) == m_ignoredSrc.end())
+	if (m_ignoredSrc->find(m_curSrc) == m_ignoredSrc->end())
 		m_chkIgnoreThisSrc.SetCheck(FALSE);
 }
 
 
 void DlgDebugger::OnBnClickedCheckIgnoreThis()
 {
+	if (!m_ignoredSrc)
+		return;
+
 	if (m_chkIgnoreThisSrc.GetCheck())
-		m_ignoredSrc.insert(m_curSrc);
+		m_ignoredSrc->insert(m_curSrc);
 	else
-		m_ignoredSrc.erase(m_curSrc);
+		m_ignoredSrc->erase(m_curSrc);
 }

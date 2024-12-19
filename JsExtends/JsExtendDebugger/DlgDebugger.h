@@ -16,23 +16,24 @@ public:
 	DlgDebugger(CWnd* pParent = nullptr);   // 标准构造函数
 	virtual ~DlgDebugger();
 
-	static void DebuggerLineCallback(ContextHandle ctx, uint32_t line_no, const uint8_t* pc, void* user_data);
+	void DebuggerLineCallback(ContextHandle ctx, uint32_t line_no, const uint8_t* pc, void* user_data, const char* src);
 	static bool DoEvent(DlgDebugger* dlg, ContextHandle ctx);
 
 	std::set<int> m_breakPoints;
 	bool m_debugMode;
 	bool m_singleStepExecution;
 	bool m_continue;
-	bool m_newSession;
+	bool m_debuggerChanged;
 
 	std::string m_curSrc;
-	std::set<std::string> m_ignoredSrc;
+	std::set<std::string>* m_ignoredSrc;
 
 	void AppendResultText(const wchar_t* msg, bool newLine);
 	void AppendResultText(ContextHandle ctx, const ValueHandle& msg, bool newLine);
 	void AppendResultText(ContextHandle ctx, const char* msg, bool newLine);
 
-	void StartNewSession();
+	void OnDebuggerChanged();
+
 	void QuitDebug();
 
 // 对话框数据
