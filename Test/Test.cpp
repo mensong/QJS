@@ -813,10 +813,64 @@ void testDebuggerExtend()
 	qjs.FreeRuntime(rt);
 }
 
+void testRuleCheck20241219()
+{
+	auto rt = qjs.NewRuntime();
+	auto ctx = qjs.NewContext(rt);
+
+	//加载base插件
+	std::string baseExtend = "JsExtendBase.dll";
+	qjs.LoadExtend(ctx, baseExtend.c_str(), qjs.GetGlobalObject(ctx), NULL);
+
+	std::string debuggerExtend = "JsExtendDebugger.dll";
+	qjs.LoadExtend(ctx, debuggerExtend.c_str(), qjs.GetGlobalObject(ctx), NULL);
+
+	const char* src1 =
+		"function isValidString(str) {                    \n"
+		"	try{                                          \n"
+		"		return (str.toString().trim().length>0);  \n"
+		"	} catch(e){                                   \n"
+		"		return false;                             \n"
+		"	}                                             \n"
+		"}                                                \n";
+
+	const char* src2 = 
+		"function main(){						\n"
+		"	if (!isValidString('123'))			\n"
+		"		return undefined;				\n"
+		"	return \"ok\";						\n"
+		"}										\n";
+
+	JsExtendDebugger::Ins().StartDebugger();
+	qjs.RunScript(ctx, src1, qjs.TheJsUndefined(), src1);
+	JsExtendDebugger::Ins().WaitDebuged();
+
+	JsExtendDebugger::Ins().StartDebugger();
+	qjs.RunScript(ctx, src2, qjs.TheJsUndefined(), src2);
+	JsExtendDebugger::Ins().WaitDebuged();
+
+	JsExtendDebugger::Ins().StartDebugger();
+	qjs.CallJsFunction(ctx, qjs.GetNamedJsValue(ctx, "main", qjs.TheJsUndefined()), NULL, 0, qjs.TheJsUndefined());
+	JsExtendDebugger::Ins().WaitDebuged();
+
+	JsExtendDebugger::Ins().StartDebugger();
+	qjs.CallJsFunction(ctx, qjs.GetNamedJsValue(ctx, "main", qjs.TheJsUndefined()), NULL, 0, qjs.TheJsUndefined());
+	JsExtendDebugger::Ins().WaitDebuged();
+
+	JsExtendDebugger::Ins().StartDebugger();
+	qjs.CallJsFunction(ctx, qjs.GetNamedJsValue(ctx, "main", qjs.TheJsUndefined()), NULL, 0, qjs.TheJsUndefined());
+	JsExtendDebugger::Ins().WaitDebuged();
+
+	qjs.FreeContext(ctx);
+	qjs.FreeRuntime(rt);
+}
+
 int main()
 {
-	testDebuggerExtend();
+	testRuleCheck20241219();
 	return 0;
+
+	testDebuggerExtend();
 
 	testJsValueToStdString();
 

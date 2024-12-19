@@ -285,6 +285,7 @@ void DlgDebugger::QuitDebug()
 	m_continue = true;
 	m_editSrc.SetWindowText(_T(""));
 	m_editOutput.SetWindowText(_T(""));
+	m_chkIgnoreThisSrc.SetCheck(FALSE);
 
 	ShowWindow(SW_HIDE);
 }
@@ -348,14 +349,14 @@ BOOL DlgDebugger::OnInitDialog()
 	m_scale.SetAnchor(m_chkIgnoreThisSrc.m_hWnd,
 		CCtrlScale::AnchorLeftToWinRight |
 		CCtrlScale::AnchorRightToWinRight |
-		CCtrlScale::AnchorTopToWinBottom |
-		CCtrlScale::AnchorBottomToWinBottom
+		CCtrlScale::AnchorTopToWinTop |
+		CCtrlScale::AnchorBottomToWinTop
 	);
 	m_scale.SetAnchor(m_btnShowIngoreList.m_hWnd,
 		CCtrlScale::AnchorLeftToWinRight |
 		CCtrlScale::AnchorRightToWinRight |
-		CCtrlScale::AnchorTopToWinBottom |
-		CCtrlScale::AnchorBottomToWinBottom
+		CCtrlScale::AnchorTopToWinTop |
+		CCtrlScale::AnchorBottomToWinTop
 	);
 	m_scale.Init(m_hWnd);
 

@@ -108,7 +108,7 @@ void _waitDebuged(DebuggerInfo* debugger)
 		{
 			if (!DlgDebugger::DoEvent(debugger->debuggerDlg, debugger->_ctx))
 				break;
-			Sleep(1);
+			//Sleep(1);
 		}
 
 		qjs.SetDebuggerMode(debugger->_ctx, oldDebuggerMode);
