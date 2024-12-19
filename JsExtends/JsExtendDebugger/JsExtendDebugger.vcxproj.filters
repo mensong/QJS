@@ -36,6 +36,9 @@
     <ClCompile Include="..\..\3RD\CtrlScale\CtrlScale.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="DlgIgnoreList.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="JsExtendDebugger.def">
@@ -74,6 +77,12 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="..\..\3RD\CtrlScale\CtrlScale.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="DlgIgnoreList.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\StringConvert\StringConvert.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

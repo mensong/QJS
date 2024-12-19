@@ -86,13 +86,20 @@ QJS_API void _unload(ContextHandle ctx, void* user_data, int id)
 	g_debugger = NULL;
 }
 
+void _startDebugger(DebuggerInfo* debugger)
+{
+	if (debugger && debugger->debuggerDlg)
+	{
+		debugger->debuggerDlg->ShowWindow(SW_SHOW);
+		debugger->debuggerDlg->StartNewSession();
+	}
+}
+
 void _waitDebuged(DebuggerInfo* debugger)
 {
 	if (debugger && debugger->debuggerDlg)
 	{
 		//qjs.GetAndClearJsLastException(debugger->_ctx);
-
-		debugger->debuggerDlg->ShowWindow(SW_SHOW);
 
 		bool oldDebuggerMode = qjs.GetDebuggerMode(debugger->_ctx);
 		qjs.SetDebuggerMode(debugger->_ctx, false);//防止在运行后的表达式调试中又重复进入调试
@@ -105,13 +112,16 @@ void _waitDebuged(DebuggerInfo* debugger)
 		}
 
 		qjs.SetDebuggerMode(debugger->_ctx, oldDebuggerMode);
-		debugger->debuggerDlg->m_debugMode = true;
+
+		debugger->debuggerDlg->ShowWindow(SW_HIDE);
 	}
 }
 
 ValueHandle RunScript_Debug(ContextHandle ctx, const char* script, ValueHandle parent, const char* filename/*=""*/)
 {
 	DebuggerInfo debugger(ctx);
+
+	_startDebugger(&debugger);
 
 	std::string sFileSrc = script;
 	ValueHandle jret = qjs.RunScript(ctx, script, parent, sFileSrc.c_str());
@@ -129,6 +139,7 @@ ValueHandle RunScript_Debug(ContextHandle ctx, const char* script, ValueHandle p
 	//		Sleep(10);
 	//	}
 	//}
+
 	_waitDebuged(&debugger);
 
 	return jret;
@@ -174,6 +185,8 @@ ValueHandle RunByteCode_Debug(ContextHandle ctx, const uint8_t* byteCode, size_t
 {
 	DebuggerInfo debugger(ctx);
 
+	_startDebugger(&debugger);
+
 	ValueHandle jret = qjs.RunByteCode(ctx, byteCode, byteCodeLen);
 
 	_waitDebuged(&debugger);
@@ -185,11 +198,18 @@ QJS_API ValueHandle CallJsFunction_Debug(ContextHandle ctx, ValueHandle jsFuncti
 {
 	DebuggerInfo debugger(ctx);
 
+	_startDebugger(&debugger);
+
 	ValueHandle jret = qjs.CallJsFunction(ctx, jsFunction, args, argc, parent);
 
 	_waitDebuged(&debugger);
 
 	return jret;
+}
+
+QJS_API void StartDebugger()
+{
+	_startDebugger(g_debugger);
 }
 
 QJS_API void WaitDebuged()

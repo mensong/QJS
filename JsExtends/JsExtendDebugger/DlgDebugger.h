@@ -23,11 +23,16 @@ public:
 	bool m_debugMode;
 	bool m_singleStepExecution;
 	bool m_continue;
+	bool m_newSession;
+
+	std::string m_curSrc;
+	std::set<std::string> m_ignoredSrc;
 
 	void AppendResultText(const wchar_t* msg, bool newLine);
 	void AppendResultText(ContextHandle ctx, const ValueHandle& msg, bool newLine);
 	void AppendResultText(ContextHandle ctx, const char* msg, bool newLine);
 
+	void StartNewSession();
 	void QuitDebug();
 
 // 对话框数据
@@ -54,6 +59,9 @@ public:
 	CEdit m_editOutput;
 	CCtrlScale m_scale;
 	afx_msg void OnBnClickedButtonStep();
-	afx_msg void OnBnClickedButtonContinue();
-	
+	afx_msg void OnBnClickedButtonContinue();	
+	afx_msg void OnBnClickedButtonShowIgnore();
+	afx_msg void OnBnClickedCheckIgnoreThis();
+	CButton m_chkIgnoreThisSrc;
+	CButton m_btnShowIngoreList;
 };

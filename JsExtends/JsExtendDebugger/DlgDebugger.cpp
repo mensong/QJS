@@ -7,6 +7,7 @@
 #include "DlgDebugger.h"
 #include "../pystring/pystring.h"
 #include "../pystring/pywstring.h"
+#include "DlgIgnoreList.h"
 
 // DlgDebugger 对话框
 
@@ -17,6 +18,7 @@ DlgDebugger::DlgDebugger(CWnd* pParent /*=nullptr*/)
 	, m_debugMode(true)
 	, m_singleStepExecution(false)
 	, m_continue(false)
+	, m_newSession(true)
 {
 	m_breakPoints.insert(0);
 }
@@ -108,11 +110,10 @@ void DlgDebugger::DebuggerLineCallback(ContextHandle ctx, uint32_t line_no, cons
 		&& (
 			_this->m_breakPoints.find(line_no) != _this->m_breakPoints.end()	//断点
 			|| _this->m_singleStepExecution										//单步
+			|| _this->m_newSession												//新的调试
 			)
 		)
 	{
-		_this->ShowWindow(SW_SHOW);
-
 		//设置源码
 		ValueHandle backtrace = qjs.GetDebuggerBacktrace(ctx, pc);
 		std::wstring funcName;
@@ -120,8 +121,16 @@ void DlgDebugger::DebuggerLineCallback(ContextHandle ctx, uint32_t line_no, cons
 		{
 			ValueHandle jframe = qjs.GetIndexedJsValue(ctx, 0, backtrace);
 			ValueHandle jfilename = qjs.GetNamedJsValue(ctx, "filename", jframe);
-			std::string src = qjs.JsValueToStdString(ctx, jfilename);
-			src = pystring::replace(src, "\r\n", "\n");
+			_this->m_curSrc = qjs.JsValueToStdString(ctx, jfilename);
+
+			//判断是否已忽略
+			if (_this->m_ignoredSrc.find(_this->m_curSrc) != _this->m_ignoredSrc.end())
+			{
+				_this->QuitDebug();
+				return;
+			}
+
+			std::string src = pystring::replace(_this->m_curSrc, "\r\n", "\n");
 			src = pystring::replace(src, "\n", "\r\n");
 			CString usrc = qjs.Utf8ToUnicode(ctx, src.c_str());
 
@@ -186,7 +195,8 @@ void DlgDebugger::DebuggerLineCallback(ContextHandle ctx, uint32_t line_no, cons
 		//_this->AppendResultText(_T("(DEBUG)Backtrace:"), true);
 		//_this->AppendResultText(ctx, qjs.JsonStringify(ctx, backtrace), false);
 
-		//重置标识
+		_this->ShowWindow(SW_SHOW);
+		_this->m_newSession = false;
 		_this->m_singleStepExecution = false;
 		_this->m_continue = false;
 
@@ -263,10 +273,20 @@ bool DlgDebugger::DoEvent(DlgDebugger* dlg, ContextHandle ctx)
 	return true;
 }
 
+void DlgDebugger::StartNewSession()
+{
+	m_debugMode = true;
+	m_newSession = true;
+}
+
 void DlgDebugger::QuitDebug()
 {
 	m_debugMode = false;
 	m_continue = true;
+	m_editSrc.SetWindowText(_T(""));
+	m_editOutput.SetWindowText(_T(""));
+
+	ShowWindow(SW_HIDE);
 }
 
 void DlgDebugger::DoDataExchange(CDataExchange* pDX)
@@ -278,6 +298,8 @@ void DlgDebugger::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_BUTTON_CONTINUE, m_btnContinue);
 	DDX_Control(pDX, IDC_EDIT_DEBUGGER_EXPR, m_editDebuggerExpr);
 	DDX_Control(pDX, IDC_EDIT_OUTPUT, m_editOutput);
+	DDX_Control(pDX, IDC_CHECK_IGNORE_THIS, m_chkIgnoreThisSrc);
+	DDX_Control(pDX, IDC_BUTTON_SHOW_IGNORE, m_btnShowIngoreList);
 }
 
 BOOL DlgDebugger::PreTranslateMessage(MSG* pMsg)
@@ -323,6 +345,18 @@ BOOL DlgDebugger::OnInitDialog()
 		CCtrlScale::AnchorLeftToWinLeft |
 		CCtrlScale::AnchorRightToWinLeft
 	);
+	m_scale.SetAnchor(m_chkIgnoreThisSrc.m_hWnd,
+		CCtrlScale::AnchorLeftToWinRight |
+		CCtrlScale::AnchorRightToWinRight |
+		CCtrlScale::AnchorTopToWinBottom |
+		CCtrlScale::AnchorBottomToWinBottom
+	);
+	m_scale.SetAnchor(m_btnShowIngoreList.m_hWnd,
+		CCtrlScale::AnchorLeftToWinRight |
+		CCtrlScale::AnchorRightToWinRight |
+		CCtrlScale::AnchorTopToWinBottom |
+		CCtrlScale::AnchorBottomToWinBottom
+	);
 	m_scale.Init(m_hWnd);
 
 	EnbaleDebugOperations(FALSE);
@@ -334,6 +368,8 @@ BEGIN_MESSAGE_MAP(DlgDebugger, CDialogEx)
 	ON_BN_CLICKED(IDC_BUTTON_STEP, &DlgDebugger::OnBnClickedButtonStep)
 	ON_BN_CLICKED(IDC_BUTTON_CONTINUE, &DlgDebugger::OnBnClickedButtonContinue)
 	ON_WM_CLOSE()
+	ON_BN_CLICKED(IDC_BUTTON_SHOW_IGNORE, &DlgDebugger::OnBnClickedButtonShowIgnore)
+	ON_BN_CLICKED(IDC_CHECK_IGNORE_THIS, &DlgDebugger::OnBnClickedCheckIgnoreThis)
 END_MESSAGE_MAP()
 
 
@@ -360,6 +396,24 @@ void DlgDebugger::OnBnClickedButtonContinue()
 void DlgDebugger::OnClose()
 {
 	QuitDebug();
-	ShowWindow(SW_HIDE);
 	//CDialogEx::OnClose();
+}
+
+
+void DlgDebugger::OnBnClickedButtonShowIgnore()
+{
+	DlgIgnoreList dlg(&m_ignoredSrc);
+	dlg.DoModal();
+
+	if (m_ignoredSrc.find(m_curSrc) == m_ignoredSrc.end())
+		m_chkIgnoreThisSrc.SetCheck(FALSE);
+}
+
+
+void DlgDebugger::OnBnClickedCheckIgnoreThis()
+{
+	if (m_chkIgnoreThisSrc.GetCheck())
+		m_ignoredSrc.insert(m_curSrc);
+	else
+		m_ignoredSrc.erase(m_curSrc);
 }

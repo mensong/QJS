@@ -9,7 +9,7 @@
 /** 注意：
 * 要想使用debugger，有两种路径：
   1.使用下面的XXX_Debug替代对应的原型执行函数（RunScript/RunScriptFile/CompileScript/RunByteCode/CallJsFunction），这样每次调用都会出现一个新的debugger
-  2.直接调用原型执行函数，紧接着执行WaitDebuged来保持debugger窗口
+  2.使用全局debugger来调试：StartDebugger() -> RunScript/RunScriptFile/CompileScript/RunByteCode/CallJsFunction -> WaitDebuged()
 */
 
 /* 用法1 */
@@ -20,8 +20,10 @@ QJS_API ValueHandle RunByteCode_Debug(ContextHandle ctx, const uint8_t* byteCode
 QJS_API ValueHandle CallJsFunction_Debug(ContextHandle ctx, ValueHandle jsFunction, ValueHandle args[], int argc, ValueHandle parent);
 
 /* 用法2 */
-//1.RunScript/RunScriptFile/CompileScript/RunByteCode/CallJsFunction
-//2.JsExtendDebugger::Ins().WaitDebuged();
+//1.StartDebugger()
+//2.RunScript/RunScriptFile/CompileScript/RunByteCode/CallJsFunction
+//3.JsExtendDebugger::Ins().WaitDebuged();
+QJS_API void StartDebugger();
 QJS_API void WaitDebuged();
 
 class JsExtendDebugger
@@ -44,6 +46,7 @@ public:
 		SET_PROC(hDll, CompileScript_Debug);
 		SET_PROC(hDll, RunByteCode_Debug); 
 		SET_PROC(hDll, CallJsFunction_Debug);
+		SET_PROC(hDll, StartDebugger);
 		SET_PROC(hDll, WaitDebuged);
 
 	}
@@ -52,7 +55,8 @@ public:
 	DEF_PROC(RunScriptFile_Debug);
 	DEF_PROC(CompileScript_Debug);
 	DEF_PROC(RunByteCode_Debug);
-	DEF_PROC(CallJsFunction_Debug);
+	DEF_PROC(CallJsFunction_Debug); 
+	DEF_PROC(StartDebugger);
 	DEF_PROC(WaitDebuged);
 
 
