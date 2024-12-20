@@ -20,7 +20,6 @@ public:
 	static bool DoEvent(DlgDebugger* dlg, ContextHandle ctx);
 
 	std::set<int> m_breakPoints;
-	bool m_debugMode;
 	bool m_singleStepExecution;
 	bool m_continue;
 	bool m_debuggerChanged;
@@ -48,7 +47,6 @@ protected:
 
 protected:
 	void RefreshBreakPoints();
-	void SplitCString(const CString& _cstr, const CString& _flag, CStringArray& _resultArray);
 	void EnbaleDebugOperations(BOOL enable);
 
 public:

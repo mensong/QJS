@@ -6,7 +6,7 @@
 #include <stdint.h>
 #include "QJS.h"
 
-QJS_API void SetEnableDebugger(ContextHandle ctx, bool b);
+QJS_API bool SetEnableDebugger(ContextHandle ctx, bool b);
 
 class JsExtendDebugger
 {

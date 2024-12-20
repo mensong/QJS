@@ -15,7 +15,6 @@ IMPLEMENT_DYNAMIC(DlgDebugger, CDialogEx)
 
 DlgDebugger::DlgDebugger(CWnd* pParent /*=nullptr*/)
 	: CDialogEx(IDD_DIALOG_DEBUGGER, pParent)
-	, m_debugMode(true)
 	, m_singleStepExecution(false)
 	, m_continue(false)
 	, m_ignoredSrc(NULL)
@@ -66,37 +65,12 @@ void DlgDebugger::RefreshBreakPoints()
 	m_breakPoints.insert(0);
 	CString strBPList;
 	m_editBreakpoints.GetWindowText(strBPList);
-	CStringArray arrBPList;
-	SplitCString(strBPList, _T(",; /.*&`~@#$%^()-=_+[]\\{}|'\"<>?"), arrBPList);
-	for (size_t i = 0; i < arrBPList.GetSize(); i++)
+	std::vector<std::wstring> arrBPList;
+	pywstring::split(strBPList.GetString(), arrBPList, L",");
+	for (size_t i = 0; i < arrBPList.size(); i++)
 	{
-		CString text = arrBPList.GetAt(i);
-		if (!text.IsEmpty())
-			m_breakPoints.insert(_ttoi(text.GetString()));
-	}
-}
-
-void DlgDebugger::SplitCString(const CString& _cstr, const CString& _flag, CStringArray& _resultArray)
-{
-	CString strSrc(_cstr);
-
-	CStringArray& strResult = _resultArray;
-	CString strLeft = _T("");
-
-	int nPos = strSrc.FindOneOf(_flag);
-	while (0 <= nPos)
-	{
-		strLeft = strSrc.Left(nPos);
-		if (!strLeft.IsEmpty())
-		{
-			strResult.Add(strLeft);
-		}
-		strSrc = strSrc.Right(strSrc.GetLength() - nPos - 1);
-		nPos = strSrc.FindOneOf(_flag);
-	}
-
-	if (!strSrc.IsEmpty()) {
-		strResult.Add(strSrc);
+		if (!arrBPList[i].empty())
+			m_breakPoints.insert(_ttoi(arrBPList[i].c_str()));
 	}
 }
 
@@ -108,13 +82,10 @@ void DlgDebugger::EnbaleDebugOperations(BOOL enable)
 
 void DlgDebugger::DebuggerLineCallback(ContextHandle ctx, uint32_t line_no, const uint8_t* pc, void* user_data, const char* src)
 {
-	if (this->m_debugMode													//是否开启调试
-		&& (
-			this->m_breakPoints.find(line_no) != this->m_breakPoints.end()	//断点
-			|| this->m_singleStepExecution									//单步
-			|| this->m_debuggerChanged										//debugger是从其它debugger切换回来的，目的是为了
-			)
-		)
+	if (this->m_breakPoints.find(line_no) != this->m_breakPoints.end()	//断点
+		|| this->m_singleStepExecution									//单步
+		|| this->m_debuggerChanged										//debugger是从其它debugger切换回来的，目的是为了
+	)
 	{
 		//设置源码
 		ValueHandle backtrace = qjs.GetDebuggerBacktrace(ctx, pc);
@@ -124,21 +95,19 @@ void DlgDebugger::DebuggerLineCallback(ContextHandle ctx, uint32_t line_no, cons
 			ValueHandle jframe = qjs.GetIndexedJsValue(ctx, 0, backtrace);
 
 			this->m_curSrc = src;
-			std::string src = pystring::replace(this->m_curSrc, "\r\n", "\n");
-			src = pystring::replace(src, "\n", "\r\n");
-			CString usrc = qjs.Utf8ToUnicode(ctx, src.c_str());
+			std::wstring usrc = qjs.Utf8ToUnicode(ctx, src);
 
 			//添加行号
 			CString usrc_line_no;
-			CStringArray lines;
-			this->SplitCString(usrc, _T("\r\n"), lines);
-			for (size_t i = 0; i < lines.GetSize(); i++)
+			std::vector<std::wstring> lines;
+			pywstring::splitlines(usrc, lines);
+			for (size_t i = 0; i < lines.size(); i++)
 			{
 				CString a;
 				a.Format(_T("%d%s\t\t %s\r\n"),
 					(int)(i + 1), 
 					(line_no == (i + 1) ? _T("->") : _T("")), 
-					lines[i].GetString());
+					lines[i].c_str());
 				usrc_line_no += a;
 			}
 
@@ -268,7 +237,6 @@ bool DlgDebugger::DoEvent(DlgDebugger* dlg, ContextHandle ctx)
 
 void DlgDebugger::QuitDebug()
 {
-	m_debugMode = false;
 	m_continue = true;
 	m_editSrc.SetWindowText(_T(""));
 	m_editOutput.SetWindowText(_T(""));

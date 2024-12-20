@@ -5,11 +5,16 @@
 #include "../pystring/pywstring.h"
 #include "DlgDebugger.h"
 
+struct DebuggerInfo;
+
+bool g_debuggerExtendLoaded = false;
 bool g_enableDebugger = false;
 bool g_old_debugMode = false;
 FN_DebuggerLineCallback g_old_cb = NULL;
 void* g_old_user_data = NULL;
 std::set<std::string> g_ignoredSrcFilter;
+DebuggerInfo* g_lastDebugger = NULL;
+std::map<std::string, DebuggerInfo*> g_src2debugger;
 
 struct DebuggerInfo
 {
@@ -61,11 +66,10 @@ QJS_API int _entry(ContextHandle ctx, void* user_data, int id)
 		if (pystring::equal(extFileName, selfFileName, true))
 			return 1;
 	}
+
+	g_debuggerExtendLoaded = true;
 	return 0;
 }
-
-std::map<std::string, DebuggerInfo*> g_src2debugger;
-DebuggerInfo* g_lastDebugger = NULL;
 
 void DebuggerLineCallback(ContextHandle ctx, uint32_t line_no, const uint8_t* pc, void* user_data)
 {
@@ -83,17 +87,19 @@ void DebuggerLineCallback(ContextHandle ctx, uint32_t line_no, const uint8_t* pc
 			return;
 		}
 
-		for (auto it = g_src2debugger.begin(); it != g_src2debugger.end(); ++it)
-		{
-			it->second->debuggerDlg->ShowWindow(SW_HIDE);
-		}
-
 		auto itFinder = g_src2debugger.find(src);
 		if (itFinder == g_src2debugger.end())
 		{
 			DebuggerInfo* pDebugger = new DebuggerInfo(ctx);
 			g_src2debugger.insert(std::make_pair(src, pDebugger));
 			itFinder = g_src2debugger.find(src);
+		}
+
+		//隐藏掉其它窗口
+		for (auto it = g_src2debugger.begin(); it != g_src2debugger.end(); ++it)
+		{
+			if (it->second->debuggerDlg != itFinder->second->debuggerDlg)
+				it->second->debuggerDlg->ShowWindow(SW_HIDE);
 		}
 
 		//如果从其它debugger切换回来的，无论如何都显示出来当前debugger
@@ -133,10 +139,21 @@ QJS_API void _unload(ContextHandle ctx, void* user_data, int id)
 		delete it->second;
 	}
 	g_src2debugger.clear();
+
+	g_debuggerExtendLoaded = false;
+	g_enableDebugger = false;
+	g_old_debugMode = false;
+	g_old_cb = NULL;
+	g_old_user_data = NULL;
+	g_ignoredSrcFilter.clear();
+	g_lastDebugger = NULL;
 }
 
-QJS_API void SetEnableDebugger(ContextHandle ctx, bool b)
+QJS_API bool SetEnableDebugger(ContextHandle ctx, bool b)
 {
+	if (!g_debuggerExtendLoaded)
+		return false;
+
 	if (g_enableDebugger != b)
 	{
 		g_enableDebugger = b;
@@ -144,4 +161,6 @@ QJS_API void SetEnableDebugger(ContextHandle ctx, bool b)
 		qjs.SetDebuggerMode(ctx, b);
 		g_lastDebugger = NULL;
 	}
+
+	return true;
 }

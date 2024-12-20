@@ -774,6 +774,8 @@ void testDebuggerExtend()
 
 	const char* src2 =
 		"function main(){						\n"
+		"\n"
+		"\n"
 		"	var str = '123';					\n"
 		"	if (!isValidString(str))			\n"
 		"		return undefined;				\n"
@@ -782,7 +784,43 @@ void testDebuggerExtend()
 
 	qjs.RunScript(ctx, src1, qjs.TheJsUndefined(), src1/*必须把源码放到这里，否则调试不显示源码*/);
 	qjs.RunScript(ctx, src2, qjs.TheJsUndefined(), src2/*必须把源码放到这里，否则调试不显示源码*/);
-	qjs.CallJsFunction(ctx, qjs.GetNamedJsValue(ctx, "main", qjs.TheJsUndefined()), NULL, 0, qjs.TheJsUndefined());
+
+	for (size_t i = 0; i < 5; i++)
+	{
+		qjs.CallJsFunction(ctx, qjs.GetNamedJsValue(ctx, "main", qjs.TheJsUndefined()), NULL, 0, qjs.TheJsUndefined());
+	}
+
+	qjs.FreeContext(ctx);
+	qjs.FreeRuntime(rt);
+}
+
+void testDifferentProcessWithSameFuncName()
+{
+	auto rt = qjs.NewRuntime();
+	auto ctx = qjs.NewContext(rt);
+
+	//加载base插件
+	std::string baseExtend = "JsExtendBase.dll";
+	qjs.LoadExtend(ctx, baseExtend.c_str(), qjs.GetGlobalObject(ctx), NULL);
+
+	const char* src1 = "function foo(){return 'foo1';}";
+
+	const char* src2 = "function foo(){return 'foo2';}";
+
+	qjs.RunScript(ctx, src1, qjs.TheJsUndefined(), "");
+	ValueHandle jfunc1 = qjs.GetNamedJsValue(ctx, "foo", qjs.TheJsUndefined());
+
+	qjs.RunScript(ctx, src2, qjs.TheJsUndefined(), "");
+	ValueHandle jfunc2 = qjs.GetNamedJsValue(ctx, "foo", qjs.TheJsUndefined());
+
+	ValueHandle jret1 = qjs.CallJsFunction(ctx, jfunc1, NULL, 0, qjs.TheJsUndefined());
+	ValueHandle jret2 = qjs.CallJsFunction(ctx, jfunc2, NULL, 0, qjs.TheJsUndefined());
+	std::string s1 = qjs.JsValueToStdString(ctx, jret1);
+	std::string s2 = qjs.JsValueToStdString(ctx, jret2);
+	if (s1 == s2)
+		MessageBoxA(NULL, "js中的函数【依赖】函数名", "", 0);
+	else
+		MessageBoxA(NULL, "js中的函数【不依赖】函数名", "", 0);
 
 	qjs.FreeContext(ctx);
 	qjs.FreeRuntime(rt);
@@ -790,6 +828,8 @@ void testDebuggerExtend()
 
 int main()
 {
+	testDifferentProcessWithSameFuncName();
+	
 	testDebuggerExtend();
 	return 0;
 

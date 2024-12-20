@@ -419,9 +419,7 @@ void SplitCString(const CString& _cstr, const CString& _flag, CStringArray& _res
 		nPos = strSrc.FindOneOf(_flag);
 	}
 
-	if (!strSrc.IsEmpty()) {
-		strResult.Add(strSrc);
-	}
+	strResult.Add(strSrc);
 }
 
 void CTestQJSDlg::OnBnClickedButton1()
