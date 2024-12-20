@@ -866,6 +866,9 @@ JS_BOOL JS_AreFunctionsOfSameOrigin(JSContext *ctx, JSValue f1, JSValue f2);
 
 JSValue JS_GetUserClassName(JSContext *ctx, JSValueConst obj);
 
+JSValue JS_GetFunctionName(JSContext* ctx, JSValueConst func);
+JSValueConst JS_GetCurFrameFunction(JSContext* ctx);
+
 JSValue JS_NewArray(JSContext *ctx);
 int JS_IsArray(JSContext *ctx, JSValueConst val);
 /* isArray and has 'tag' property */

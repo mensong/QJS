@@ -218,6 +218,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="DlgDebugger.cpp" />
+    <ClCompile Include="DlgDebugOptions.cpp" />
     <ClCompile Include="DlgIgnoreList.cpp" />
     <ClCompile Include="entry.cpp" />
     <ClCompile Include="JsExtendDebugger.cpp" />
@@ -238,6 +239,7 @@
     <ClInclude Include="..\pystring\pywstring.h" />
     <ClInclude Include="..\StringConvert\StringConvert.h" />
     <ClInclude Include="DlgDebugger.h" />
+    <ClInclude Include="DlgDebugOptions.h" />
     <ClInclude Include="DlgIgnoreList.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="entry.h" />

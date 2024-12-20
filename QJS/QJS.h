@@ -104,6 +104,10 @@ QJS_API bool HasNamedJsValue(ContextHandle ctx, const char* varName, ValueHandle
 //获得对象属性名列表，成功返回JsArray，失败返回JsUndefined。
 //  onlyEnumerable-只获取可列举的属性名；enableSymbol-可以获取Symbol的属性名
 QJS_API ValueHandle GetObjectPropertyKeys(ContextHandle ctx, ValueHandle jObj, bool onlyEnumerable/*=true*/, bool enableSymbol/*=false*/);
+//获得一个函数的名称。只对在脚本中声明的函数才有小，使用SetNamedJsValue指定的函数名无效。
+QJS_API ValueHandle GetFunctionName(ContextHandle ctx, ValueHandle func);
+//获得当前运行中的函数
+QJS_API ValueHandle GetCurFrameFunction(ContextHandle ctx);
 
 //根据序号获得一个js变量值
 QJS_API ValueHandle GetIndexedJsValue(ContextHandle ctx, uint32_t idx, ValueHandle parent);
@@ -337,7 +341,9 @@ public:
 		SET_PROC(hDll, SetNamedJsValue);
 		SET_PROC(hDll, DeleteNamedJsValue); 
 		SET_PROC(hDll, HasNamedJsValue);
-		SET_PROC(hDll, GetObjectPropertyKeys);
+		SET_PROC(hDll, GetObjectPropertyKeys); 
+		SET_PROC(hDll, GetFunctionName); 
+		SET_PROC(hDll, GetCurFrameFunction);
 		SET_PROC(hDll, GetIndexedJsValue);
 		SET_PROC(hDll, SetIndexedJsValue);
 		SET_PROC(hDll, DeleteIndexedJsValue); 
@@ -449,7 +455,9 @@ public:
 	DEF_PROC(SetNamedJsValue);
 	DEF_PROC(DeleteNamedJsValue); 
 	DEF_PROC(HasNamedJsValue);
-	DEF_PROC(GetObjectPropertyKeys);
+	DEF_PROC(GetObjectPropertyKeys); 
+	DEF_PROC(GetFunctionName); 
+	DEF_PROC(GetCurFrameFunction);
 	DEF_PROC(GetIndexedJsValue);
 	DEF_PROC(SetIndexedJsValue);
 	DEF_PROC(DeleteIndexedJsValue); 

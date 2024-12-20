@@ -8,6 +8,12 @@
 #include "../pystring/pystring.h"
 #include "../pystring/pywstring.h"
 #include "DlgIgnoreList.h"
+#include "DlgDebugOptions.h"
+
+bool DlgDebugger::ms_debugShowLocalVars = false;
+bool DlgDebugger::ms_debugShowFuncName = true;
+bool DlgDebugger::ms_debugShowStackDepth = false;
+std::string DlgDebugger::ms_debugAutoScript;
 
 // DlgDebugger 对话框
 
@@ -140,20 +146,62 @@ void DlgDebugger::DebuggerLineCallback(ContextHandle ctx, uint32_t line_no, cons
 		}
 		this->AppendResultText(txt, true);
 
-		this->AppendResultText(_T("(DEBUG)FunctionName:"), true);
-		this->AppendResultText(funcName.c_str(), false);
+		if (this->ms_debugShowFuncName)
+		{
+			this->AppendResultText(_T("(DEBUG)FunctionName:"), true);
+			this->AppendResultText(funcName.c_str(), false);
+		}
 
-		int stack = qjs.GetDebuggerStackDepth(ctx);
-		this->AppendResultText(_T("(DEBUG)StackDepth:"), true);
-		this->AppendResultText(std::to_wstring(stack).c_str(), false);
+		if (this->ms_debugShowStackDepth)
+		{
+			int stack = qjs.GetDebuggerStackDepth(ctx);
+			this->AppendResultText(_T("(DEBUG)StackDepth:"), true);
+			this->AppendResultText(std::to_wstring(stack).c_str(), false);
+		}
 
-		ValueHandle localVars = qjs.GetDebuggerLocalVariables(ctx, 0);
-		this->AppendResultText(_T("(DEBUG)LocalVariables:"), true);
-		this->AppendResultText(ctx, qjs.JsonStringify(ctx, localVars), false);
+		if (this->ms_debugShowLocalVars)
+		{
+#if 0
+			ValueHandle localVars = qjs.GetDebuggerLocalVariables(ctx, 0);
+			this->AppendResultText(_T("(DEBUG)LocalVariables:"), true);
+			this->AppendResultText(ctx, qjs.JsonStringify(ctx, localVars), false);
+#else
+			ValueHandle localVars = qjs.GetDebuggerLocalVariables(ctx, 0);
+			ValueHandle jkeys = qjs.GetObjectPropertyKeys(ctx, localVars, false, true);
+			int64_t keyCount = qjs.GetLength(ctx, jkeys);
+			for (size_t i = 0; i < keyCount; i++)
+			{
+				ValueHandle jkey = qjs.GetIndexedJsValue(ctx, i, jkeys);
+				std::string key = qjs.JsValueToStdString(ctx, jkey);
+				ValueHandle jval = qjs.GetNamedJsValue(ctx, key.c_str(), localVars);
+				std::string val = qjs.JsValueToStdString(ctx, jval);
+				CString sKey = qjs.Utf8ToUnicode(ctx, key.c_str());
+				CString sVal = qjs.Utf8ToUnicode(ctx, val.c_str());
+				this->AppendResultText(_T("(DEBUG)") + sKey + _T("="), true);
+				this->AppendResultText(sVal, false);
+			}
+#endif
+		}
 
-		ValueHandle closureVars = qjs.GetDebuggerClosureVariables(ctx, 0);
-		this->AppendResultText(_T("(DEBUG)ClosureVariables:"), true);
-		this->AppendResultText(ctx, qjs.JsonStringify(ctx, closureVars), false);
+		if (!pystring::iscempty(ms_debugAutoScript))
+		{
+			ValueHandle res = qjs.RunScript(ctx, ms_debugAutoScript.c_str(), qjs.TheJsNull(), "");
+			if (!qjs.JsValueIsException(res))
+			{
+				this->AppendResultText(_T("(DEBUG)AutoScript:"), true);
+				this->AppendResultText(ctx, res, false);
+			}
+			else
+			{
+				ValueHandle exception = qjs.GetAndClearJsLastException(ctx);
+				this->AppendResultText(_T("(DEBUG Exception)AutoScript:"), true);
+				this->AppendResultText(ctx, exception, false);
+			}
+		}
+
+		//ValueHandle closureVars = qjs.GetDebuggerClosureVariables(ctx, 0);
+		//this->AppendResultText(_T("(DEBUG)ClosureVariables:"), true);
+		//this->AppendResultText(ctx, qjs.JsonStringify(ctx, closureVars), false);
 
 		//this->AppendResultText(_T("(DEBUG)Backtrace:"), true);
 		//this->AppendResultText(ctx, qjs.JsonStringify(ctx, backtrace), false);
@@ -256,6 +304,7 @@ void DlgDebugger::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_EDIT_OUTPUT, m_editOutput);
 	DDX_Control(pDX, IDC_CHECK_IGNORE_THIS, m_chkIgnoreThisSrc);
 	DDX_Control(pDX, IDC_BUTTON_SHOW_IGNORE, m_btnShowIngoreList);
+	DDX_Control(pDX, IDC_BUTTON_DEBUG_OPTIONS, m_btnDebugOptions);
 }
 
 BOOL DlgDebugger::PreTranslateMessage(MSG* pMsg)
@@ -313,6 +362,12 @@ BOOL DlgDebugger::OnInitDialog()
 		CCtrlScale::AnchorTopToWinTop |
 		CCtrlScale::AnchorBottomToWinTop
 	);
+	m_scale.SetAnchor(m_btnDebugOptions.m_hWnd,
+		CCtrlScale::AnchorLeftToWinLeft |
+		CCtrlScale::AnchorRightToWinLeft |
+		CCtrlScale::AnchorTopToWinBottom |
+		CCtrlScale::AnchorBottomToWinBottom
+	);
 	m_scale.Init(m_hWnd);
 
 	EnbaleDebugOperations(FALSE);
@@ -326,6 +381,7 @@ BEGIN_MESSAGE_MAP(DlgDebugger, CDialogEx)
 	ON_WM_CLOSE()
 	ON_BN_CLICKED(IDC_BUTTON_SHOW_IGNORE, &DlgDebugger::OnBnClickedButtonShowIgnore)
 	ON_BN_CLICKED(IDC_CHECK_IGNORE_THIS, &DlgDebugger::OnBnClickedCheckIgnoreThis)
+	ON_BN_CLICKED(IDC_BUTTON_DEBUG_OPTIONS, &DlgDebugger::OnBnClickedButtonDebugOptions)
 END_MESSAGE_MAP()
 
 
@@ -378,4 +434,11 @@ void DlgDebugger::OnBnClickedCheckIgnoreThis()
 		m_ignoredSrc->insert(m_curSrc);
 	else
 		m_ignoredSrc->erase(m_curSrc);
+}
+
+
+void DlgDebugger::OnBnClickedButtonDebugOptions()
+{
+	DlgDebugOptions dlg(this);
+	dlg.DoModal();
 }

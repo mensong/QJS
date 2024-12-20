@@ -35,6 +35,11 @@ public:
 
 	void QuitDebug();
 
+	static bool ms_debugShowLocalVars;
+	static bool ms_debugShowFuncName;
+	static bool ms_debugShowStackDepth;
+	static std::string ms_debugAutoScript;
+
 // 对话框数据
 	enum { IDD = IDD_DIALOG_DEBUGGER };
 
@@ -63,4 +68,6 @@ public:
 	afx_msg void OnBnClickedCheckIgnoreThis();
 	CButton m_chkIgnoreThisSrc;
 	CButton m_btnShowIngoreList;
+	afx_msg void OnBnClickedButtonDebugOptions();
+	CButton m_btnDebugOptions;
 };

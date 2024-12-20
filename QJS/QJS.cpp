@@ -823,6 +823,22 @@ ValueHandle GetObjectPropertyKeys(ContextHandle ctx, ValueHandle jObj, bool only
 	return jRetArr;
 }
 
+QJS_API ValueHandle GetFunctionName(ContextHandle ctx, ValueHandle func)
+{
+	JSValue jname = JS_GetFunctionName(_INNER_CTX(ctx), _INNER_VAL(func));
+	ValueHandle ret = _OUTER_VAL(ctx, jname);
+	ADD_AUTO_FREE(ret);
+	return ret;
+}
+
+QJS_API ValueHandle GetCurFrameFunction(ContextHandle ctx)
+{
+	JSValue jfunc = JS_GetCurFrameFunction(_INNER_CTX(ctx));
+	ValueHandle ret = _OUTER_VAL(ctx, jfunc);
+	//ADD_AUTO_FREE(ret);
+	return ret;
+}
+
 ValueHandle GetIndexedJsValue(ContextHandle ctx, uint32_t idx, ValueHandle parent)
 {
 	JSValue _this = _INNER_VAL(parent);
@@ -1669,6 +1685,18 @@ ValueHandle GetDebuggerClosureVariables(ContextHandle ctx, int stack_idx)
 
 ValueHandle GetDebuggerLocalVariables(ContextHandle ctx, int stack_idx)
 {
+	//如果当前执行的函数是顶层，则返回顶层对象
+	auto jfunc = qjs.GetCurFrameFunction(ctx);
+	if (qjs.JsValueIsFunction(jfunc))
+	{
+		ValueHandle jname = qjs.GetFunctionName(ctx, jfunc);
+		std::string fname = qjs.JsValueToStdString(ctx, jname);
+		if (fname == "<eval>")
+		{
+			return GetGlobalObject(ctx);
+		}
+	}
+
 	JSValue res = js_debugger_local_variables(_INNER_CTX(ctx), stack_idx);
 	ValueHandle ret = _OUTER_VAL(ctx, res);
 	ADD_AUTO_FREE(ret);

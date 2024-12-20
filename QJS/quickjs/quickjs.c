@@ -16430,6 +16430,32 @@ JS_BOOL JS_AreFunctionsOfSameOrigin(JSContext *ctx, JSValue f1, JSValue f2) {
   return p1->u.func.function_bytecode == p2->u.func.function_bytecode; /* what about native functions ? */
 }
 
+JSValue JS_GetFunctionName(JSContext* ctx, JSValueConst func)
+{
+    const char* func_name_str;
+    JSValue jfuncName;
+
+    func_name_str = get_func_name(ctx, func);
+    if (!func_name_str || func_name_str[0] == '\0')
+        jfuncName = JS_NewString(ctx, "<anonymous>");
+    else
+        jfuncName = JS_NewString(ctx, func_name_str);
+    JS_FreeCString(ctx, func_name_str);
+
+    return jfuncName;
+}
+
+JSValueConst JS_GetCurFrameFunction(JSContext* ctx)
+{
+    JSStackFrame* sf;
+    const char* func_name_str;
+
+    sf = ctx->rt->current_stack_frame;
+    if (sf != NULL)
+        return sf->cur_func;
+    return JS_UNDEFINED;
+}
+
 /* argument of OP_special_object */
 typedef enum {
     OP_SPECIAL_OBJECT_ARGUMENTS,

@@ -101,7 +101,7 @@ void myTest()
 	qjs.LoadExtend(ctx, "JsExtendBase.dll", qjs.GetGlobalObject(ctx), NULL);
 
 	ValueHandle jmsg = qjs.NewFunction(ctx, JsMsg, 0, NULL);
-	 qjs.SetNamedJsValue(ctx, "msg", jmsg, qjs.TheJsNull());
+	qjs.SetNamedJsValue(ctx, "msg", jmsg, qjs.TheJsNull());
 
 	{
 		QJS_SCOPE(ctx);
@@ -773,7 +773,7 @@ void testDebuggerExtend()
 		"}                                                \n";
 
 	const char* src2 =
-		"function main(){						\n"
+		"var main = function(){						\n"
 		"\n"
 		"\n"
 		"	var str = '123';					\n"
@@ -785,9 +785,13 @@ void testDebuggerExtend()
 	qjs.RunScript(ctx, src1, qjs.TheJsUndefined(), src1/*必须把源码放到这里，否则调试不显示源码*/);
 	qjs.RunScript(ctx, src2, qjs.TheJsUndefined(), src2/*必须把源码放到这里，否则调试不显示源码*/);
 
+	ValueHandle jmainFunc = qjs.GetNamedJsValue(ctx, "main", qjs.TheJsUndefined());
+	auto jname = qjs.GetFunctionName(ctx, jmainFunc);
+	std::string funcName = qjs.JsValueToStdString(ctx, jname);
+
 	for (size_t i = 0; i < 5; i++)
 	{
-		qjs.CallJsFunction(ctx, qjs.GetNamedJsValue(ctx, "main", qjs.TheJsUndefined()), NULL, 0, qjs.TheJsUndefined());
+		qjs.CallJsFunction(ctx, jmainFunc, NULL, 0, qjs.TheJsUndefined());
 	}
 
 	qjs.FreeContext(ctx);
@@ -818,9 +822,9 @@ void testDifferentProcessWithSameFuncName()
 	std::string s1 = qjs.JsValueToStdString(ctx, jret1);
 	std::string s2 = qjs.JsValueToStdString(ctx, jret2);
 	if (s1 == s2)
-		MessageBoxA(NULL, "js中的函数【依赖】函数名", "", 0);
+		printf("js中的函数【依赖】函数名\n");
 	else
-		MessageBoxA(NULL, "js中的函数【不依赖】函数名", "", 0);
+		printf("js中的函数【不依赖】函数名\n");
 
 	qjs.FreeContext(ctx);
 	qjs.FreeRuntime(rt);
@@ -828,10 +832,10 @@ void testDifferentProcessWithSameFuncName()
 
 int main()
 {
-	testDifferentProcessWithSameFuncName();
-	
 	testDebuggerExtend();
 	return 0;
+
+	myTest();
 
 	testJsValueToStdString();
 
@@ -841,7 +845,7 @@ int main()
 
 	baseTest();
 	extendTest();
-	myTest();
+	
 	baseExtendTest();
 	regExtendTest();
 	fileExtendTest();
@@ -850,6 +854,8 @@ int main()
 	totalScopeTest();
 
 	testArrayBuffer();
+
+	testDifferentProcessWithSameFuncName();
 
 	return 0;
 }
