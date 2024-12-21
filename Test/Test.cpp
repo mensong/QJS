@@ -279,16 +279,16 @@ void myTest()
 		auto prop = qjs.NewIntJsValue(ctx, 123);
 		qjs.SetNamedJsValue(ctx, "a", prop, o);
 
-		auto jstr1 = qjs.JsonStringify(ctx, o);
+		auto jstr1 = qjs.JsonStringify(ctx, o, qjs.TheJsUndefined(), qjs.TheJsUndefined());
 		auto ostr1 = qjs.JsValueToString(ctx, jstr1);
 		auto o2 = qjs.JsonParse(ctx, ostr1);
 		qjs.FreeJsValueToStringBuffer(ctx, ostr1);
-		auto jstr2 = qjs.JsonStringify(ctx, o2);
+		auto jstr2 = qjs.JsonStringify(ctx, o2, qjs.TheJsUndefined(), qjs.TheJsUndefined());
 		auto ostr2 = qjs.JsValueToString(ctx, jstr2);
 		qjs.FreeJsValueToStringBuffer(ctx, ostr2);
 
 		auto jsonobj = qjs.JsonParse(ctx, "[{\"a\":123}, {\"a\":456}]");
-		auto jsonobjstr = qjs.JsonStringify(ctx, jsonobj);
+		auto jsonobjstr = qjs.JsonStringify(ctx, jsonobj, qjs.TheJsUndefined(), qjs.TheJsUndefined());
 		const char* str = qjs.JsValueToString(ctx, jsonobjstr);
 		qjs.FreeJsValueToStringBuffer(ctx, str);
 	}

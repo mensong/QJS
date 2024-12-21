@@ -10,8 +10,8 @@
 #include "DlgIgnoreList.h"
 #include "DlgDebugOptions.h"
 
-bool DlgDebugger::ms_debugShowLocalVars = false;
-bool DlgDebugger::ms_debugShowFuncName = true;
+bool DlgDebugger::ms_debugShowLocalVars = true;
+bool DlgDebugger::ms_debugShowFuncName = false;
 bool DlgDebugger::ms_debugShowStackDepth = false;
 std::string DlgDebugger::ms_debugAutoScript;
 
@@ -56,6 +56,8 @@ void DlgDebugger::AppendResultText(ContextHandle ctx, const ValueHandle& msg, bo
 void DlgDebugger::AppendResultText(ContextHandle ctx, const char* msg, bool newLine)
 {
 	CString text = qjs.Utf8ToUnicode(ctx, msg);
+	text.Replace(_T("\r\n"), _T("\n"));
+	text.Replace(_T("\n"), _T("\r\n"));
 	AppendResultText(text, newLine);
 }
 
@@ -161,10 +163,12 @@ void DlgDebugger::DebuggerLineCallback(ContextHandle ctx, uint32_t line_no, cons
 
 		if (this->ms_debugShowLocalVars)
 		{
-#if 0
+#if 1
 			ValueHandle localVars = qjs.GetDebuggerLocalVariables(ctx, 0);
 			this->AppendResultText(_T("(DEBUG)LocalVariables:"), true);
-			this->AppendResultText(ctx, qjs.JsonStringify(ctx, localVars), false);
+			ValueHandle gap = qjs.NewIntJsValue(ctx, 4);
+			this->AppendResultText(ctx, qjs.JsonStringify(ctx, localVars, qjs.TheJsUndefined(), gap), false);
+			qjs.FreeValueHandle(&gap);
 #else
 			ValueHandle localVars = qjs.GetDebuggerLocalVariables(ctx, 0);
 			ValueHandle jkeys = qjs.GetObjectPropertyKeys(ctx, localVars, false, true);

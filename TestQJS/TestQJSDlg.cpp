@@ -321,15 +321,15 @@ void CTestQJSDlg::DebuggerLineCallback(ContextHandle ctx, uint32_t line_no, cons
 		
 		ValueHandle localVars = qjs.GetDebuggerLocalVariables(ctx, 0);
 		_this->AppendResultText(_T("(DEBUG)LocalVariables:"), true);
-		_this->AppendResultText(ctx, qjs.JsonStringify(ctx, localVars), false);
+		_this->AppendResultText(ctx, qjs.JsonStringify(ctx, localVars, qjs.TheJsUndefined(), qjs.TheJsUndefined()), false);
 
 		ValueHandle closureVars = qjs.GetDebuggerClosureVariables(ctx, 0);
 		_this->AppendResultText(_T("(DEBUG)ClosureVariables:"), true);
-		_this->AppendResultText(ctx, qjs.JsonStringify(ctx, closureVars), false);
+		_this->AppendResultText(ctx, qjs.JsonStringify(ctx, closureVars, qjs.TheJsUndefined(), qjs.TheJsUndefined()), false);
 
 		ValueHandle backtrace = qjs.GetDebuggerBacktrace(ctx, pc);
 		_this->AppendResultText(_T("(DEBUG)Backtrace:"), true);
-		_this->AppendResultText(ctx, qjs.JsonStringify(ctx, backtrace), false);
+		_this->AppendResultText(ctx, qjs.JsonStringify(ctx, backtrace, qjs.TheJsUndefined(), qjs.TheJsUndefined()), false);
 
 		_this->m_lastBreak = true;
 		_this->m_singleStepExecution = false;

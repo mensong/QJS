@@ -230,7 +230,15 @@ QJS_API bool JsValueIsDate(ValueHandle value);
 QJS_API bool JsValueIsGlobalObject(ContextHandle ctx, ValueHandle value);
 
 //js value to string
-QJS_API ValueHandle JsonStringify(ContextHandle ctx, ValueHandle value);
+//replacer（可选）
+//   - 如果是一个函数，它会在每个属性被序列化之前被调用。函数接收两个参数，属性名（`key`）和属性值（`value`），并返回一个新的value，这个value会被用于序列化。
+//   - 如果是一个数组，那么只有包含在这个数组中的属性名会被序列化。
+//   - 如果未提供，则所有可枚举的自有属性都会被序列化。
+//space（可选）
+//   - 如果是一个数字，则表示在生成的 JSON 字符串中每个级别缩进的空格数。
+//   - 如果是一个字符串，则该字符串会被用作缩进字符，每一级缩进都会重复这个字符串。
+//   - 如果未提供，则不进行缩进，生成的 JSON 字符串是紧凑的。
+QJS_API ValueHandle JsonStringify(ContextHandle ctx, ValueHandle value, ValueHandle replacer/*=TheJsUndefined()*/, ValueHandle space/*=TheJsUndefined()*/);
 //json string to js value
 QJS_API ValueHandle JsonParse(ContextHandle ctx, const char* json);
 

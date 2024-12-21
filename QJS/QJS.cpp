@@ -1436,9 +1436,9 @@ bool JsValueIsGlobalObject(ContextHandle ctx, ValueHandle value)
 	return bIsGlobalObj;
 }
 
-ValueHandle JsonStringify(ContextHandle ctx, ValueHandle value)
+ValueHandle JsonStringify(ContextHandle ctx, ValueHandle value, ValueHandle replacer, ValueHandle space)
 {
-	JSValue jstr = JS_JSONStringify(_INNER_CTX(ctx), _INNER_VAL(value), JS_UNDEFINED, JS_UNDEFINED);
+	JSValue jstr = JS_JSONStringify(_INNER_CTX(ctx), _INNER_VAL(value), _INNER_VAL(replacer), _INNER_VAL(space));
 	ValueHandle ret = _OUTER_VAL(ctx, jstr);
 	ADD_AUTO_FREE(ret);
 	return ret;
