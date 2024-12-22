@@ -274,6 +274,18 @@ bool DlgDebugger::DoEvent(DlgDebugger* dlg, ContextHandle ctx)
 		}
 #pragma endregion
 
+#pragma region 快捷键
+		else if (msg.message == WM_KEYDOWN)
+		{
+			if (msg.wParam == VK_F8)
+				dlg->OnBnClickedButtonStep();
+			else if (msg.wParam == VK_F5)
+				dlg->OnBnClickedButtonContinue();
+
+		}
+#pragma endregion
+
+
 		if (msg.message == WM_CLOSE || msg.message == WM_QUIT)
 		{
 			dlg->QuitDebug();
