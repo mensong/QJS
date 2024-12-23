@@ -8,7 +8,6 @@
 struct DebuggerInfo;
 
 bool g_debuggerExtendLoaded = false;
-bool g_enableDebugger = false;
 bool g_old_debugMode = false;
 FN_DebuggerLineCallback g_old_cb = NULL;
 void* g_old_user_data = NULL;
@@ -141,7 +140,6 @@ QJS_API void _unload(ContextHandle ctx, void* user_data, int id)
 	g_src2debugger.clear();
 
 	g_debuggerExtendLoaded = false;
-	g_enableDebugger = false;
 	g_old_debugMode = false;
 	g_old_cb = NULL;
 	g_old_user_data = NULL;
@@ -149,18 +147,8 @@ QJS_API void _unload(ContextHandle ctx, void* user_data, int id)
 	g_lastDebugger = NULL;
 }
 
-QJS_API bool SetEnableDebugger(ContextHandle ctx, bool b)
+QJS_API void SetEnableDebugger(ContextHandle ctx, bool b)
 {
-	if (!g_debuggerExtendLoaded)
-		return false;
-
-	if (g_enableDebugger != b)
-	{
-		g_enableDebugger = b;
-
-		qjs.SetDebuggerMode(ctx, b);
-		g_lastDebugger = NULL;
-	}
-
-	return true;
+	qjs.SetDebuggerMode(ctx, b);
+	g_lastDebugger = NULL;
 }
