@@ -385,6 +385,8 @@ BOOL DlgDebugger::OnInitDialog()
 
 	EnbaleDebugOperations(FALSE);
 
+	m_editDebuggerExpr.SetWindowText(_T("JSON.stringify(  )"));
+
 	return ret;
 }
 
