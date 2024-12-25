@@ -36,14 +36,13 @@ DlgDebugger::~DlgDebugger()
 
 void DlgDebugger::AppendResultText(const wchar_t* msg, bool newLine)
 {
-	CString txt;
-	m_editOutput.GetWindowText(txt);
-	if (newLine && !txt.IsEmpty())
-		txt += _T("\r\n");
+	CString txt = newLine ? _T("\r\n") : _T("");
 	txt += msg;
-	m_editOutput.SetWindowText(txt);
-
-	m_editOutput.LineScroll(m_editOutput.GetLineCount());
+	txt.Replace(_T("\r\n"), _T("\n"));
+	txt.Replace(_T("\n"), _T("\r\n"));	
+	int len = m_editOutput.GetWindowTextLength();
+	m_editOutput.SetSel(len, len);
+	m_editOutput.ReplaceSel(txt);
 }
 
 void DlgDebugger::AppendResultText(ContextHandle ctx, const ValueHandle& msg, bool newLine)
@@ -56,8 +55,6 @@ void DlgDebugger::AppendResultText(ContextHandle ctx, const ValueHandle& msg, bo
 void DlgDebugger::AppendResultText(ContextHandle ctx, const char* msg, bool newLine)
 {
 	CString text = qjs.Utf8ToUnicode(ctx, msg);
-	text.Replace(_T("\r\n"), _T("\n"));
-	text.Replace(_T("\n"), _T("\r\n"));
 	AppendResultText(text, newLine);
 }
 
