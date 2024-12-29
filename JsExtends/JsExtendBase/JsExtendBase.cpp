@@ -1,8 +1,8 @@
 #include "pch.h"
 #include <windows.h>
 #include "../../QJS/Extend.h"
-#include "../pystring/pystring.h"
-#include "../pystring/pywstring.h"
+#include "pystring/pystring.h"
+#include "pystring/pywstring.h"
 #include <sstream>
 #include <iostream>
 #include <tchar.h>

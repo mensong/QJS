@@ -5,8 +5,8 @@
 #include "JsExtendDebugger.h"
 #include "afxdialogex.h"
 #include "DlgDebugger.h"
-#include "../pystring/pystring.h"
-#include "../pystring/pywstring.h"
+#include "pystring/pystring.h"
+#include "pystring/pywstring.h"
 #include "DlgIgnoreList.h"
 #include "DlgDebugOptions.h"
 

@@ -27,12 +27,6 @@
     <ClCompile Include="JsExtendDebugger.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="..\pystring\pystring.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="..\pystring\pywstring.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\3RD\CtrlScale\CtrlScale.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
@@ -40,6 +34,12 @@
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="DlgDebugOptions.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3RD\pystring\pystring.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3RD\pystring\pywstring.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
@@ -73,22 +73,19 @@
     <ClInclude Include="JsExtendDebugger.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="..\pystring\pystring.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="..\pystring\pywstring.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\3RD\CtrlScale\CtrlScale.h">
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="DlgIgnoreList.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="..\StringConvert\StringConvert.h">
+    <ClInclude Include="DlgDebugOptions.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="DlgDebugOptions.h">
+    <ClInclude Include="..\..\3RD\pystring\pystring.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3RD\pystring\pywstring.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

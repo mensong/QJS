@@ -1,15 +1,15 @@
 #include "pch.h"
 #include <windows.h>
 #include "../../QJS/Extend.h"
-#include "../pystring/pystring.h"
-#include "../pystring/pywstring.h"
+#include "pystring/pystring.h"
+#include "pystring/pywstring.h"
 #include <sstream>
 #include <iostream>
 #include <fstream>
 #include <tchar.h>
 #include <vector>
 #include <map>
-#include "../StringConvert/StringConvert.h"
+#include "StringConvert/StringConvert/StringConvert.h"
 #include "../JsExtendBase/JsExtendBase.h"
 
 // 判断文件是否存在

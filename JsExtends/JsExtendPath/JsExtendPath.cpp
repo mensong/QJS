@@ -3,7 +3,7 @@
 
 #include "stdafx.h"
 #include "../../QJS/Extend.h"
-#include "../pystring/pystring.h"
+#include "pystring/pystring.h"
 
 QJS_API ValueHandle F_basename(
 	ContextHandle ctx, ValueHandle this_val,

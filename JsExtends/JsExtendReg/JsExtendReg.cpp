@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "../../QJS/Extend.h"
 #include "RegOperator.h"
-#include "../pystring/pystring.h"
+#include "pystring/pystring.h"
 
 QJS_API int _entry(ContextHandle ctx, void* user_data, int id)
 {

@@ -24,10 +24,10 @@
     <ClInclude Include="targetver.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="..\pystring\pystring.h">
+    <ClInclude Include="..\..\3RD\pystring\pystring.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="..\pystring\pywstring.h">
+    <ClInclude Include="..\..\3RD\pystring\pywstring.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>
@@ -41,10 +41,10 @@
     <ClCompile Include="dllmain.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="..\pystring\pystring.cpp">
+    <ClCompile Include="..\..\3RD\pystring\pystring.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="..\pystring\pywstring.cpp">
+    <ClCompile Include="..\..\3RD\pystring\pywstring.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>

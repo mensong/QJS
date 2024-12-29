@@ -4,9 +4,33 @@
 #include "pch.h"
 #include "afxdialogex.h"
 #include "DlgIgnoreList.h"
-#include "../pystring/pystring.h"
-#include "../pystring/pywstring.h"
-#include "../StringConvert/StringConvert.h"
+#include <clocale>
+
+//UTF8 转 Unicode
+bool Utf82Unicode(std::wstring& out, const std::string& in, const char* locale = "")
+{
+	setlocale(LC_ALL, locale);
+
+	int len = MultiByteToWideChar(CP_UTF8, 0, &in[0], in.size(), NULL, 0);
+	if (len <= 0)
+	{
+		//::GetLastError();
+		setlocale(LC_ALL, "");
+		return false;
+	}
+
+	out.resize(len);
+	len = MultiByteToWideChar(CP_UTF8, 0, &in[0], in.size(), &out[0], out.size());
+	if (len <= 0)
+	{
+		//::GetLastError();
+		setlocale(LC_ALL, "");
+		return false;
+	}
+
+	setlocale(LC_ALL, "");
+	return true;
+}
 
 // DlgIgnoreList 对话框
 
@@ -43,12 +67,10 @@ BOOL DlgIgnoreList::OnInitDialog()
 
 		for (size_t i = 0; i < m_ignoreListCache.size(); i++)
 		{
-			wchar_t* usrc = NULL;
+			std::wstring usrc;
 			size_t usrcLen = 0;
-			StringConvert::Ins().Utf82Unicode(&usrc, &usrcLen, m_ignoreListCache[i].c_str(), m_ignoreListCache[i].size(), "");
-			if (!usrc)
-				continue;
-			int rowId = m_listIgnore.AddString(usrc);
+			Utf82Unicode(usrc, m_ignoreListCache[i].c_str());
+			int rowId = m_listIgnore.AddString(usrc.c_str());
 			m_listIgnore.SetItemData(rowId, i);
 		}
 	}

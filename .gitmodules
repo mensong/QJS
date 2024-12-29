@@ -1,3 +1,9 @@
 [submodule "3RD/CtrlScale"]
 	path = 3RD/CtrlScale
 	url = https://github.com/mensong/CtrlScale.git
+[submodule "3RD/StringConvert"]
+	path = 3RD/StringConvert
+	url = https://github.com/mensong/StringConvert.git
+[submodule "3RD/pystring"]
+	path = 3RD/pystring
+	url = https://github.com/mensong/pystring.git

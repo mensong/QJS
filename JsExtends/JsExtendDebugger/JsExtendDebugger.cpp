@@ -1,8 +1,8 @@
 #include "pch.h"
 #include "JsExtendDebugger.h"
 #include "../../QJS/Extend.h"
-#include "../pystring/pystring.h"
-#include "../pystring/pywstring.h"
+#include "pystring/pystring.h"
+#include "pystring/pywstring.h"
 #include "DlgDebugger.h"
 
 struct DebuggerInfo;
