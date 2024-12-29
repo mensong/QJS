@@ -833,7 +833,7 @@ QJS_API ValueHandle GetFunctionName(ContextHandle ctx, ValueHandle func)
 
 QJS_API ValueHandle GetCurFrameFunction(ContextHandle ctx)
 {
-	JSValue jfunc = JS_GetCurFrameFunction(_INNER_CTX(ctx));
+	JSValueConst jfunc = JS_GetCurFrameFunction(_INNER_CTX(ctx));
 	ValueHandle ret = _OUTER_VAL(ctx, jfunc);
 	//ADD_AUTO_FREE(ret);
 	return ret;
@@ -1686,12 +1686,12 @@ ValueHandle GetDebuggerClosureVariables(ContextHandle ctx, int stack_idx)
 ValueHandle GetDebuggerLocalVariables(ContextHandle ctx, int stack_idx)
 {
 	//如果当前执行的函数是顶层，则返回顶层对象
-	auto jfunc = qjs.GetCurFrameFunction(ctx);
-	if (qjs.JsValueIsFunction(jfunc))
+	auto jfunc = GetCurFrameFunction(ctx);
+	if (JsValueIsFunction(jfunc))
 	{
-		ValueHandle jname = qjs.GetFunctionName(ctx, jfunc);
-		std::string fname = qjs.JsValueToStdString(ctx, jname);
-		if (fname == "<eval>")
+		ValueHandle jname = GetFunctionName(ctx, jfunc);
+		const char* fname = JsValueToString(ctx, jname);
+		if (fname && strcmp(fname, "<eval>") == 0)
 		{
 			return GetGlobalObject(ctx);
 		}
