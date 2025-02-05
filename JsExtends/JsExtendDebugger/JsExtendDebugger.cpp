@@ -4,6 +4,7 @@
 #include "pystring/pystring.h"
 #include "pystring/pywstring.h"
 #include "DlgDebugger.h"
+#include <iostream>
 
 struct DebuggerInfo;
 
@@ -67,6 +68,12 @@ QJS_API int _entry(ContextHandle ctx, void* user_data, int id)
 	}
 
 	g_debuggerExtendLoaded = true;
+
+	std::cout << "==JsExtendDebugger模块注意事项==" << std::endl;
+	std::cout << "1.执行代码时，请使用RunScript接口，并且需要把源代码传入filename参数中，否则不能在调试中显示源代码" << std::endl;
+	std::cout << "2.由于RunScriptFile接口不能把源代码传入filename参数，所以请使用RunScript替代RunScriptFile" << std::endl;
+	std::cout << "================================" << std::endl;
+
 	return 0;
 }
 
