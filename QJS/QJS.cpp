@@ -528,7 +528,7 @@ void FreeContext(ContextHandle ctx)
 	delete thisCtx;
 }
 
-void AddFreeingContextCallback(ContextHandle ctx, FN_OnFreeingContextCallback cb)
+void SetFreeingContextCallback(ContextHandle ctx, FN_OnFreeingContextCallback cb)
 {
 	QJSContext* thisCtx = (QJSContext*)ctx;
 	thisCtx->onFreeingContextCallbacks.insert(cb);

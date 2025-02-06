@@ -29,3 +29,7 @@
 /JsExtends/JsExtendDebugger/x64
 /JsExtends/JsExtendDebugger/Win32
 /JsExtends/JsExtendDebugger/*.aps
+/CSharp/QJSharpTest/bin
+/CSharp/QJSharpTest/obj
+/CSharp/QJSharp/bin
+/CSharp/QJSharp/obj

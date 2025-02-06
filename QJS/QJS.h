@@ -70,7 +70,7 @@ QJS_API void ResetContext(ContextHandle ctx);
 QJS_API void FreeContext(ContextHandle ctx);
 //销毁js上下文前回调
 typedef void (*FN_OnFreeingContextCallback)(ContextHandle ctx);
-QJS_API void AddFreeingContextCallback(ContextHandle ctx, FN_OnFreeingContextCallback cb);
+QJS_API void SetFreeingContextCallback(ContextHandle ctx, FN_OnFreeingContextCallback cb);
 QJS_API bool RemoveFreeingContextCallback(ContextHandle ctx, FN_OnFreeingContextCallback cb);
 //根据上下文获得Runtime
 QJS_API RuntimeHandle GetContextRuntime(ContextHandle ctx);
@@ -337,7 +337,7 @@ public:
 		SET_PROC(hDll, NewContext);
 		SET_PROC(hDll, ResetContext);
 		SET_PROC(hDll, FreeContext);
-		SET_PROC(hDll, AddFreeingContextCallback);
+		SET_PROC(hDll, SetFreeingContextCallback);
 		SET_PROC(hDll, RemoveFreeingContextCallback);
 		SET_PROC(hDll, SetContextUserData); 
 		SET_PROC(hDll, GetContextUserData);
@@ -451,7 +451,7 @@ public:
 	DEF_PROC(NewContext);
 	DEF_PROC(ResetContext);
 	DEF_PROC(FreeContext);
-	DEF_PROC(AddFreeingContextCallback);
+	DEF_PROC(SetFreeingContextCallback);
 	DEF_PROC(RemoveFreeingContextCallback);
 	DEF_PROC(SetContextUserData); 
 	DEF_PROC(GetContextUserData);
