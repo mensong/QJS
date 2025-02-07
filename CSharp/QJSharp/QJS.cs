@@ -401,7 +401,8 @@ namespace QJSharp
             for (int i = 0; i < length; i++)
             {
                 IntPtr current = new IntPtr(ptr.ToInt64() + (i * structSize));
-                structArray[i] = Marshal.PtrToStructure<ValueHandle>(current);
+                //structArray[i] = Marshal.PtrToStructure<ValueHandle>(current);
+                structArray[i] = (ValueHandle)Marshal.PtrToStructure(current, typeof(ValueHandle));
             }
 
             return structArray;

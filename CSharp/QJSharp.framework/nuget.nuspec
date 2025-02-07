@@ -1,0 +1,33 @@
+<?xml version="1.0"?>
+<package>
+	<metadata>
+		<id>QJSharp.framework</id>
+		<version>1.0.3</version>
+		<authors>Mensong</authors>
+		<owners>Mensong</owners>
+		<requireLicenseAcceptance>false</requireLicenseAcceptance>
+		<description>QJSharp - A javascript engine</description>
+		<releaseNotes>Initial release</releaseNotes>
+		<copyright>Copyright 2025</copyright>
+		<tags>QJSharp qjs js javascript</tags>
+	</metadata>
+	<files>
+		<file src="bin\x64\Release\QJSharp.framework.dll" target="lib\framework46"/>
+		
+		<file src="bin\x64\Release\JsExtendBase.dll" target="content"/>
+		<file src="bin\x64\Release\JsExtendDebugger.dll" target="content"/>
+		<file src="bin\x64\Release\JsExtendFile.dll" target="content"/>
+		<file src="bin\x64\Release\JsExtendPath.dll" target="content"/>
+		<file src="bin\x64\Release\JsExtendReg.dll" target="content"/>
+		<file src="bin\x64\Release\QJS.dll" target="content"/>
+		<file src="bin\x64\Release\StringConvert.dll" target="content"/>
+		
+		<file src="bin\x64\Release\JsExtendBase.dll" target="contentFiles\any\framework46"/>
+		<file src="bin\x64\Release\JsExtendDebugger.dll" target="contentFiles\any\framework46"/>
+		<file src="bin\x64\Release\JsExtendFile.dll" target="contentFiles\any\framework46"/>
+		<file src="bin\x64\Release\JsExtendPath.dll" target="contentFiles\any\framework46"/>
+		<file src="bin\x64\Release\JsExtendReg.dll" target="contentFiles\any\framework46"/>
+		<file src="bin\x64\Release\QJS.dll" target="contentFiles\any\framework46"/>
+		<file src="bin\x64\Release\StringConvert.dll" target="contentFiles\any\framework46"/>
+	</files>
+</package>

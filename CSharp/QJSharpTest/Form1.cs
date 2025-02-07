@@ -41,7 +41,7 @@ namespace QJSharpTest
                 }
 
                 {
-                    byte[] loadedData = qjs.LoadFile("QJSharpTest.dll");
+                    byte[] loadedData = qjs.LoadFile("QJS.dll");
                     if (loadedData != null)
                         listBox1.Items.Add("LoadFile ≤‚ ‘Õ®π˝");
                     else

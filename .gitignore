@@ -34,3 +34,8 @@
 /CSharp/QJSharp/bin
 /CSharp/QJSharp/obj
 /CSharp/QJSharp/*.dll
+/CSharp/QJSharp.framework/*.nupkg
+/CSharp/QJSharp.framework/obj
+/CSharp/QJSharp.framework/bin
+/CSharp/QJSharp.framework.Test/obj
+/CSharp/QJSharp.framework.Test/bin
