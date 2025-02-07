@@ -12,6 +12,7 @@
     <RepositoryType>git</RepositoryType>
     <PackageTags>qjs;jsengine;javascriptengine;quickjs;javascript</PackageTags>
     <PackageReadmeFile>README.md</PackageReadmeFile>
+    <Version>$([System.DateTime]::UtcNow.ToString("yyyy.MM.dd.HHmm"))</Version>
   </PropertyGroup>
 
   <ItemGroup>
@@ -80,6 +81,15 @@
 
   <Target Name="PreBuild" BeforeTargets="PreBuildEvent">
     <Exec Command="call CopyQJS.BAT" />
+  </Target>
+
+  <Target Name="SetVersion" BeforeTargets="BeforeBuild">
+    <PropertyGroup>
+      <BuildDate>$([System.DateTime]::UtcNow.ToString("yyyy.MM.dd.HHmm"))</BuildDate>
+      <AssemblyVersion>$(BuildDate)</AssemblyVersion>
+      <FileVersion>$(BuildDate)</FileVersion>
+      <InformationalVersion>$(BuildDate)</InformationalVersion>
+    </PropertyGroup>
   </Target>
 
 </Project>
