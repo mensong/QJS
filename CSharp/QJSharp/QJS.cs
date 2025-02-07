@@ -957,6 +957,26 @@ namespace QJSharp
             UnloadExtend(m_ctx, extendId);
         }
 
+        public int LoadBaseExtend()
+        {
+            return LoadExtend("JsExtendBase.dll", GetGlobalObject(), IntPtr.Zero);
+        }
+        public int LoadDebuggerExtend()
+        {
+            return LoadExtend("JsExtendDebugger.dll", GetGlobalObject(), IntPtr.Zero);
+        }
+        public int LoadFileExtend()
+        {
+            return LoadExtend("JsExtendFile.dll", GetGlobalObject(), IntPtr.Zero);
+        }
+        public int LoadPathExtend()
+        {
+            return LoadExtend("JsExtendPath.dll", GetGlobalObject(), IntPtr.Zero);
+        }
+        public int LoadRegExtend()
+        {
+            return LoadExtend("JsExtendReg.dll", GetGlobalObject(), IntPtr.Zero);
+        }
     }
 
     [StructLayout(LayoutKind.Sequential)]

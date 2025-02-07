@@ -16,6 +16,8 @@ namespace QJSharpTest
         {
             using (QJS qjs = new QJS())
             {
+                int extId = qjs.LoadBaseExtend();
+
                 {
                     qjs.SetFreeingContextCallback(OnFreeingContext);
                 }
