@@ -832,10 +832,9 @@ void testDifferentProcessWithSameFuncName()
 
 int main()
 {
-	testDebuggerExtend();
-	return 0;
-
 	myTest();
+
+	testDebuggerExtend();
 
 	testJsValueToStdString();
 
