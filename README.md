@@ -24,7 +24,7 @@ quickjs(https://github.com/mensong/quickjs-win) 在windows上的封装
 
 [Form1.cs](https://github.com/mensong/QJS/blob/master/CSharp/QJSharpTest/Form1.cs "Form1.cs")
 
-# C#安装步骤
+# C#使用nuget安装步骤
 
 1.Nuget搜索“QJSharp”，如果当前项目是.net framework框架，则选择“QJSharp.framework”
 
