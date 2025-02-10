@@ -168,7 +168,7 @@ namespace QJSharpTest
                     ValueHandle jfuncSetter = qjs.NewFunction(JSetter, 1, null);
                     bool b = qjs.DefineGetterSetter(jobj, "gs", jfuncGetter, jfuncSetter);
                     qjs.SetNamedJsValue("obj", jobj, qjs.GetGlobalObject());
-                    ValueHandle jres = qjs.RunScript("obj.gs='mensong';obj.gs", qjs.GetGlobalObject(), "");
+                    ValueHandle jres = qjs.RunScript("obj.gs='mensong';var a = obj.gs;a", qjs.GetGlobalObject(), "");
                     string s = qjs.JsValueToString(jres);
                     if (s == "mensong")
                         listBox1.Items.Add("DefineGetterSetter ≤‚ ‘Õ®π˝");

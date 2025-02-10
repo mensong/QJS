@@ -171,10 +171,38 @@ namespace QJSharp.framework.Test
                         listBox1.Items.Add("LoadExtend 测试不通过");
                 }
 
+                {
+                    ValueHandle jobj = qjs.NewObjectJsValue();
+                    ValueHandle jfuncGetter = qjs.NewFunction(JGetter, 0, null);
+                    ValueHandle jfuncSetter = qjs.NewFunction(JSetter, 1, null);
+                    bool b = qjs.DefineGetterSetter(jobj, "gs", jfuncGetter, jfuncSetter);
+                    qjs.SetNamedJsValue("obj", jobj, qjs.GetGlobalObject());
+                    ValueHandle jres = qjs.RunScript("obj.gs='mensong';var a = obj.gs;a", qjs.GetGlobalObject(), "");
+                    string s = qjs.JsValueToString(jres);
+                    if (s == "mensong")
+                        listBox1.Items.Add("DefineGetterSetter 测试通过");
+                    else
+                        listBox1.Items.Add("DefineGetterSetter 测试不通过");
+                }
 
             }
         }
 
+        string gsval = "getter setter value";
+        ValueHandle JGetter(QJS qjs, ValueHandle this_val, ValueHandle[] args, Object user_data)
+        {
+            return qjs.NewStringJsValue(gsval);
+        }
+
+        ValueHandle JSetter(QJS qjs, ValueHandle this_val, ValueHandle[] args, Object user_data)
+        {
+            if (args.Length > 0)
+            {
+                gsval = qjs.JsValueToString(args[0]);
+            }
+
+            return QJS.TheJsUndefined();
+        }
 
         void OnFreeingContext(UIntPtr ctx)
         {
