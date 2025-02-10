@@ -1,4 +1,7 @@
 using QJSharp;
+using System;
+using System.IO;
+using System.Windows.Forms;
 
 namespace QJSharpTest
 {
@@ -154,7 +157,7 @@ namespace QJSharpTest
                 }
 
                 {
-                    qjs.LoadExtend("JsExtendBase.dll", qjs.GetGlobalObject(), 0);
+                    qjs.LoadExtend("JsExtendBase.dll", qjs.GetGlobalObject(), IntPtr.Zero);
                     ValueHandle jAlert = qjs.GetNamedJsValue("alert", qjs.GetGlobalObject());
                     if (QJS.JsValueIsFunction(jAlert))
                         listBox1.Items.Add("LoadExtend 测试通过");
@@ -173,7 +176,7 @@ namespace QJSharpTest
                     if (s == "mensong")
                         listBox1.Items.Add("DefineGetterSetter 测试通过");
                     else
-                        listBox1.Items.Add("DefineGetterSetter 测试不通过");
+                        listBox1.Items.Add("DefineGetterSetter 测试不通过");                  
                 }
 
             }

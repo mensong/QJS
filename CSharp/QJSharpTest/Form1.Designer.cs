@@ -1,4 +1,7 @@
-﻿namespace QJSharpTest
+﻿using System.Drawing;
+using System.Windows.Forms;
+
+namespace QJSharpTest
 {
     partial class Form1
     {
