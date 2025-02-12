@@ -55,5 +55,6 @@
 	<file src="..\QJSharp.framework47\bin\Release\QJSharp.dll" target="lib\net47\QJSharp.dll" />
 	<file src="..\QJSharp.framework48\bin\Release\QJSharp.dll" target="lib\net48\QJSharp.dll" />
 	<file src="icon.png" target="icon.png" />
+	<file src="..\..\README.md" target="README.md" />
   </files>
 </package>
