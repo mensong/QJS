@@ -1,0 +1,59 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2012/06/nuspec.xsd">
+  <metadata>
+    <id>QJS</id>
+    <version>1.0.0</version>
+    <title>QJSharp</title>
+    <authors>Mensong</authors>
+    <owners></owners>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <projectUrl>https://github.com/mensong/QJS</projectUrl>
+    <description>A javascript engine.</description>
+    <tags>qjs,javascript engine,js engine</tags>
+    <repository type="git" url="https://github.com/mensong/QJS" />
+    <dependencies>
+	  <group targetFramework=".NETFramework2.0" />
+	  <group targetFramework=".NETFramework3.0" />
+      <group targetFramework=".NETFramework3.5" />
+      <group targetFramework=".NETFramework4.0" />
+      <group targetFramework=".NETFramework4.5" />
+      <group targetFramework=".NETFramework4.6" />
+      <group targetFramework=".NETFramework4.7" />
+      <group targetFramework=".NETFramework4.8" />
+	  <group targetFramework="net5.0" />
+      <group targetFramework="net6.0" />
+      <group targetFramework="net7.0" />
+      <group targetFramework="net8.0" />
+      <group targetFramework=".NETStandard2.0" />
+    </dependencies>
+  </metadata>
+  <files>
+  
+	<file src="..\..\x64\Release\JsExtendBase.dll" target="build\runtimes\win-x64\native\JsExtendBase.dll" />
+    <file src="..\..\x64\Release\JsExtendDebugger.dll" target="build\runtimes\win-x64\native\JsExtendDebugger.dll" />
+    <file src="..\..\x64\Release\JsExtendFile.dll" target="build\runtimes\win-x64\native\JsExtendFile.dll" />
+    <file src="..\..\x64\Release\JsExtendPath.dll" target="build\runtimes\win-x64\native\JsExtendPath.dll" />
+    <file src="..\..\x64\Release\JsExtendReg.dll" target="build\runtimes\win-x64\native\JsExtendReg.dll" />
+    <file src="..\..\x64\Release\QJS.dll" target="build\runtimes\win-x64\native\QJS.dll" />
+    <file src="..\..\x64\Release\StringConvert.dll" target="build\runtimes\win-x64\native\StringConvert.dll" />
+    <file src="..\..\Win32\Release\JsExtendBase.dll" target="build\runtimes\win-x86\native\JsExtendBase.dll" />
+    <file src="..\..\Win32\Release\JsExtendDebugger.dll" target="build\runtimes\win-x86\native\JsExtendDebugger.dll" />
+    <file src="..\..\Win32\Release\JsExtendFile.dll" target="build\runtimes\win-x86\native\JsExtendFile.dll" />
+    <file src="..\..\Win32\Release\JsExtendPath.dll" target="build\runtimes\win-x86\native\JsExtendPath.dll" />
+    <file src="..\..\Win32\Release\JsExtendReg.dll" target="build\runtimes\win-x86\native\JsExtendReg.dll" />
+    <file src="..\..\Win32\Release\QJS.dll" target="build\runtimes\win-x86\native\QJS.dll" />
+    <file src="..\..\Win32\Release\StringConvert.dll" target="build\runtimes\win-x86\native\StringConvert.dll" />
+    <file src="QJS.targets" target="build\QJS.targets" />
+	
+    <file src="..\QJSharp.netstandard\bin\Release\netstandard2.0\QJSharp.dll" target="lib\netstandard2.0\QJSharp.dll" />
+	<file src="..\QJSharp.framework20\bin\Release\QJSharp.dll" target="lib\net20\QJSharp.dll" />
+	<file src="..\QJSharp.framework30\bin\Release\QJSharp.dll" target="lib\net30\QJSharp.dll" />
+	<file src="..\QJSharp.framework35\bin\Release\QJSharp.dll" target="lib\net35\QJSharp.dll" />
+	<file src="..\QJSharp.framework40\bin\Release\QJSharp.dll" target="lib\net40\QJSharp.dll" />
+	<file src="..\QJSharp.framework45\bin\Release\QJSharp.dll" target="lib\net45\QJSharp.dll" />
+	<file src="..\QJSharp.framework46\bin\Release\QJSharp.dll" target="lib\net46\QJSharp.dll" />
+	<file src="..\QJSharp.framework47\bin\Release\QJSharp.dll" target="lib\net47\QJSharp.dll" />
+	<file src="..\QJSharp.framework48\bin\Release\QJSharp.dll" target="lib\net48\QJSharp.dll" />
+	<file src="icon.png" target="icon.png" />
+  </files>
+</package>

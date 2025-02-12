@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
 
@@ -30,337 +32,334 @@ namespace QJSharp
             JS_TYPE_BIG_DECIMAL = 15,
         };
 
-        [DllImport("QJS.dll", EntryPoint = "NewRuntime")]
+        [DllImport("QJS.dll", EntryPoint = "NewRuntime", CallingConvention = CallingConvention.Cdecl)]
         private static extern UIntPtr NewRuntime();
 
-        [DllImport("QJS.dll", EntryPoint = "FreeRuntime")]
+        [DllImport("QJS.dll", EntryPoint = "FreeRuntime", CallingConvention = CallingConvention.Cdecl)]
         private static extern void FreeRuntime(UIntPtr runtime);
 
-        [DllImport("QJS.dll", EntryPoint = "SetRuntimeUserData")]
+        [DllImport("QJS.dll", EntryPoint = "SetRuntimeUserData", CallingConvention = CallingConvention.Cdecl)]
         private static extern void SetRuntimeUserData(UIntPtr runtime, int key, IntPtr user_data);
 
-        [DllImport("QJS.dll", EntryPoint = "GetRuntimeUserData")]
+        [DllImport("QJS.dll", EntryPoint = "GetRuntimeUserData", CallingConvention = CallingConvention.Cdecl)]
         private static extern UIntPtr GetRuntimeUserData(UIntPtr runtime, int key);
 
-        [DllImport("QJS.dll", EntryPoint = "NewContext")]
+        [DllImport("QJS.dll", EntryPoint = "NewContext", CallingConvention = CallingConvention.Cdecl)]
         private static extern UIntPtr NewContext(UIntPtr runtime);
 
-        [DllImport("QJS.dll", EntryPoint = "FreeContext")]
+        [DllImport("QJS.dll", EntryPoint = "FreeContext", CallingConvention = CallingConvention.Cdecl)]
         private static extern void FreeContext(UIntPtr ctx);
 
-        [DllImport("QJS.dll", EntryPoint = "ResetContext")]
+        [DllImport("QJS.dll", EntryPoint = "ResetContext", CallingConvention = CallingConvention.Cdecl)]
         private static extern void ResetContext(UIntPtr ctx);
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         public delegate void OnFreeingContextCallback(UIntPtr ctx);
-        [DllImport("QJS.dll", EntryPoint = "SetFreeingContextCallback")]
+        [DllImport("QJS.dll", EntryPoint = "SetFreeingContextCallback", CallingConvention = CallingConvention.Cdecl)]
         private static extern void SetFreeingContextCallback(UIntPtr ctx, OnFreeingContextCallback cb);
 
-        [DllImport("QJS.dll", EntryPoint = "RemoveFreeingContextCallback")]
+        [DllImport("QJS.dll", EntryPoint = "RemoveFreeingContextCallback", CallingConvention = CallingConvention.Cdecl)]
         private static extern bool RemoveFreeingContextCallback(UIntPtr ctx, OnFreeingContextCallback cb);
 
-        [DllImport("QJS.dll", EntryPoint = "GetContextRuntime")]
+        [DllImport("QJS.dll", EntryPoint = "GetContextRuntime", CallingConvention = CallingConvention.Cdecl)]
         private static extern UIntPtr GetContextRuntime(UIntPtr ctx);
 
-        [DllImport("QJS.dll", EntryPoint = "SetContextUserData")]
+        [DllImport("QJS.dll", EntryPoint = "SetContextUserData", CallingConvention = CallingConvention.Cdecl)]
         private static extern void SetContextUserData(UIntPtr ctx, int key, IntPtr user_data);
 
-        [DllImport("QJS.dll", EntryPoint = "GetContextUserData")]
+        [DllImport("QJS.dll", EntryPoint = "GetContextUserData", CallingConvention = CallingConvention.Cdecl)]
         private static extern UIntPtr GetContextUserData(UIntPtr ctx, int key);
 
-        [DllImport("QJS.dll", EntryPoint = "GetGlobalObject")]
+        [DllImport("QJS.dll", EntryPoint = "GetGlobalObject", CallingConvention = CallingConvention.Cdecl)]
         private static extern ValueHandle GetGlobalObject(UIntPtr ctx);
 
-        [DllImport("QJS.dll", EntryPoint = "FreeJsPointer")]
+        [DllImport("QJS.dll", EntryPoint = "FreeJsPointer", CallingConvention = CallingConvention.Cdecl)]
         private static extern void FreeJsPointer(UIntPtr ctx, IntPtr ptr);
 
-        [DllImport("QJS.dll", EntryPoint = "LoadFile")]
+        [DllImport("QJS.dll", EntryPoint = "LoadFile", CallingConvention = CallingConvention.Cdecl)]
         private static extern IntPtr LoadFile(UIntPtr ctx, out UInt64 outLen, string filename);        
 
-        [DllImport("QJS.dll", EntryPoint = "RunScript")]
+        [DllImport("QJS.dll", EntryPoint = "RunScript", CallingConvention = CallingConvention.Cdecl)]
         private static extern ValueHandle RunScript(UIntPtr ctx, byte[] script, ValueHandle parent, byte[] filename);
 
-        [DllImport("QJS.dll", EntryPoint = "RunScriptFile")]
+        [DllImport("QJS.dll", EntryPoint = "RunScriptFile", CallingConvention = CallingConvention.Cdecl)]
         private static extern ValueHandle RunScriptFile(UIntPtr ctx, string filename, ValueHandle parent);
 
-        [DllImport("QJS.dll", EntryPoint = "CallJsFunction")]
+        [DllImport("QJS.dll", EntryPoint = "CallJsFunction", CallingConvention = CallingConvention.Cdecl)]
         private static extern ValueHandle CallJsFunction(UIntPtr ctx, ValueHandle jsFunction, IntPtr argv, int argc, ValueHandle parent);
         
-        [DllImport("QJS.dll", EntryPoint = "GetNamedJsValue")]
+        [DllImport("QJS.dll", EntryPoint = "GetNamedJsValue", CallingConvention = CallingConvention.Cdecl)]
         private static extern ValueHandle GetNamedJsValue(UIntPtr ctx, byte[] varName, ValueHandle parent);
 
-        [DllImport("QJS.dll", EntryPoint = "SetNamedJsValue")]
+        [DllImport("QJS.dll", EntryPoint = "SetNamedJsValue", CallingConvention = CallingConvention.Cdecl)]
         private static extern bool SetNamedJsValue(UIntPtr ctx, byte[] varName, ValueHandle varValue, ValueHandle parent);
 
-        [DllImport("QJS.dll", EntryPoint = "DeleteNamedJsValue")]
+        [DllImport("QJS.dll", EntryPoint = "DeleteNamedJsValue", CallingConvention = CallingConvention.Cdecl)]
         private static extern bool DeleteNamedJsValue(UIntPtr ctx, byte[] varName, ValueHandle parent);
 
-        [DllImport("QJS.dll", EntryPoint = "HasNamedJsValue")]
+        [DllImport("QJS.dll", EntryPoint = "HasNamedJsValue", CallingConvention = CallingConvention.Cdecl)]
         private static extern bool HasNamedJsValue(UIntPtr ctx, byte[] varName, ValueHandle parent);
 
-        [DllImport("QJS.dll", EntryPoint = "GetObjectPropertyKeys")]
+        [DllImport("QJS.dll", EntryPoint = "GetObjectPropertyKeys", CallingConvention = CallingConvention.Cdecl)]
         private static extern ValueHandle GetObjectPropertyKeys(UIntPtr ctx, ValueHandle jObj, 
             bool onlyEnumerable/*=true*/, bool enableSymbol/*=false*/);
 
-        [DllImport("QJS.dll", EntryPoint = "GetFunctionName")]
+        [DllImport("QJS.dll", EntryPoint = "GetFunctionName", CallingConvention = CallingConvention.Cdecl)]
         private static extern ValueHandle GetFunctionName(UIntPtr ctx, ValueHandle func);
 
-        [DllImport("QJS.dll", EntryPoint = "GetCurFrameFunction")]
+        [DllImport("QJS.dll", EntryPoint = "GetCurFrameFunction", CallingConvention = CallingConvention.Cdecl)]
         private static extern ValueHandle GetCurFrameFunction(UIntPtr ctx);
 
-        [DllImport("QJS.dll", EntryPoint = "GetIndexedJsValue")]
+        [DllImport("QJS.dll", EntryPoint = "GetIndexedJsValue", CallingConvention = CallingConvention.Cdecl)]
         private static extern ValueHandle GetIndexedJsValue(UIntPtr ctx, UInt32 idx, ValueHandle parent);
 
-        [DllImport("QJS.dll", EntryPoint = "SetIndexedJsValue")]
+        [DllImport("QJS.dll", EntryPoint = "SetIndexedJsValue", CallingConvention = CallingConvention.Cdecl)]
         private static extern bool SetIndexedJsValue(UIntPtr ctx, UInt32 idx, ValueHandle varValue, ValueHandle parent);
 
-        [DllImport("QJS.dll", EntryPoint = "DeleteIndexedJsValue")]
+        [DllImport("QJS.dll", EntryPoint = "DeleteIndexedJsValue", CallingConvention = CallingConvention.Cdecl)]
         private static extern bool DeleteIndexedJsValue(UIntPtr ctx, UInt32 idx, ValueHandle parent);
 
-        [DllImport("QJS.dll", EntryPoint = "GetLength")]
+        [DllImport("QJS.dll", EntryPoint = "GetLength", CallingConvention = CallingConvention.Cdecl)]
         private static extern Int64 GetLength(UIntPtr ctx, ValueHandle obj);
 
-        [DllImport("QJS.dll", EntryPoint = "GetPrototype")]
+        [DllImport("QJS.dll", EntryPoint = "GetPrototype", CallingConvention = CallingConvention.Cdecl)]
         private static extern ValueHandle GetPrototype(UIntPtr ctx, ValueHandle jObj);
 
-        [DllImport("QJS.dll", EntryPoint = "SetPrototype")]
+        [DllImport("QJS.dll", EntryPoint = "SetPrototype", CallingConvention = CallingConvention.Cdecl)]
         private static extern bool SetPrototype(UIntPtr ctx, ValueHandle jObj, ValueHandle protoJVal);
 
-        [DllImport("QJS.dll", EntryPoint = "TheJsUndefined")]
+        [DllImport("QJS.dll", EntryPoint = "TheJsUndefined", CallingConvention = CallingConvention.Cdecl)]
         public static extern ValueHandle TheJsUndefined();
 
-        [DllImport("QJS.dll", EntryPoint = "TheJsNull")]
+        [DllImport("QJS.dll", EntryPoint = "TheJsNull", CallingConvention = CallingConvention.Cdecl)]
         public static extern ValueHandle TheJsNull();
 
-        [DllImport("QJS.dll", EntryPoint = "TheJsTrue")]
+        [DllImport("QJS.dll", EntryPoint = "TheJsTrue", CallingConvention = CallingConvention.Cdecl)]
         public static extern ValueHandle TheJsTrue();
 
-        [DllImport("QJS.dll", EntryPoint = "TheJsFalse")]
+        [DllImport("QJS.dll", EntryPoint = "TheJsFalse", CallingConvention = CallingConvention.Cdecl)]
         public static extern ValueHandle TheJsFalse();
 
-        [DllImport("QJS.dll", EntryPoint = "DefineGetterSetter")]
+        [DllImport("QJS.dll", EntryPoint = "DefineGetterSetter", CallingConvention = CallingConvention.Cdecl)]
         private static extern bool DefineGetterSetter(UIntPtr ctx, ValueHandle parent,
             byte[] propName, ValueHandle getter, ValueHandle setter);
 
-        [DllImport("QJS.dll", EntryPoint = "NewIntJsValue")]
+        [DllImport("QJS.dll", EntryPoint = "NewIntJsValue", CallingConvention = CallingConvention.Cdecl)]
         private static extern ValueHandle NewIntJsValue(UIntPtr ctx, int intValue);
 
-        [DllImport("QJS.dll", EntryPoint = "NewInt64JsValue")]
+        [DllImport("QJS.dll", EntryPoint = "NewInt64JsValue", CallingConvention = CallingConvention.Cdecl)]
         private static extern ValueHandle NewInt64JsValue(UIntPtr ctx, Int64 intValue);
 
-        [DllImport("QJS.dll", EntryPoint = "NewUInt64JsValue")]
+        [DllImport("QJS.dll", EntryPoint = "NewUInt64JsValue", CallingConvention = CallingConvention.Cdecl)]
         private static extern ValueHandle NewUInt64JsValue(UIntPtr ctx, UInt64 intValue);
 
-        [DllImport("QJS.dll", EntryPoint = "NewDoubleJsValue")]
+        [DllImport("QJS.dll", EntryPoint = "NewDoubleJsValue", CallingConvention = CallingConvention.Cdecl)]
         private static extern ValueHandle NewDoubleJsValue(UIntPtr ctx, double doubleValue);
 
-        [DllImport("QJS.dll", EntryPoint = "NewStringJsValue")]
+        [DllImport("QJS.dll", EntryPoint = "NewStringJsValue", CallingConvention = CallingConvention.Cdecl)]
         private static extern ValueHandle NewStringJsValue(UIntPtr ctx, byte[] stringValue);
 
-        [DllImport("QJS.dll", EntryPoint = "NewBoolJsValue")]
+        [DllImport("QJS.dll", EntryPoint = "NewBoolJsValue", CallingConvention = CallingConvention.Cdecl)]
         private static extern ValueHandle NewBoolJsValue(UIntPtr ctx, bool boolValue);
 
-        [DllImport("QJS.dll", EntryPoint = "NewObjectJsValue")]
+        [DllImport("QJS.dll", EntryPoint = "NewObjectJsValue", CallingConvention = CallingConvention.Cdecl)]
         private static extern ValueHandle NewObjectJsValue(UIntPtr ctx);
 
-        [DllImport("QJS.dll", EntryPoint = "SetObjectUserData")]
+        [DllImport("QJS.dll", EntryPoint = "SetObjectUserData", CallingConvention = CallingConvention.Cdecl)]
         private static extern bool SetObjectUserData(ValueHandle value, IntPtr user_data);
 
-        [DllImport("QJS.dll", EntryPoint = "GetObjectUserData")]
+        [DllImport("QJS.dll", EntryPoint = "GetObjectUserData", CallingConvention = CallingConvention.Cdecl)]
         private static extern IntPtr GetObjectUserData(ValueHandle value);
 
-        [DllImport("QJS.dll", EntryPoint = "NewArrayJsValue")]
+        [DllImport("QJS.dll", EntryPoint = "NewArrayJsValue", CallingConvention = CallingConvention.Cdecl)]
         private static extern ValueHandle NewArrayJsValue(UIntPtr ctx);
 
-        [DllImport("QJS.dll", EntryPoint = "NewThrowJsValue")]
+        [DllImport("QJS.dll", EntryPoint = "NewThrowJsValue", CallingConvention = CallingConvention.Cdecl)]
         private static extern ValueHandle NewThrowJsValue(UIntPtr ctx, ValueHandle throwWhat);
 
-        [DllImport("QJS.dll", EntryPoint = "NewDateJsValue")]
+        [DllImport("QJS.dll", EntryPoint = "NewDateJsValue", CallingConvention = CallingConvention.Cdecl)]
         private static extern ValueHandle NewDateJsValue(UIntPtr ctx, UInt64 ms_since_1970);
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         public delegate void BufferOnceFree(UIntPtr ctx, UIntPtr buf);
-        [DllImport("QJS.dll", EntryPoint = "NewArrayBufferJsValue")]
+        [DllImport("QJS.dll", EntryPoint = "NewArrayBufferJsValue", CallingConvention = CallingConvention.Cdecl)]
         private static extern ValueHandle NewArrayBufferJsValue(UIntPtr ctx, IntPtr buf, int bufLen, BufferOnceFree freeFunc/* = NULL*/);
 
-        [DllImport("QJS.dll", EntryPoint = "NewArrayBufferJsValueCopy")]
+        [DllImport("QJS.dll", EntryPoint = "NewArrayBufferJsValueCopy", CallingConvention = CallingConvention.Cdecl)]
         private static extern ValueHandle NewArrayBufferJsValueCopy(UIntPtr ctx, IntPtr buf, int bufLen);
 
-        [DllImport("QJS.dll", EntryPoint = "DetachArrayBufferJsValue")]
+        [DllImport("QJS.dll", EntryPoint = "DetachArrayBufferJsValue", CallingConvention = CallingConvention.Cdecl)]
         private static extern void DetachArrayBufferJsValue(UIntPtr ctx, ref ValueHandle arrBuf);
 
-        [DllImport("QJS.dll", EntryPoint = "GetArrayBufferPtr")]
+        [DllImport("QJS.dll", EntryPoint = "GetArrayBufferPtr", CallingConvention = CallingConvention.Cdecl)]
         private static extern IntPtr GetArrayBufferPtr(UIntPtr ctx, ValueHandle arrBuf, ref int outBufLen);
 
-        [DllImport("QJS.dll", EntryPoint = "GetArrayBufferByTypedArrayBuffer")]
+        [DllImport("QJS.dll", EntryPoint = "GetArrayBufferByTypedArrayBuffer", CallingConvention = CallingConvention.Cdecl)]
         private static extern ValueHandle GetArrayBufferByTypedArrayBuffer(UIntPtr ctx, ValueHandle typedArrBuf,
                                                                             ref int out_byte_offset,
                                                                             ref int out_byte_length,
                                                                             ref int out_bytes_per_element);
 
-        [DllImport("QJS.dll", EntryPoint = "FillArrayBuffer")]
+        [DllImport("QJS.dll", EntryPoint = "FillArrayBuffer", CallingConvention = CallingConvention.Cdecl)]
         private static extern bool FillArrayBuffer(UIntPtr ctx, ValueHandle arrBuf, byte fill);
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         public delegate ValueHandle _JsFunctionCallback(UIntPtr ctx, ValueHandle this_val, int argc, IntPtr argv, IntPtr user_data);
-        [DllImport("QJS.dll", EntryPoint = "NewFunction")]
+        [DllImport("QJS.dll", EntryPoint = "NewFunction", CallingConvention = CallingConvention.Cdecl)]
         private static extern ValueHandle NewFunction(UIntPtr ctx, _JsFunctionCallback cb, int argc, IntPtr user_data);
 
-        [DllImport("QJS.dll", EntryPoint = "JsValueToString")]
+        [DllImport("QJS.dll", EntryPoint = "JsValueToString", CallingConvention = CallingConvention.Cdecl)]
         private static extern IntPtr JsValueToString(UIntPtr ctx, ValueHandle value);
 
-        [DllImport("QJS.dll", EntryPoint = "JsValueToInt")]
+        [DllImport("QJS.dll", EntryPoint = "JsValueToInt", CallingConvention = CallingConvention.Cdecl)]
         private static extern int JsValueToInt(UIntPtr ctx, ValueHandle value, int defVal/* = 0*/);
 
-        [DllImport("QJS.dll", EntryPoint = "JsValueToInt64")]
+        [DllImport("QJS.dll", EntryPoint = "JsValueToInt64", CallingConvention = CallingConvention.Cdecl)]
         private static extern Int64 JsValueToInt64(UIntPtr ctx, ValueHandle value, Int64 defVal/* = 0*/);
 
-        [DllImport("QJS.dll", EntryPoint = "JsValueToUInt64")]
+        [DllImport("QJS.dll", EntryPoint = "JsValueToUInt64", CallingConvention = CallingConvention.Cdecl)]
         private static extern UInt64 JsValueToUInt64(UIntPtr ctx, ValueHandle value, UInt64 defVal/* = 0*/);
 
-        [DllImport("QJS.dll", EntryPoint = "JsValueToDouble")]
+        [DllImport("QJS.dll", EntryPoint = "JsValueToDouble", CallingConvention = CallingConvention.Cdecl)]
         private static extern double JsValueToDouble(UIntPtr ctx, ValueHandle value, double defVal/* = 0.0*/);
 
-        [DllImport("QJS.dll", EntryPoint = "JsValueToBool")]
+        [DllImport("QJS.dll", EntryPoint = "JsValueToBool", CallingConvention = CallingConvention.Cdecl)]
         private static extern bool JsValueToBool(UIntPtr ctx, ValueHandle value, bool defVal/* = false*/);
 
-        [DllImport("QJS.dll", EntryPoint = "JsValueToTimestamp")]
+        [DllImport("QJS.dll", EntryPoint = "JsValueToTimestamp", CallingConvention = CallingConvention.Cdecl)]
         private static extern UInt64 JsValueToTimestamp(UIntPtr ctx, ValueHandle value);
 
-        [DllImport("QJS.dll", EntryPoint = "CompileScript")]
+        [DllImport("QJS.dll", EntryPoint = "CompileScript", CallingConvention = CallingConvention.Cdecl)]
         private static extern ValueHandle CompileScript(UIntPtr ctx, byte[] script, byte[] filename/* = ""*/);
 
-        [DllImport("QJS.dll", EntryPoint = "JsValueToByteCode")]
+        [DllImport("QJS.dll", EntryPoint = "JsValueToByteCode", CallingConvention = CallingConvention.Cdecl)]
         private static extern IntPtr JsValueToByteCode(UIntPtr ctx, ValueHandle value, ref int outByteCodeLen, bool byte_swap/* = false*/);
 
-        [DllImport("QJS.dll", EntryPoint = "ByteCodeToJsValue")]
+        [DllImport("QJS.dll", EntryPoint = "ByteCodeToJsValue", CallingConvention = CallingConvention.Cdecl)]
         private static extern ValueHandle ByteCodeToJsValue(UIntPtr ctx, IntPtr byteCode, int byteCodeLen);
 
-        [DllImport("QJS.dll", EntryPoint = "SaveByteCodeToFile")]
+        [DllImport("QJS.dll", EntryPoint = "SaveByteCodeToFile", CallingConvention = CallingConvention.Cdecl)]
         public static extern bool SaveByteCodeToFile(IntPtr byteCode, int byteCodeLen, string filepath);
 
-        [DllImport("QJS.dll", EntryPoint = "RunByteCode")]
+        [DllImport("QJS.dll", EntryPoint = "RunByteCode", CallingConvention = CallingConvention.Cdecl)]
         private static extern ValueHandle RunByteCode(UIntPtr ctx, IntPtr byteCode, int byteCodeLen);
 
-        [DllImport("QJS.dll", EntryPoint = "GetValueType")]
+        [DllImport("QJS.dll", EntryPoint = "GetValueType", CallingConvention = CallingConvention.Cdecl)]
         public static extern ValueType GetValueType(ValueHandle value);
 
-        [DllImport("QJS.dll", EntryPoint = "JsValueIsString")]
+        [DllImport("QJS.dll", EntryPoint = "JsValueIsString", CallingConvention = CallingConvention.Cdecl)]
         public static extern bool JsValueIsString(ValueHandle value);
 
-        [DllImport("QJS.dll", EntryPoint = "JsValueIsInt")]
+        [DllImport("QJS.dll", EntryPoint = "JsValueIsInt", CallingConvention = CallingConvention.Cdecl)]
         public static extern bool JsValueIsInt(ValueHandle value);
 
-        [DllImport("QJS.dll", EntryPoint = "JsValueIsNumber")]
+        [DllImport("QJS.dll", EntryPoint = "JsValueIsNumber", CallingConvention = CallingConvention.Cdecl)]
         public static extern bool JsValueIsNumber(ValueHandle value);
 
-        [DllImport("QJS.dll", EntryPoint = "JsValueIsDouble")]
+        [DllImport("QJS.dll", EntryPoint = "JsValueIsDouble", CallingConvention = CallingConvention.Cdecl)]
         public static extern bool JsValueIsDouble(ValueHandle value);
 
-        [DllImport("QJS.dll", EntryPoint = "JsValueIsBool")]
+        [DllImport("QJS.dll", EntryPoint = "JsValueIsBool", CallingConvention = CallingConvention.Cdecl)]
         public static extern bool JsValueIsBool(ValueHandle value);
 
-        [DllImport("QJS.dll", EntryPoint = "JsValueIsObject")]
+        [DllImport("QJS.dll", EntryPoint = "JsValueIsObject", CallingConvention = CallingConvention.Cdecl)]
         public static extern bool JsValueIsObject(ValueHandle value);
 
-        [DllImport("QJS.dll", EntryPoint = "JsValueIsArray")]
+        [DllImport("QJS.dll", EntryPoint = "JsValueIsArray", CallingConvention = CallingConvention.Cdecl)]
         public static extern bool JsValueIsArray(ValueHandle value);
 
-        [DllImport("QJS.dll", EntryPoint = "JsValueIsFunction")]
+        [DllImport("QJS.dll", EntryPoint = "JsValueIsFunction", CallingConvention = CallingConvention.Cdecl)]
         public static extern bool JsValueIsFunction(ValueHandle value);
 
-        [DllImport("QJS.dll", EntryPoint = "JsValueIsException")]
+        [DllImport("QJS.dll", EntryPoint = "JsValueIsException", CallingConvention = CallingConvention.Cdecl)]
         public static extern bool JsValueIsException(ValueHandle value);
 
-        [DllImport("QJS.dll", EntryPoint = "JsValueIsUndefined")]
+        [DllImport("QJS.dll", EntryPoint = "JsValueIsUndefined", CallingConvention = CallingConvention.Cdecl)]
         public static extern bool JsValueIsUndefined(ValueHandle value);
 
-        [DllImport("QJS.dll", EntryPoint = "JsValueIsNull")]
+        [DllImport("QJS.dll", EntryPoint = "JsValueIsNull", CallingConvention = CallingConvention.Cdecl)]
         public static extern bool JsValueIsNull(ValueHandle value);
 
-        [DllImport("QJS.dll", EntryPoint = "JsValueIsDate")]
+        [DllImport("QJS.dll", EntryPoint = "JsValueIsDate", CallingConvention = CallingConvention.Cdecl)]
         public static extern bool JsValueIsDate(ValueHandle value);
 
-        [DllImport("QJS.dll", EntryPoint = "JsValueIsGlobalObject")]
+        [DllImport("QJS.dll", EntryPoint = "JsValueIsGlobalObject", CallingConvention = CallingConvention.Cdecl)]
         private static extern bool JsValueIsGlobalObject(UIntPtr ctx, ValueHandle value);
 
-        [DllImport("QJS.dll", EntryPoint = "JsonStringify")]
+        [DllImport("QJS.dll", EntryPoint = "JsonStringify", CallingConvention = CallingConvention.Cdecl)]
         private static extern ValueHandle JsonStringify(UIntPtr ctx, ValueHandle value,
             ValueHandle replacer/*=TheJsUndefined()*/, ValueHandle space/*=TheJsUndefined()*/);
 
-        [DllImport("QJS.dll", EntryPoint = "JsonParse")]
+        [DllImport("QJS.dll", EntryPoint = "JsonParse", CallingConvention = CallingConvention.Cdecl)]
         private static extern ValueHandle JsonParse(UIntPtr ctx, byte[] json);
 
-        [DllImport("QJS.dll", EntryPoint = "GetAndClearJsLastException")]
+        [DllImport("QJS.dll", EntryPoint = "GetAndClearJsLastException", CallingConvention = CallingConvention.Cdecl)]
         private static extern ValueHandle GetAndClearJsLastException(UIntPtr ctx);
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         public delegate ValueHandle JsJobCallback(UIntPtr ctx, int argc, ref ValueHandle argv);
-        [DllImport("QJS.dll", EntryPoint = "EnqueueJob")]
+        [DllImport("QJS.dll", EntryPoint = "EnqueueJob", CallingConvention = CallingConvention.Cdecl)]
         private static extern bool EnqueueJob(UIntPtr ctx, JsJobCallback funcJob, ref ValueHandle args, int argc);
 
-        [DllImport("QJS.dll", EntryPoint = "ExecutePendingJob")]
+        [DllImport("QJS.dll", EntryPoint = "ExecutePendingJob", CallingConvention = CallingConvention.Cdecl)]
         private static extern int ExecutePendingJob(UIntPtr runtime, ref IntPtr outRawCtx);
 
-        [DllImport("QJS.dll", EntryPoint = "GetContextByRaw")]
+        [DllImport("QJS.dll", EntryPoint = "GetContextByRaw", CallingConvention = CallingConvention.Cdecl)]
         private static extern UIntPtr GetContextByRaw(UIntPtr runtime, IntPtr rawCtx);
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         public delegate bool _WaitForExecutingJobsCallback(UIntPtr rawCurCtx, int resExecutePendingJob, IntPtr user_data);
-        [DllImport("QJS.dll", EntryPoint = "WaitForExecutingJobs")]
+        [DllImport("QJS.dll", EntryPoint = "WaitForExecutingJobs", CallingConvention = CallingConvention.Cdecl)]
         private static extern int WaitForExecutingJobs(UIntPtr runtime, 
             Int32 loopIntervalMS, _WaitForExecutingJobsCallback cb, IntPtr user_data);
 
-        [DllImport("QJS.dll", EntryPoint = "SetDebuggerMode")]
+        [DllImport("QJS.dll", EntryPoint = "SetDebuggerMode", CallingConvention = CallingConvention.Cdecl)]
         private static extern void SetDebuggerMode(UIntPtr ctx, bool onoff);
 
-        [DllImport("QJS.dll", EntryPoint = "GetDebuggerMode")]
+        [DllImport("QJS.dll", EntryPoint = "GetDebuggerMode", CallingConvention = CallingConvention.Cdecl)]
         private static extern bool GetDebuggerMode(UIntPtr ctx);
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         public delegate void DebuggerLineCallback(UIntPtr ctx, UInt32 line_no, UIntPtr pc, IntPtr user_data);
-        [DllImport("QJS.dll", EntryPoint = "SetDebuggerLineCallback")]
+        [DllImport("QJS.dll", EntryPoint = "SetDebuggerLineCallback", CallingConvention = CallingConvention.Cdecl)]
         private static extern void SetDebuggerLineCallback(UIntPtr ctx, DebuggerLineCallback cb, IntPtr user_data);
 
-        [DllImport("QJS.dll", EntryPoint = "GetDebuggerLineCallback")]
+        [DllImport("QJS.dll", EntryPoint = "GetDebuggerLineCallback", CallingConvention = CallingConvention.Cdecl)]
         private static extern bool GetDebuggerLineCallback(UIntPtr ctx, ref DebuggerLineCallback out_cb, ref IntPtr out_user_data);
 
-        [DllImport("QJS.dll", EntryPoint = "GetDebuggerStackDepth")]
+        [DllImport("QJS.dll", EntryPoint = "GetDebuggerStackDepth", CallingConvention = CallingConvention.Cdecl)]
         private static extern UInt32 GetDebuggerStackDepth(UIntPtr ctx);
 
-        [DllImport("QJS.dll", EntryPoint = "GetDebuggerBacktrace")]
+        [DllImport("QJS.dll", EntryPoint = "GetDebuggerBacktrace", CallingConvention = CallingConvention.Cdecl)]
         private static extern ValueHandle GetDebuggerBacktrace(UIntPtr ctx, UIntPtr pc);
 
-        [DllImport("QJS.dll", EntryPoint = "GetDebuggerClosureVariables")]
+        [DllImport("QJS.dll", EntryPoint = "GetDebuggerClosureVariables", CallingConvention = CallingConvention.Cdecl)]
         private static extern ValueHandle GetDebuggerClosureVariables(UIntPtr ctx, int stack_idx);
 
-        [DllImport("QJS.dll", EntryPoint = "GetDebuggerLocalVariables")]
+        [DllImport("QJS.dll", EntryPoint = "GetDebuggerLocalVariables", CallingConvention = CallingConvention.Cdecl)]
         private static extern ValueHandle GetDebuggerLocalVariables(UIntPtr ctx, int stack_idx);
 
-        [DllImport("QJS.dll", EntryPoint = "LoadExtend")]
+        [DllImport("QJS.dll", EntryPoint = "LoadExtend", CallingConvention = CallingConvention.Cdecl)]
         private static extern int LoadExtend(UIntPtr ctx, string extendFile, ValueHandle parent, IntPtr userData/* = NULL*/);
 
-        [DllImport("QJS.dll", EntryPoint = "GetExtendList")]
+        [DllImport("QJS.dll", EntryPoint = "GetExtendList", CallingConvention = CallingConvention.Cdecl)]
         private static extern IntPtr GetExtendList(UIntPtr ctx, ref int outLen);
 
-        [DllImport("QJS.dll", EntryPoint = "GetExtendHandle")]
+        [DllImport("QJS.dll", EntryPoint = "GetExtendHandle", CallingConvention = CallingConvention.Cdecl)]
         private static extern UIntPtr GetExtendHandle(UIntPtr ctx, int extendId);
 
-        [DllImport("QJS.dll", EntryPoint = "GetExtendFile")]
+        [DllImport("QJS.dll", EntryPoint = "GetExtendFile", CallingConvention = CallingConvention.Cdecl)]
         private static extern IntPtr GetExtendFile(UIntPtr ctx, int extendId);
 
-        [DllImport("QJS.dll", EntryPoint = "GetExtendParentObject")]
+        [DllImport("QJS.dll", EntryPoint = "GetExtendParentObject", CallingConvention = CallingConvention.Cdecl)]
         private static extern ValueHandle GetExtendParentObject(UIntPtr ctx, int extendId);
 
-        [DllImport("QJS.dll", EntryPoint = "UnloadExtend")]
+        [DllImport("QJS.dll", EntryPoint = "UnloadExtend", CallingConvention = CallingConvention.Cdecl)]
         private static extern void UnloadExtend(UIntPtr ctx, int extendId);
 
-        [DllImport("QJS.dll", EntryPoint = "FreeValueHandle")]
+        [DllImport("QJS.dll", EntryPoint = "FreeValueHandle", CallingConvention = CallingConvention.Cdecl)]
         public static extern void FreeValueHandle(ref ValueHandle value);
         #endregion
-
-        UIntPtr m_runtime;
-        UIntPtr m_ctx;
 
         private static IntPtr StructArrayConvertToIntPtr(ValueHandle[] valArr)
         {
@@ -408,10 +407,42 @@ namespace QJSharp
             return structArray;
         }
 
+        UIntPtr m_runtime;
+        UIntPtr m_ctx;
+        string m_nativeDllDir;
+
+        [DllImport("kernel32.dll", CharSet=CharSet.Auto, SetLastError = true)]
+        static extern bool SetDllDirectory(string lpPathName);
+
+        [DllImport("kernel32.dll", SetLastError = true, CallingConvention = CallingConvention.Winapi)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        static extern bool IsWow64Process([In] IntPtr process, [Out] out bool wow64Process);
+
         public QJS()
         {
+            //https://stackoverflow.com/questions/4385806/determine-the-loaded-path-for-dlls/4385997
+            SetDllDirectory(null); // Reset.
+            SetDllDirectory("");   // Plug "binary planting" security hole.
+
+            string dllpath;
+            bool wow64Process = true;
+            IsWow64Process(Process.GetCurrentProcess().Handle, out wow64Process);
+            if (wow64Process)
+                dllpath = "runtimes\\win-x86\\native";
+            else
+                dllpath = "runtimes\\win-x64\\native";
+
+            m_nativeDllDir = $"{AppDomain.CurrentDomain.BaseDirectory}{dllpath}";  //BaseDirectory 有分隔符结尾
+            Console.WriteLine(m_nativeDllDir);
+            bool ret = SetDllDirectory(m_nativeDllDir);
+            if (!ret) 
+                throw new System.ComponentModel.Win32Exception();
+
             m_runtime = NewRuntime();
             m_ctx = NewContext(m_runtime);
+
+            SetDllDirectory(null); // Reset.
+            SetDllDirectory("");   // Plug "binary planting" security hole.
         }
         public void Dispose()
         {
@@ -960,23 +991,23 @@ namespace QJSharp
 
         public int LoadBaseExtend()
         {
-            return LoadExtend("JsExtendBase.dll", GetGlobalObject(), IntPtr.Zero);
+            return LoadExtend(Path.Combine(m_nativeDllDir, "JsExtendBase.dll"), GetGlobalObject(), IntPtr.Zero);
         }
         public int LoadDebuggerExtend()
         {
-            return LoadExtend("JsExtendDebugger.dll", GetGlobalObject(), IntPtr.Zero);
+            return LoadExtend(Path.Combine(m_nativeDllDir, "JsExtendDebugger.dll"), GetGlobalObject(), IntPtr.Zero);
         }
         public int LoadFileExtend()
         {
-            return LoadExtend("JsExtendFile.dll", GetGlobalObject(), IntPtr.Zero);
+            return LoadExtend(Path.Combine(m_nativeDllDir, "JsExtendFile.dll"), GetGlobalObject(), IntPtr.Zero);
         }
         public int LoadPathExtend()
         {
-            return LoadExtend("JsExtendPath.dll", GetGlobalObject(), IntPtr.Zero);
+            return LoadExtend(Path.Combine(m_nativeDllDir, "JsExtendPath.dll"), GetGlobalObject(), IntPtr.Zero);
         }
         public int LoadRegExtend()
         {
-            return LoadExtend("JsExtendReg.dll", GetGlobalObject(), IntPtr.Zero);
+            return LoadExtend(Path.Combine(m_nativeDllDir, "JsExtendReg.dll"), GetGlobalObject(), IntPtr.Zero);
         }
     }
 

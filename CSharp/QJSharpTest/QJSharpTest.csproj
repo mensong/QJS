@@ -6,10 +6,11 @@
     <Nullable>enable</Nullable>
     <UseWindowsForms>true</UseWindowsForms>
     <ImplicitUsings>enable</ImplicitUsings>
+    <Platforms>AnyCPU;x64;x86</Platforms>
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\QJSharp\QJSharp.csproj" />
+    <ProjectReference Include="..\QJSharp.netstandard\QJSharp.netstandard.csproj" />
   </ItemGroup>
 
 </Project>

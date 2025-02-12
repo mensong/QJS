@@ -1,0 +1,114 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <AssemblyName>QJSharp</AssemblyName>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
+    <Title>QJSharp-Javascript-Engine</Title>
+    <Company>Mensong</Company>
+    <Authors>Mensong</Authors>
+    <Description>一个基于quickjs的C# js嵌入式引擎</Description>
+    <PackageProjectUrl>https://github.com/mensong</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/mensong/QJS</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>qjs;jsengine;javascriptengine;quickjs;javascript</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <Version>$([System.DateTime]::UtcNow.ToString("yyyy.MM.dd.HHmm"))</Version>
+    <Platforms>AnyCPU;x64;x86</Platforms>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="CopyQJS_DLL.BAT" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\README.md">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Update="Properties\Resources.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Resources.resx</DependentUpon>
+    </Compile>
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Update="Properties\Resources.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="runtimes\win-x64\native\JsExtendBase.dll">
+      <Pack>true</Pack>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="runtimes\win-x64\native\JsExtendDebugger.dll">
+      <Pack>true</Pack>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="runtimes\win-x64\native\JsExtendFile.dll">
+      <Pack>true</Pack>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="runtimes\win-x64\native\JsExtendPath.dll">
+      <Pack>true</Pack>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="runtimes\win-x64\native\JsExtendReg.dll">
+      <Pack>true</Pack>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="runtimes\win-x64\native\QJS.dll">
+      <Pack>true</Pack>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="runtimes\win-x64\native\StringConvert.dll">
+      <Pack>true</Pack>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="runtimes\win-x86\native\JsExtendBase.dll">
+      <Pack>true</Pack>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="runtimes\win-x86\native\JsExtendDebugger.dll">
+      <Pack>true</Pack>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="runtimes\win-x86\native\JsExtendFile.dll">
+      <Pack>true</Pack>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="runtimes\win-x86\native\JsExtendPath.dll">
+      <Pack>true</Pack>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="runtimes\win-x86\native\JsExtendReg.dll">
+      <Pack>true</Pack>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="runtimes\win-x86\native\QJS.dll">
+      <Pack>true</Pack>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="runtimes\win-x86\native\StringConvert.dll">
+      <Pack>true</Pack>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+  <Target Name="SetVersion" BeforeTargets="BeforeBuild">
+    <PropertyGroup>
+      <BuildDate>$([System.DateTime]::UtcNow.ToString("yyyy.MM.dd.HHmm"))</BuildDate>
+      <AssemblyVersion>$(BuildDate)</AssemblyVersion>
+      <FileVersion>$(BuildDate)</FileVersion>
+      <InformationalVersion>$(BuildDate)</InformationalVersion>
+    </PropertyGroup>
+  </Target>
+
+</Project>
