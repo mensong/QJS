@@ -10,7 +10,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\QJSharp.netstandard\QJSharp.netstandard.csproj" />
+    <PackageReference Include="QJS" Version="1.0.0" />
   </ItemGroup>
 
 </Project>
